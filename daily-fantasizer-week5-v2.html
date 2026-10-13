@@ -89,7 +89,7 @@ p{margin:0} figure{margin:0}
 .strip-bar .seg:first-child{border-radius:3px 0 0 3px}.strip-bar .seg:last-child{border-radius:0 3px 3px 0}
 
 /* front */
-.front{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,.95fr);gap:26px;align-items:start}
+.front{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:26px;align-items:start}
 .lead{display:grid;gap:12px;align-content:start}
 .lead h2{font-size:clamp(2.4rem,6vw,4.2rem);font-weight:900;text-transform:uppercase}
 .lead .deck{font-size:1.12rem;font-style:italic;color:var(--muted)}
@@ -106,27 +106,6 @@ p{margin:0} figure{margin:0}
 .minibars i.b.alt{background:var(--honolulu)}
 .box.hi .minibars i.b{background:var(--hi-ink)}
 .box.hi .minibars i.b.alt{background:var(--blue)}
-
-/* memes */
-.meme{border:3px solid var(--rule);background:var(--sheet);padding:16px;display:grid;gap:8px;position:relative;align-content:start}
-.meme::before{content:"MEME DESK";position:absolute;top:-11px;left:12px;background:var(--rule);color:var(--sheet);font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;padding:2px 7px}
-.meme-nobody .m-setup{font-family:var(--mono);font-size:.92rem;color:var(--muted)}
-.meme-nobody .m-line{font-family:var(--mono);font-size:.92rem}
-.meme-nobody .m-punch{font-size:clamp(3rem,8vw,4.6rem);font-weight:600;color:var(--red);line-height:1}
-.meme figcaption{font-size:.84rem;color:var(--muted)}
-.meme-expect{max-width:640px;justify-self:center;width:100%}
-.meme-expect figcaption{font-family:var(--display);font-weight:800;font-size:1.4rem;text-transform:uppercase;color:var(--ink)}
-.m-two{display:grid;grid-template-columns:1fr 1fr;gap:3px;background:var(--rule);border:3px solid var(--rule)}
-.m-two>div{background:var(--paper);padding:14px;display:grid;gap:6px;align-content:start;position:relative;min-height:130px}
-.m-two>div:last-child{background:var(--hi);color:var(--hi-ink)}
-.m-lab{font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75}
-.m-two p{font-family:var(--display);font-weight:800;font-size:1.35rem;line-height:1.05}
-.m-face{position:absolute;right:10px;bottom:6px;font-size:2rem}
-.meme-fine{background:repeating-linear-gradient(-45deg,transparent 0 10px,rgba(179,38,30,.07) 10px 20px),var(--sheet)}
-.m-flames{font-size:1.8rem;letter-spacing:.2em}
-.meme-fine figcaption{font-family:var(--display);font-weight:800;font-size:1.3rem;text-transform:uppercase;color:var(--ink)}
-.meme-fine p{font-size:.92rem}
-.meme-fine .m-punch{font-family:var(--display);font-weight:900;font-size:2rem;color:var(--red);text-transform:uppercase}
 
 /* sections */
 .sec{display:grid;gap:16px;align-content:start;min-width:0}
@@ -265,7 +244,34 @@ p{margin:0} figure{margin:0}
 .pa-b.proj{background:repeating-linear-gradient(135deg,var(--muted) 0 2px,transparent 2px 5px);border:1px solid var(--muted)}
 .pa-b.act{background:var(--red)}
 .poster p{font-size:.86rem}
-.crime-side{display:grid;gap:22px}
+
+
+
+/* trade rumors */
+.rum-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;background:var(--rule);border:2px solid var(--rule)}
+.rs{background:var(--sheet);padding:12px 14px;display:grid;gap:2px;min-width:0}
+.rs b{font-size:2rem;line-height:1}
+.rs span{font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rs.hot{background:var(--hi);color:var(--hi-ink)}.rs.hot span{color:var(--hi-ink)}
+.rs.hot small{font-size:.82rem}
+.rumors{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px}
+.rumor{border:2px solid var(--rule);background:var(--sheet);display:grid;align-content:start;position:relative;min-width:0}
+.ru-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-bottom:2px solid var(--rule)}
+.ru-head .kicker{color:var(--ink)}
+.stamp{font-family:var(--display);font-weight:900;font-size:1rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border:2.5px solid currentColor;transform:rotate(-4deg);white-space:nowrap}
+.stamp.dec{color:var(--red)}.stamp.exp{color:var(--muted)}.stamp.acc{color:var(--blue)}.stamp.pen{color:var(--honolulu)}
+.ru-body{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;padding:12px;align-items:start}
+.ru-side{display:grid;gap:5px;min-width:0}
+.ru-side>.tm{font-size:.86rem;margin-bottom:2px}
+.ru-arrow{font-family:var(--mono);font-size:1.3rem;color:var(--muted);align-self:center}
+.pl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center;font-size:.84rem}
+.pl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl b{font-family:var(--mono);font-size:.76rem;font-weight:600}
+.pl-bar{grid-column:1/-1;height:5px;background:var(--paper);position:relative;border-radius:2px;overflow:hidden}
+.pl-bar i{position:absolute;inset:0 auto 0 0;background:var(--blue)}
+.ru-side.get .pl-bar i{background:var(--honolulu)}
+.ru-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 12px;border-top:1px dashed var(--line);font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.ru-foot b{color:var(--ink);font-weight:600}
 
 /* table */
 .tbl-wrap{overflow-x:auto}
@@ -323,8 +329,6 @@ footer{border-top:3px solid var(--rule);padding-top:10px;font-family:var(--mono)
 footer b{color:var(--honolulu);font-weight:600}
 
 @media (max-width:1000px){
-  .front{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-  .front .lead{grid-column:1/-1}
   .tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
   .tile:nth-child(3){border-right:none}
   .tile:nth-child(-n+3){border-bottom:1px solid rgba(255,255,255,.22)}
@@ -355,8 +359,10 @@ footer b{color:var(--honolulu);font-weight:600}
   .strip{grid-template-columns:86px minmax(0,1fr);gap:6px}
   .strip-n{font-size:.82rem}
   .seg{font-size:.56rem;padding-inline:3px}
-  .m-two p{font-size:1.1rem}
   .wire-row{grid-template-columns:auto 84px minmax(0,1fr)}
+  .rum-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ru-body{grid-template-columns:minmax(0,1fr);gap:8px}
+  .ru-arrow{transform:rotate(90deg);justify-self:center}
   .q{font-size:.52rem}
   .dot .lg{width:22px;height:22px}
 }
@@ -394,7 +400,6 @@ footer b{color:var(--honolulu);font-weight:600}
 <section class="front">
   <article class="lead"><span class="kicker">Page one</span><h2>Beefy Goes Perfect: 164.2</h2><p class="deck">Season-high score. Zero points left on the bench. Four players combined for 133.0.</p><p><span class="tm"><i class="lg lg-8 " aria-hidden="true"></i>Big Beefy Boys</span> posted the best total of the season, beating the old mark of 161.28. The best possible lineup from that roster? Also 164.2.</p><p><span class="tm"><i class="lg lg-6 " aria-hidden="true"></i>IDK</span> went perfect too, scoring 104.6 with nothing on the bench. It lost by 59.6. Beefy now leads the league in points for at 671.96.</p></article>
   <aside class="side-col"><div class="box hi"><span class="kicker">Strange but true</span><h3>Best Game: Benched</h3><div class="minibars"><div><span>Maye (bench)</span><i class="b alt" style="width:100.0%"></i><span class="num">39.46</span></div><div><span>Gibbs</span><i class="b" style="width:95.5%"></i><span class="num">37.7</span></div><div><span>Nacua</span><i class="b" style="width:95.5%"></i><span class="num">37.7</span></div></div><p><span class="tm"><i class="lg lg-10 " aria-hidden="true"></i>Pink Pony</span> sat Drake Maye. He outscored every starter in the league. Pony won anyway.</p></div><div class="box"><span class="kicker">The record is lying</span><h3>Same Points, Two Wins Apart</h3><div class="minibars" aria-label="Actual wins versus all-play expected wins"><div class="mb-team"><span class="tm"><i class="lg lg-2 " aria-hidden="true"></i>Doughboys</span></div><div><span>Actual</span><i class="b" style="width:100.0%"></i><span class="num">4.00</span></div><div><span>Earned</span><i class="b alt" style="width:77.2%"></i><span class="num">3.09</span></div><div class="mb-team"><span class="tm"><i class="lg lg-11 " aria-hidden="true"></i>Kazakhstan</span></div><div><span>Actual</span><i class="b" style="width:50.0%"></i><span class="num">2.00</span></div><div><span>Earned</span><i class="b alt" style="width:81.8%"></i><span class="num">3.27</span></div></div><p><span class="tm"><i class="lg lg-2 " aria-hidden="true"></i>Doughboys</span>: 642.42 pts, 4–1. <span class="tm"><i class="lg lg-11 " aria-hidden="true"></i>Kazakhstan</span>: 641.08 pts, 2–3.</p></div></aside>
-  <figure class="meme meme-nobody"><p class="m-setup">Nobody:</p><p class="m-line">Tyler Shough, starting at QB for CeeDeez Nuts:</p><p class="m-punch num">−0.16</p><figcaption>Sam Darnold scored 8.3 on the bench.</figcaption></figure>
 </section>
 
 <section class="twocol">
@@ -458,8 +463,6 @@ footer b{color:var(--honolulu);font-weight:600}
 <div class="lane"><span class="lane-t"><i class="lg lg-8 " aria-hidden="true"></i></span><span class="lane-track"><span class="lane-bar w" style="width:100.0%"></span><span class="lane-opt" style="left:100.0%" title="Best lineup 164.20"></span></span><b class="num">164.20</b></div><div class="lane"><span class="lane-t"><i class="lg lg-6 " aria-hidden="true"></i></span><span class="lane-track"><span class="lane-bar l" style="width:63.7%"></span><span class="lane-opt" style="left:63.7%" title="Best lineup 104.60"></span></span><b class="num">104.60</b></div><h3>See Page One</h3><p>Gibbs 37.7, Warren 36.8, Allen 30.5, Pickens 28.0.</p></article></div>
 </section>
 
-<figure class="meme meme-expect"><figcaption><i class="lg lg-10 " aria-hidden="true"></i> Pink Pony&#x27;s QB decision</figcaption><div class="m-two"><div><span class="m-lab">Projection</span><p>Goff 19.4 · Maye 18.5. Start Goff. Easy.</p><span class="m-face" aria-hidden="true">😎</span></div><div><span class="m-lab">Reality</span><p>Maye 39.46. On the bench.</p><span class="m-face" aria-hidden="true">😐</span></div></div></figure>
-
 <section class="honor" aria-label="Manager of the week"><i class="lg lg-8 lg-lg" aria-hidden="true"></i>
 <div class="big num">0.00<small>pts left on bench</small></div>
 <div><span class="kicker">Manager of the week</span><h3>Big Beefy Boys</h3><p>Nathan's lineup was perfect and posted the season's best score. A week ago it left 46 on the bench in a 4-point loss.</p></div></section>
@@ -505,7 +508,6 @@ footer b{color:var(--honolulu);font-weight:600}
 <span class="pa-l">Found</span><span class="pa-t"><span class="pa-b act" style="width:8.1%"></span></span><span class="num">1.6</span></div>
 <p>1.6 from the flex.</p></div></div>
     </div>
-    <figure class="meme meme-fine"><div class="m-flames" aria-hidden="true">🔥☕🔥</div><figcaption><i class="lg lg-3 " aria-hidden="true"></i> 8D, week 5</figcaption><p>Starts two players projected for zero. Second straight week.</p><p class="m-punch">0–5. This is fine.</p></figure>
   </div>
 </section>
 
@@ -580,6 +582,11 @@ footer b{color:var(--honolulu);font-weight:600}
 <td class="note">0–5. Never cleared 99.</td></tr></tbody>
   </table>
   </div>
+</section>
+
+<section class="sec" id="rumors">
+  <div class="sec-head"><h2>Trade Rumors</h2><span class="kicker">Offers out of the Chimpanzini front office · bars = week 5 points</span></div>
+  <div class="rum-stats"><div class="rs"><b class="num">8</b><span>Offers sent</span></div><div class="rs"><b class="num">3</b><span>Declined</span></div><div class="rs"><b class="num">5</b><span>Ignored / expired</span></div><div class="rs hot"><b class="num">4×</b><span>Most shopped</span><small>Isaiah Likely: 32.4 pts in week 5</small></div></div><div class="rumors"><article class="rumor"><div class="ru-head"><span class="kicker">Week 5 offer · Chimpanzini → Pink Pony</span><span class="stamp dec">Declined</span></div><div class="ru-body"><div class="ru-side give"><span class="tm"><i class="lg lg-1 " aria-hidden="true"></i>Chimpanzini</span><div class="pl"><span>Ollie Gordon II</span><b>14.8</b><span class="pl-bar"><i style="width:39.3%"></i></span></div><div class="pl"><span>DJ Moore</span><b>0</b><span class="pl-bar"><i style="width:0.0%"></i></span></div><div class="pl"><span>Parker Washington</span><b>30.4</b><span class="pl-bar"><i style="width:80.6%"></i></span></div></div><span class="ru-arrow" aria-hidden="true">⇄</span><div class="ru-side get"><span class="tm"><i class="lg lg-10 " aria-hidden="true"></i>Pink Pony</span><div class="pl"><span>Drake London</span><b>18.8</b><span class="pl-bar"><i style="width:49.9%"></i></span></div></div></div><div class="ru-foot"><span>Week 5: offered <b class="num">45.2</b> for <b class="num">18.8</b></span><span>declined after 34 hrs</span></div></article><article class="rumor"><div class="ru-head"><span class="kicker">Week 4 offer · Chimpanzini → CeeDeez Nuts</span><span class="stamp dec">Declined</span></div><div class="ru-body"><div class="ru-side give"><span class="tm"><i class="lg lg-1 " aria-hidden="true"></i>Chimpanzini</span><div class="pl"><span>DJ Moore</span><b>0</b><span class="pl-bar"><i style="width:0.0%"></i></span></div><div class="pl"><span>Omarion Hampton</span><b>4.9</b><span class="pl-bar"><i style="width:13.0%"></i></span></div></div><span class="ru-arrow" aria-hidden="true">⇄</span><div class="ru-side get"><span class="tm"><i class="lg lg-5 " aria-hidden="true"></i>CeeDeez Nuts</span><div class="pl"><span>James Cook III</span><b>22.8</b><span class="pl-bar"><i style="width:60.5%"></i></span></div></div></div><div class="ru-foot"><span>Week 5: offered <b class="num">4.9</b> for <b class="num">22.8</b></span><span>declined after 8 hrs</span></div></article><article class="rumor"><div class="ru-head"><span class="kicker">Week 4 offer · Chimpanzini → Beefy Boys</span><span class="stamp dec">Declined</span></div><div class="ru-body"><div class="ru-side give"><span class="tm"><i class="lg lg-1 " aria-hidden="true"></i>Chimpanzini</span><div class="pl"><span>Isaiah Likely</span><b>32.4</b><span class="pl-bar"><i style="width:85.9%"></i></span></div><div class="pl"><span>DJ Moore</span><b>0</b><span class="pl-bar"><i style="width:0.0%"></i></span></div><div class="pl"><span>Jonathan Taylor</span><b>11.2</b><span class="pl-bar"><i style="width:29.7%"></i></span></div></div><span class="ru-arrow" aria-hidden="true">⇄</span><div class="ru-side get"><span class="tm"><i class="lg lg-8 " aria-hidden="true"></i>Beefy Boys</span><div class="pl"><span>Jahmyr Gibbs</span><b>37.7</b><span class="pl-bar"><i style="width:100.0%"></i></span></div></div></div><div class="ru-foot"><span>Week 5: offered <b class="num">43.6</b> for <b class="num">37.7</b></span><span>declined after 22 min</span></div></article><article class="rumor"><div class="ru-head"><span class="kicker">Week 4 offer · Chimpanzini → Doughboys</span><span class="stamp exp">Expired</span></div><div class="ru-body"><div class="ru-side give"><span class="tm"><i class="lg lg-1 " aria-hidden="true"></i>Chimpanzini</span><div class="pl"><span>Kyler Murray</span><b>18.26</b><span class="pl-bar"><i style="width:48.4%"></i></span></div></div><span class="ru-arrow" aria-hidden="true">⇄</span><div class="ru-side get"><span class="tm"><i class="lg lg-2 " aria-hidden="true"></i>Doughboys</span><div class="pl"><span>Trevor Lawrence</span><b>21.74</b><span class="pl-bar"><i style="width:57.7%"></i></span></div></div></div><div class="ru-foot"><span>Week 5: offered <b class="num">18.3</b> for <b class="num">21.7</b></span><span>expired after 48 hrs</span></div></article><article class="rumor"><div class="ru-head"><span class="kicker">Week 4 offer · Chimpanzini → Bruisers</span><span class="stamp exp">Expired</span></div><div class="ru-body"><div class="ru-side give"><span class="tm"><i class="lg lg-1 " aria-hidden="true"></i>Chimpanzini</span><div class="pl"><span>Ollie Gordon II</span><b>14.8</b><span class="pl-bar"><i style="width:39.3%"></i></span></div><div class="pl"><span>Parker Washington</span><b>30.4</b><span class="pl-bar"><i style="width:80.6%"></i></span></div></div><span class="ru-arrow" aria-hidden="true">⇄</span><div class="ru-side get"><span class="tm"><i class="lg lg-4 " aria-hidden="true"></i>Bruisers</span><div class="pl"><span>Nico Collins</span><b>10.6</b><span class="pl-bar"><i style="width:28.1%"></i></span></div></div></div><div class="ru-foot"><span>Week 5: offered <b class="num">45.2</b> for <b class="num">10.6</b></span><span>expired after 48 hrs</span></div></article><article class="rumor"><div class="ru-head"><span class="kicker">Week 2 offer · Chimpanzini → Bruisers</span><span class="stamp exp">Expired</span></div><div class="ru-body"><div class="ru-side give"><span class="tm"><i class="lg lg-1 " aria-hidden="true"></i>Chimpanzini</span><div class="pl"><span>Bhayshul Tuten</span><b>11.6</b><span class="pl-bar"><i style="width:30.8%"></i></span></div><div class="pl"><span>Isaiah Likely</span><b>32.4</b><span class="pl-bar"><i style="width:85.9%"></i></span></div></div><span class="ru-arrow" aria-hidden="true">⇄</span><div class="ru-side get"><span class="tm"><i class="lg lg-4 " aria-hidden="true"></i>Bruisers</span><div class="pl"><span>Saquon Barkley</span><b>0</b><span class="pl-bar"><i style="width:0.0%"></i></span></div></div></div><div class="ru-foot"><span>Week 5: offered <b class="num">44.0</b> for <b class="num">0.0</b></span><span>expired after 31 hrs</span></div></article><article class="rumor"><div class="ru-head"><span class="kicker">Week 2 offer · Chimpanzini → Bruisers</span><span class="stamp exp">Expired</span></div><div class="ru-body"><div class="ru-side give"><span class="tm"><i class="lg lg-1 " aria-hidden="true"></i>Chimpanzini</span><div class="pl"><span>Parker Washington</span><b>30.4</b><span class="pl-bar"><i style="width:80.6%"></i></span></div><div class="pl"><span>Bhayshul Tuten</span><b>11.6</b><span class="pl-bar"><i style="width:30.8%"></i></span></div><div class="pl"><span>Isaiah Likely</span><b>32.4</b><span class="pl-bar"><i style="width:85.9%"></i></span></div><div class="pl"><span>DJ Moore</span><b>0</b><span class="pl-bar"><i style="width:0.0%"></i></span></div></div><span class="ru-arrow" aria-hidden="true">⇄</span><div class="ru-side get"><span class="tm"><i class="lg lg-4 " aria-hidden="true"></i>Bruisers</span><div class="pl"><span>Nico Collins</span><b>10.6</b><span class="pl-bar"><i style="width:28.1%"></i></span></div><div class="pl"><span>Saquon Barkley</span><b>0</b><span class="pl-bar"><i style="width:0.0%"></i></span></div></div></div><div class="ru-foot"><span>Week 5: offered <b class="num">74.4</b> for <b class="num">10.6</b></span><span>expired after 24 hrs</span></div></article><article class="rumor"><div class="ru-head"><span class="kicker">Week 2 offer · Chimpanzini → Bedazzled Balls</span><span class="stamp exp">Expired</span></div><div class="ru-body"><div class="ru-side give"><span class="tm"><i class="lg lg-1 " aria-hidden="true"></i>Chimpanzini</span><div class="pl"><span>Isaiah Likely</span><b>32.4</b><span class="pl-bar"><i style="width:85.9%"></i></span></div></div><span class="ru-arrow" aria-hidden="true">⇄</span><div class="ru-side get"><span class="tm"><i class="lg lg-12 " aria-hidden="true"></i>Bedazzled Balls</span><div class="pl"><span>Joe Burrow</span><b>24.6</b><span class="pl-bar"><i style="width:65.3%"></i></span></div></div></div><div class="ru-foot"><span>Week 5: offered <b class="num">32.4</b> for <b class="num">24.6</b></span><span>expired after 48 hrs</span></div></article></div>
 </section>
 
 <section class="sec" id="wire">

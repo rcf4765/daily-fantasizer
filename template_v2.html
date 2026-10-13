@@ -78,7 +78,7 @@ p{margin:0} figure{margin:0}
 .strip-bar .seg:first-child{border-radius:3px 0 0 3px}.strip-bar .seg:last-child{border-radius:0 3px 3px 0}
 
 /* front */
-.front{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,.95fr);gap:26px;align-items:start}
+.front{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:26px;align-items:start}
 .lead{display:grid;gap:12px;align-content:start}
 .lead h2{font-size:clamp(2.4rem,6vw,4.2rem);font-weight:900;text-transform:uppercase}
 .lead .deck{font-size:1.12rem;font-style:italic;color:var(--muted)}
@@ -95,27 +95,6 @@ p{margin:0} figure{margin:0}
 .minibars i.b.alt{background:var(--honolulu)}
 .box.hi .minibars i.b{background:var(--hi-ink)}
 .box.hi .minibars i.b.alt{background:var(--blue)}
-
-/* memes */
-.meme{border:3px solid var(--rule);background:var(--sheet);padding:16px;display:grid;gap:8px;position:relative;align-content:start}
-.meme::before{content:"MEME DESK";position:absolute;top:-11px;left:12px;background:var(--rule);color:var(--sheet);font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;padding:2px 7px}
-.meme-nobody .m-setup{font-family:var(--mono);font-size:.92rem;color:var(--muted)}
-.meme-nobody .m-line{font-family:var(--mono);font-size:.92rem}
-.meme-nobody .m-punch{font-size:clamp(3rem,8vw,4.6rem);font-weight:600;color:var(--red);line-height:1}
-.meme figcaption{font-size:.84rem;color:var(--muted)}
-.meme-expect{max-width:640px;justify-self:center;width:100%}
-.meme-expect figcaption{font-family:var(--display);font-weight:800;font-size:1.4rem;text-transform:uppercase;color:var(--ink)}
-.m-two{display:grid;grid-template-columns:1fr 1fr;gap:3px;background:var(--rule);border:3px solid var(--rule)}
-.m-two>div{background:var(--paper);padding:14px;display:grid;gap:6px;align-content:start;position:relative;min-height:130px}
-.m-two>div:last-child{background:var(--hi);color:var(--hi-ink)}
-.m-lab{font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75}
-.m-two p{font-family:var(--display);font-weight:800;font-size:1.35rem;line-height:1.05}
-.m-face{position:absolute;right:10px;bottom:6px;font-size:2rem}
-.meme-fine{background:repeating-linear-gradient(-45deg,transparent 0 10px,rgba(179,38,30,.07) 10px 20px),var(--sheet)}
-.m-flames{font-size:1.8rem;letter-spacing:.2em}
-.meme-fine figcaption{font-family:var(--display);font-weight:800;font-size:1.3rem;text-transform:uppercase;color:var(--ink)}
-.meme-fine p{font-size:.92rem}
-.meme-fine .m-punch{font-family:var(--display);font-weight:900;font-size:2rem;color:var(--red);text-transform:uppercase}
 
 /* sections */
 .sec{display:grid;gap:16px;align-content:start;min-width:0}
@@ -254,7 +233,34 @@ p{margin:0} figure{margin:0}
 .pa-b.proj{background:repeating-linear-gradient(135deg,var(--muted) 0 2px,transparent 2px 5px);border:1px solid var(--muted)}
 .pa-b.act{background:var(--red)}
 .poster p{font-size:.86rem}
-.crime-side{display:grid;gap:22px}
+
+
+
+/* trade rumors */
+.rum-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;background:var(--rule);border:2px solid var(--rule)}
+.rs{background:var(--sheet);padding:12px 14px;display:grid;gap:2px;min-width:0}
+.rs b{font-size:2rem;line-height:1}
+.rs span{font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rs.hot{background:var(--hi);color:var(--hi-ink)}.rs.hot span{color:var(--hi-ink)}
+.rs.hot small{font-size:.82rem}
+.rumors{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px}
+.rumor{border:2px solid var(--rule);background:var(--sheet);display:grid;align-content:start;position:relative;min-width:0}
+.ru-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-bottom:2px solid var(--rule)}
+.ru-head .kicker{color:var(--ink)}
+.stamp{font-family:var(--display);font-weight:900;font-size:1rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border:2.5px solid currentColor;transform:rotate(-4deg);white-space:nowrap}
+.stamp.dec{color:var(--red)}.stamp.exp{color:var(--muted)}.stamp.acc{color:var(--blue)}.stamp.pen{color:var(--honolulu)}
+.ru-body{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;padding:12px;align-items:start}
+.ru-side{display:grid;gap:5px;min-width:0}
+.ru-side>.tm{font-size:.86rem;margin-bottom:2px}
+.ru-arrow{font-family:var(--mono);font-size:1.3rem;color:var(--muted);align-self:center}
+.pl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center;font-size:.84rem}
+.pl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl b{font-family:var(--mono);font-size:.76rem;font-weight:600}
+.pl-bar{grid-column:1/-1;height:5px;background:var(--paper);position:relative;border-radius:2px;overflow:hidden}
+.pl-bar i{position:absolute;inset:0 auto 0 0;background:var(--blue)}
+.ru-side.get .pl-bar i{background:var(--honolulu)}
+.ru-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 12px;border-top:1px dashed var(--line);font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.ru-foot b{color:var(--ink);font-weight:600}
 
 /* table */
 .tbl-wrap{overflow-x:auto}
@@ -312,8 +318,6 @@ footer{border-top:3px solid var(--rule);padding-top:10px;font-family:var(--mono)
 footer b{color:var(--honolulu);font-weight:600}
 
 @media (max-width:1000px){
-  .front{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-  .front .lead{grid-column:1/-1}
   .tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
   .tile:nth-child(3){border-right:none}
   .tile:nth-child(-n+3){border-bottom:1px solid rgba(255,255,255,.22)}
@@ -344,8 +348,10 @@ footer b{color:var(--honolulu);font-weight:600}
   .strip{grid-template-columns:86px minmax(0,1fr);gap:6px}
   .strip-n{font-size:.82rem}
   .seg{font-size:.56rem;padding-inline:3px}
-  .m-two p{font-size:1.1rem}
   .wire-row{grid-template-columns:auto 84px minmax(0,1fr)}
+  .rum-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ru-body{grid-template-columns:minmax(0,1fr);gap:8px}
+  .ru-arrow{transform:rotate(90deg);justify-self:center}
   .q{font-size:.52rem}
   .dot .lg{width:22px;height:22px}
 }
@@ -376,7 +382,6 @@ footer b{color:var(--honolulu);font-weight:600}
 <section class="front">
   <!--LEAD-->
   <aside class="side-col"><!--SIDEBAR--></aside>
-  <!--MEME1-->
 </section>
 
 <section class="twocol">
@@ -394,8 +399,6 @@ footer b{color:var(--honolulu);font-weight:600}
   <div class="sec-head"><h2>The Scoreboard</h2><span class="kicker">Closest first · yellow tick = best possible lineup</span></div>
   <div class="games"><!--GAMES--></div>
 </section>
-
-<!--MEME2-->
 
 <!--HONOR-->
 
@@ -420,7 +423,6 @@ footer b{color:var(--honolulu);font-weight:600}
       <div class="sec-head"><h2>Missing Persons</h2><span class="kicker">Last seen near their projection</span></div>
       <div class="missing"><!--MISSING--></div>
     </div>
-    <!--MEME3-->
   </div>
 </section>
 
@@ -443,6 +445,11 @@ footer b{color:var(--honolulu);font-weight:600}
     <tbody><!--PECKING--></tbody>
   </table>
   </div>
+</section>
+
+<section class="sec" id="rumors">
+  <div class="sec-head"><h2>Trade Rumors</h2><span class="kicker">Offers out of the Chimpanzini front office · bars = week {{WEEK}} points</span></div>
+  <!--RUMORS-->
 </section>
 
 <section class="sec" id="wire">

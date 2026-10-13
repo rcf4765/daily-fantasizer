@@ -79,20 +79,6 @@ def viz(v):
     return ""
 sidebar = "".join(f'<div class="box{" hi" if b.get("style") == "hi" else ""}"><span class="kicker">{esc(b["kicker"])}</span><h3>{esc(b["title"])}</h3>{viz(b.get("viz"))}<p>{fill(b["text"])}</p></div>' for b in C["sidebar"])
 
-# ---------- memes ----------
-def meme(m):
-    if m["format"] == "nobody":
-        return (f'<figure class="meme meme-nobody"><p class="m-setup">{esc(m["setup"])}</p><p class="m-line">{esc(m["line"])}</p>'
-                f'<p class="m-punch num">{esc(m["punch"])}</p><figcaption>{esc(m["foot"])}</figcaption></figure>')
-    if m["format"] == "expect":
-        return (f'<figure class="meme meme-expect"><figcaption>{lg(m["team"])} {esc(m["title"])}</figcaption><div class="m-two">'
-                f'<div><span class="m-lab">{esc(m["left_label"])}</span><p>{esc(m["left"])}</p><span class="m-face" aria-hidden="true">😎</span></div>'
-                f'<div><span class="m-lab">{esc(m["right_label"])}</span><p>{esc(m["right"])}</p><span class="m-face" aria-hidden="true">😐</span></div></div></figure>')
-    if m["format"] == "fine":
-        return (f'<figure class="meme meme-fine"><div class="m-flames" aria-hidden="true">🔥☕🔥</div><figcaption>{lg(m["team"])} {esc(m["title"])}</figcaption>'
-                f'<p>{esc(m["line"])}</p><p class="m-punch">{esc(m["punch"])}</p></figure>')
-    return ""
-memes = [meme(m) for m in C.get("memes", [])] + ["", "", ""]
 
 # ---------- scoreboard (actual + bench) ----------
 MAX = math.ceil((max(TF[t]["optimal"] for t in TF) + 5) / 10) * 10
@@ -242,6 +228,64 @@ for tx in F["transactions"]:
     wire.append(f'<div class="wire-row">{lg(t, "lg-sm")}<span class="wire-t">{esc(SHORT[t])}<em>{esc(tx["kind"])}</em></span><span class="chips">{chips}</span></div>')
 wire_html = "".join(wire)
 
+
+# ---------- trade rumors (from data/trades.json; only offers ESPN shows this account) ----------
+import os, datetime as _dt
+from collections import Counter
+rumors = ""
+if os.path.exists("data/trades.json"):
+    TR = json.load(open("data/trades.json"))["trades"]
+    PTS = {}; cur = None  # week-W points for every rostered player, from the raw dump
+    for line in open(f"data/week{W}_raw.txt", encoding="utf-8"):
+        line = line.rstrip("\n")
+        if line == "ROSTERS": cur = 0; continue
+        if cur is None: continue
+        if line.startswith("#"): cur = int(line[1:]); continue
+        if "|" not in line: break
+        n, pos, sl, pts, pr = line.split("|"); PTS[n] = float(pts)
+    def P(x): return _dt.datetime.fromisoformat(x.rstrip("Z"))
+    def sig(t): return sorted((i["player"], i["from"], i["to"]) for i in t["items"])
+    props = [t for t in TR if t["type"] == "TRADE_PROPOSAL" and t["status"] == "PENDING" and t["items"]]
+    offers = []
+    for pr in props:
+        end = next((t for t in TR if t["type"] == "TRADE_PROPOSAL" and t["status"] in ("CANCELED", "EXECUTED") and t["items"]
+                    and sig(t) == sig(pr) and t["proposed"] >= pr["proposed"]), None)
+        other = next(i["from"] for i in pr["items"] if i["from"] != pr["team"])
+        dec = end and next((t for t in TR if t["type"] == "TRADE_DECLINE" and t["proposed"] == end["proposed"]), None)
+        if end is None: out, cls = "Pending", "pen"
+        elif end["status"] == "EXECUTED": out, cls = "Accepted", "acc"
+        elif dec: out, cls = "Declined", "dec"
+        else: out, cls = "Expired", "exp"
+        mins = (P(end["proposed"]) - P(pr["proposed"])).total_seconds() / 60 if end else None
+        offers.append(dict(fr=pr["team"], to=other, week=pr["period"], out=out, cls=cls, mins=mins,
+                           give=[i["player"] for i in pr["items"] if i["from"] == pr["team"]],
+                           get=[i["player"] for i in pr["items"] if i["from"] == other]))
+    if offers:
+        shopped = Counter(n for o in offers for n in o["give"]).most_common(1)[0]
+        outs = Counter(o["out"] for o in offers)
+        pmax = max([PTS.get(n, 0) for o in offers for n in o["give"] + o["get"]] + [1])
+        def dur(m):
+            if m < 90: return f"{m:.0f} min"
+            if m < 48 * 60: return f"{m/60:.0f} hrs"
+            return f"{m/1440:.0f} days"
+        def side(t, names, cls):
+            rows = "".join(f'<div class="pl"><span>{esc(n)}</span><b>{g(PTS[n]) if n in PTS else "—"}</b><span class="pl-bar"><i style="width:{PTS.get(n, 0)/pmax*100:.1f}%"></i></span></div>' for n in names)
+            return f'<div class="ru-side {cls}">{T(t, True)}{rows}</div>', sum(PTS.get(n, 0) for n in names)
+        rcards = []
+        for o in sorted(offers, key=lambda o: -o["week"]):
+            a, ta = side(o["fr"], o["give"], "give"); b, tb = side(o["to"], o["get"], "get")
+            when = f'{o["out"].lower()} after {dur(o["mins"])}' if o["mins"] is not None else "still on the table"
+            rcards.append(
+                f'<article class="rumor"><div class="ru-head"><span class="kicker">Week {o["week"]} offer · {esc(SHORT[o["fr"]])} → {esc(SHORT[o["to"]])}</span>'
+                f'<span class="stamp {o["cls"]}">{o["out"]}</span></div>'
+                f'<div class="ru-body">{a}<span class="ru-arrow" aria-hidden="true">⇄</span>{b}</div>'
+                f'<div class="ru-foot"><span>Week {W}: offered <b class="num">{ta:.1f}</b> for <b class="num">{tb:.1f}</b></span><span>{when}</span></div></article>')
+        stats = (f'<div class="rum-stats"><div class="rs"><b class="num">{len(offers)}</b><span>Offers sent</span></div>'
+                 f'<div class="rs"><b class="num">{outs.get("Declined", 0)}</b><span>Declined</span></div>'
+                 f'<div class="rs"><b class="num">{outs.get("Expired", 0) + outs.get("Pending", 0)}</b><span>Ignored / expired</span></div>'
+                 f'<div class="rs hot"><b class="num">{shopped[1]}×</b><span>Most shopped</span><small>{esc(shopped[0])}: {g(PTS.get(shopped[0], 0))} pts in week {W}</small></div></div>')
+        rumors = stats + f'<div class="rumors">{"".join(rcards)}</div>'
+
 # ---------- forecast ----------
 fc = []
 for n in F["next_week"]:
@@ -257,10 +301,10 @@ forecast = (f'<section class="sec" id="forecast"><div class="sec-head"><h2>Week 
 out = open("template_v2.html", encoding="utf-8").read()
 for k, v in {"/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
              "<!--CRESTS-->": crests, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
-             "<!--SIDEBAR-->": sidebar, "<!--MEME1-->": memes[0], "<!--MEME2-->": memes[1], "<!--MEME3-->": memes[2],
+             "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--BOOMBUST-->": boombust, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
-             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--WIRE-->": wire_html, "<!--FORECAST-->": forecast,
+             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--WIRE-->": wire_html, "<!--RUMORS-->": rumors, "<!--FORECAST-->": forecast,
              "{{WEEK}}": str(W), "{{SEASON}}": str(LG["season"]), "{{VOLUME}}": str(LG["volume"]), "{{LEAGUE_NAME}}": esc(LG["league_name"]),
              "{{LEAGUE_FORMAT}}": esc(LG["league_format"]), "{{PRICE}}": esc(LG["price"]), "{{NWEEKS}}": str(len(weeks))}.items():
     out = out.replace(k, v)
