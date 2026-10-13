@@ -262,6 +262,17 @@ p{margin:0} figure{margin:0}
 .ru-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 12px;border-top:1px dashed var(--line);font-family:var(--mono);font-size:.72rem;color:var(--muted)}
 .ru-foot b{color:var(--ink);font-weight:600}
 
+/* on the block */
+.forsale-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:14px}
+.forsale{border:2px solid var(--rule);padding:14px;display:grid;gap:6px;align-content:start;background:radial-gradient(var(--dot) 1.2px,transparent 1.4px) 0 0/8px 8px,var(--sheet);border-top:6px solid var(--honolulu)}
+.forsale.empty{border-top-color:var(--silver)}
+.fs-top{display:flex;justify-content:space-between;align-items:center}
+.fs-tag{font-family:var(--display);font-weight:900;font-size:.95rem;letter-spacing:.08em;text-transform:uppercase;background:var(--hi);color:var(--hi-ink);padding:2px 8px}
+.forsale h3{font-size:1.7rem;font-weight:900;text-transform:uppercase}
+.fs-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px;border-top:1px dashed var(--line);padding-top:8px}
+.fs-stat span{display:grid;font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.fs-stat b{font-size:1.1rem;color:var(--ink);letter-spacing:0;text-transform:none;font-family:var(--mono)}
+
 /* table */
 .tbl-wrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:900px;font-size:.9rem}

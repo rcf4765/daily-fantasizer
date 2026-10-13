@@ -22,5 +22,6 @@
  },
  "lore": [],
  "repo": "rcf4765/daily-fantasizer",
- "owner_team": 1
+ "owner_team": 1,
+ "trade_block_min_teams": 10
 }

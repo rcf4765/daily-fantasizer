@@ -123,7 +123,7 @@ positions = f'<div class="pos">{"".join(prow)}<div class="legend">{poslegend}</d
 poskings = "".join(f'<div class="pk"><span class="pk-p">{p}</span>{lg(best_pos[p], "lg-sm")}<b class="num">{posd[best_pos[p]][p]:.1f}</b><span>{esc(SHORT[best_pos[p]])}</span></div>' for p in POS)
 
 # ---------- games ----------
-cards = []
+game_cards = []
 for g_ in sorted(games, key=lambda g_: g_["margin"]):
     w, l = g_["winner"], g_["loser"]
     rc = key(w, l, C["recaps"]) or {"headline": "", "text": ""}
@@ -133,7 +133,7 @@ for g_ in sorted(games, key=lambda g_: g_["margin"]):
         return (f'<div class="lane"><span class="lane-t">{lg(t)}</span><span class="lane-track"><span class="lane-bar {"w" if t == w else "l"}" style="width:{s/gm*100:.1f}%"></span>'
                 f'<span class="lane-opt" style="left:{o/gm*100:.1f}%" title="Best lineup {f2(o)}"></span></span><b class="num">{f2(s)}</b></div>')
     flag = '<span class="flag">Best lineup would have won</span>' if g_["loser_optimal_would_win"] else ""
-    cards.append(f'''<article class="game"><div class="g-head"><span class="kicker">{esc(SHORT[w])} def. {esc(SHORT[l])}</span><span class="margin num">+{g_["margin"]:.2f}</span></div>
+    game_cards.append(f'''<article class="game"><div class="g-head"><span class="kicker">{esc(SHORT[w])} def. {esc(SHORT[l])}</span><span class="margin num">+{g_["margin"]:.2f}</span></div>
 {lane(w, g_["ws"])}{lane(l, g_["ls"])}<h3>{esc(rc["headline"])}</h3>{flag}<p>{fill(rc["text"])}</p></article>''')
 
 # ---------- honor ----------
@@ -263,20 +263,34 @@ if TRD:
                    f'<div class="rs"><b class="num">{sum(len(t["items"]) for t in TRD)}</b><span>Players moved</span></div></div>'
                    f'<div class="rumors">{"".join(tcards)}</div></section>')
 
-# Trading block: built ONLY when ESPN returns the block for every team in the league (the user's rule),
-# and only players marked ON_THE_BLOCK are listed. Untouchables and normal players are never shown.
+# Trading block ("On the Block"): players their managers marked ON_THE_BLOCK on ESPN. Untouchable and normal
+# players are never shown. Built when at least league.json trade_block_min_teams teams (user: 10 of 12 is enough)
+# return trading-block data; the section names any teams that didn't report.
 block_html = ""
 TB = json.load(open("data/trade_block.json")) if os.path.exists("data/trade_block.json") else None
-if TB and len(TB["teams_reporting"]) == TB["teams_total"] == NT:
+if TB and len(TB["teams_reporting"]) >= LG.get("trade_block_min_teams", NT):
+    PINFO = {}; cur = None  # player -> (team, pos, pts, proj) for week W
+    for line in open(f"data/week{W}_raw.txt", encoding="utf-8"):
+        line = line.rstrip("\n")
+        if line == "ROSTERS": cur = 0; continue
+        if cur is None: continue
+        if line.startswith("#"): cur = int(line[1:]); continue
+        if "|" not in line: break
+        n, pos, sl, pts, pr = line.split("|"); PINFO[n] = (cur, pos, float(pts), float(pr), sl)
     avail = [(int(tid), p) for tid, ps in TB["block"].items() for p in ps if p["status"] == "ON_THE_BLOCK"]
-    if avail:
-        def chip(p):
-            pts = f" <b class=num>{g(PTS[p['player']])}</b>" if p["player"] in PTS else ""
-            return f'<span class="chip in">{esc(p["player"])}{pts}</span>'
-        rows = "".join(f'<div class="wire-row">{lg(t, "lg-sm")}<span class="wire-t">{esc(SHORT[t])}<em>{esc(p["pos"])}</em></span><span class="chips">{chip(p)}</span></div>'
-                       for t, p in sorted(avail, key=lambda x: SHORT[x[0]]))
-        block_html = (f'<section class="sec" id="trading-block"><div class="sec-head"><h2>On the Block</h2><span class="kicker">Players their managers have listed as available · week {W} points</span></div>'
-                      f'<div class="wire">{rows}</div></section>')
+    missing_t = [t for t in sorted(teams) if t not in TB["teams_reporting"]]
+    bcards = []
+    for t, p in sorted(avail, key=lambda x: -(PINFO.get(x[1]["player"], (0, 0, 0))[2])):
+        info = PINFO.get(p["player"])
+        stat = (f'<div class="fs-stat"><span><b class="num">{g(info[2])}</b>week {W} pts</span><span><b class="num">{g(info[3])}</b>projected</span>'
+                f'<span><b>{"Started" if info[4] not in ("BE", "IR") else "Bench"}</b>week {W}</span></div>') if info else ""
+        bcards.append(f'<article class="forsale"><div class="fs-top"><span class="fs-tag">Available</span>{lg(t, "lg-sm")}</div>'
+                     f'<h3>{esc(p["player"])}</h3><span class="kicker">{esc(p["pos"])} · listed by {esc(SHORT[t])}</span>{stat}</article>')
+    if not bcards:
+        bcards.append('<article class="forsale empty"><h3>Nobody&#39;s selling</h3><span class="kicker">No players on any trading block this week</span></article>')
+    note = f'{len(TB["teams_reporting"])} of {NT} teams reporting' + (f' · no trading block from {", ".join(esc(SHORT[t]) for t in missing_t)}' if missing_t else "")
+    block_html = (f'<section class="sec" id="trading-block"><div class="sec-head"><h2>On the Block</h2><span class="kicker">Players their managers have listed as available for trade</span></div>'
+                  f'<div class="forsale-grid">{"".join(bcards)}</div><p class="note-s">{note}. Set yours on ESPN: My Team → Trading Block.</p></section>')
 
 # ---------- forecast ----------
 fc = []
@@ -295,7 +309,7 @@ for k, v in {"/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for 
              "<!--CRESTS-->": crests, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
              "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--BOOMBUST-->": boombust, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
-             "<!--GAMES-->": "".join(cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
+             "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
              "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--WIRE-->": wire_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
              "{{WEEK}}": str(W), "{{SEASON}}": str(LG["season"]), "{{VOLUME}}": str(LG["volume"]), "{{LEAGUE_NAME}}": esc(LG["league_name"]),
              "{{LEAGUE_FORMAT}}": esc(LG["league_format"]), "{{PRICE}}": esc(LG["price"]), "{{NWEEKS}}": str(len(weeks))}.items():
