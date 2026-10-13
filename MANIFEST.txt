@@ -1,0 +1,13 @@
+# sha256 of the approved pipeline files (as of the week 4 edition, 2026-10-12).
+# league.json changes when lore is added; that's expected. If template/scripts are intentionally changed, regenerate this file.
+8fb57787be9543a8d399bf78792595cdc9f0708806daba875ca4e19b2c2cf50f  extract.js
+2978def423d24bed739a9bda1c23ad5de5790b4d3e6fab9283f26d943f255cc8  extract_logos.js
+a0c5daf194f257569525584cb38fbc07167a386a9b1c37317c99888123ef072d  facts.py
+2c747812f642a348b48689c24233c8c0f2b3c0a3f536f06bf4fcdccadcd13768  render.py
+728640847e4ec5620532c38d82d02adeb9bf2fa91b11a76bc1ae7e12b4ef04ca  template.html
+29117eaec413af8e719d1d3eec16204a413a97757e8780c4e2c4601d817709b6  league.json
+102653f27a3f0ee62271c5cfa767a14e5fc70997149052458736738fb3ab7905  logos.txt
+0e11d8c0c5d48552114a4c144b35aeb52521ad6d16795357e422b7613f859f79  logo_urls.txt
+725d1b7069386ce32c201caed4b0c1559312830f65696fa085dd9aacac69922f  week4_raw.txt
+b17f8801dcd7a2d75c549c0889eb797f3a39ffd2403e29ee330cc39b28bf399a  week4_copy.json
+8f60a748464d10cb52878d3af1286e66a80d0835eca4af342ee6168342183b6c  daily-fantasizer-week4.html

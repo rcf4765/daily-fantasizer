@@ -1,0 +1,43 @@
+name: Fetch ESPN week
+
+on:
+  schedule:
+    - cron: "17 13 * * 2"   # Tuesdays 13:17 UTC (6:17am Pacific, 5:17am in winter) after Monday Night Football
+    - cron: "17 13 * * 3"   # Wednesday retry in case ESPN finalized late
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Week to fetch (blank = latest completed)"
+        required: false
+      force:
+        description: "Re-fetch even if the week is already saved (1 = yes)"
+        required: false
+        default: "0"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get install -y libcairo2 >/dev/null
+      - run: pip install requests pillow cairosvg
+      - name: Fetch
+        env:
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          WEEK: ${{ github.event.inputs.week }}
+          FORCE: ${{ github.event.inputs.force }}
+        run: python fetch_espn.py
+      - name: Commit data
+        run: |
+          git config user.name "daily-fantasizer-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "ESPN data: $(python -c 'import json;print("week",json.load(open("data/latest.json"))["week"])' 2>/dev/null || echo update)"
+          git push

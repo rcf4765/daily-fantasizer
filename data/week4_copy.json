@@ -1,0 +1,73 @@
+{
+ "week": 4,
+ "hero": {"winner": 12, "loser": 3, "big": "82", "label": "point margin"},
+ "lead": {
+  "kicker": "Page one",
+  "headline": "82 Points. Three Zeros. One Long Week for 8D.",
+  "deck": "The winless 8D posted the lowest score of the season, and even a perfect lineup would have lost by 48.",
+  "paragraphs": [
+   "{T12} did what the league's best offense does: 145.9 points and a 3–1 record. Kyren Williams ran for 36.7 and Kenneth Walker III added 30.9, so the Balls had 67.6 points from two running backs before anyone else touched the ball.",
+   "Across the field, {T3} sent out a lineup with three players projected for zero. Josh Jacobs, Terry McLaurin and Jaxson Dart all started, and all three finished with exactly zero. Bo Nix sat on the bench with 13.56. Michael Wilson sat there with 16.5. Ja'Marr Chase started and returned 5.7 on a 20.4 projection.",
+   "Here is the hard part. The best possible lineup from that roster scored 97.36. The Balls scored 145.9. The 82-point margin was the largest of the week, and 63.9 is now the lowest score anyone has posted this season.",
+   "8D is 0–4 and 6–38 in the all-play standings, which count a team's record as if it played everyone every week. The Balls lead the league in points for (546.38) and could afford to leave Joe Burrow's 23.72 on the bench while Patrick Mahomes started and scored 17."
+  ]
+ },
+ "sidebar": [
+  {"style": "hi", "kicker": "Strange but true", "title": "161.28, Twice",
+   "viz": {"type": "twin", "left": 11, "right": 2, "left_value": "161.28", "right_value": "161.28", "symbol": "="},
+   "text": "{T11} scored 161.28 in week 4. In week 3, {S2} scored exactly 161.28 against them. The season high now belongs to both teams, to the hundredth of a point."},
+  {"style": "plain", "kicker": "The record is lying", "title": "Magnificent at 3–1?",
+   "viz": {"type": "wins", "teams": [7, 5]},
+   "text": "{S7} is 3–1, but against the whole league every week it would be 20–24. {S5} is 2–2 with a 32–12 all-play record. Somebody owes somebody a schedule."}
+ ],
+ "recaps": {
+  "2-7": {"headline": "McMillan Has the Game of the Week", "text": "Tetairoa McMillan scored 45.2, the best game by any player in the league, and Tee Higgins added 26.7 from the flex. {S2} has won three straight and has allowed the fewest points in the league. {S7} got 0 from Ladd McConkey and 9.68 from Matthew Stafford."},
+  "11-5": {"headline": "Lamb Delivers, Nuts Lose Anyway", "text": "CeeDee Lamb scored 41.3 for the team named after him. {S11} answered with five starters over 20: Nacua 27.7, Hubbard 25.9, Stroud 23.08, Judkins 21.6 and Bowers 20.6. {S5}'s 137.14 would have beaten eight other teams."},
+  "9-8": {"headline": "Four Points, Settled on the Bench", "text": "Javonte Williams scored 31.3 and {S9} won by 4.16 despite starting Rashee Rice for 0. {S8} had Kyle Monangai (28) and Deebo Samuel Sr. (18) on the bench. Their best lineup would have scored 139.92 and won easily."},
+  "6-4": {"headline": "“I Don't Know” Posts a Season High", "text": "Romeo Doubs scored 23.8 and Sam LaPorta 22.4 for a 132.88, the team's best by 20 points. {S6} started Travis Etienne Jr. for 0, benched T.J. Hockenson's 24.9, and still won by 42. {S4}'s best possible lineup was 127.3."},
+  "10-1": {"headline": "Pink Pony Gets in the Win Column", "text": "{S10}'s first win came with its best score of the year, 24.62 above its old high. Malik Nabers led with 23.2. {S1} got 1.7 from Dalton Kincaid, 2.0 from Parker Washington and 2.7 from DJ Moore. Its best lineup would have scored 125.68 and won."},
+  "12-3": {"headline": "See Page One", "text": "Kyren Williams 36.7, Kenneth Walker III 30.9, Tucker Kraft 16.5. For {S3}, Carnell Tate scored 21.5, a third of the team's total."}
+ },
+ "honor": {"team": 11, "big": "1.10", "big_label": "pts left on bench", "kicker": "Manager of the week", "title": "#1 Kazakhstan Fantasies Team",
+  "text": "John torry left just 1.1 points on the bench, the fewest in the league, while scoring the week's highest total. The only miss was George Kittle (17.0) sitting behind Derrick Henry (15.9)."},
+ "blotter": [
+  {"team": 4, "title": "Grand theft, bench", "text": "Nico Collins scored 30.8 on the bench, the best benched game in the league. Dak Prescott's 18.1 also sat while Jalen Hurts started for 13.52."},
+  {"team": 3, "title": "Starting players who weren't playing", "text": "Three starters projected for zero, three zeros delivered. Bo Nix (13.56) and Michael Wilson (16.5) watched from the bench."},
+  {"team": 8, "title": "Lost by 4, benched 46", "text": "Monangai and Deebo combined for 46 on the bench. David Montgomery started and scored 4.3."},
+  {"team": 1, "title": "Signed and stored", "text": "Added Ollie Gordon II this week, then benched him. He scored 18. Isaiah Likely (13.6) and Omarion Hampton (13.3) sat beside him. Loss margin: 13.78."},
+  {"team": 7, "title": "Wrong defense", "text": "Picked up the Bills D/ST and started them for 1 point. The 49ers D/ST scored 5 on the bench."}
+ ],
+ "missing": [
+  {"team": 9, "player": "Rashee Rice", "text": "Started at wide receiver. His team won anyway and asks that no search party be sent."},
+  {"team": 3, "player": "Ja'Marr Chase", "text": "Missed by 14.7, second only to Rice. Still not the main reason 8D lost."},
+  {"team": 1, "player": "Parker Washington", "text": "Started over Ollie Gordon II. Please see the Police Blotter."},
+  {"team": 4, "player": "Saquon Barkley", "text": "Started while Nico Collins scored 30.8 on the bench."},
+  {"team": 7, "player": "Ladd McConkey", "text": "A zero in a 68-point loss. Not the only reason, but a clean one."}
+ ],
+ "pecking_notes": {
+  "12": "Most points in the league. No weak week yet.", "2": "Three straight wins. Exactly as good as the record says.",
+  "5": "Unluckiest team in the league. 111+ every week.", "8": "First loss came with 46 points on the bench.",
+  "11": "Co-owns the season high. Has also allowed the most points.", "9": "Hasn't topped 112 since week 1's 155.96.",
+  "1": "Scoring has dropped every week: 137, 124, 98, 93.", "7": "Luckiest team in the league by a full win.",
+  "4": "Left the most points on the bench this week.", "6": "Season high this week. The name may be wrong.",
+  "3": "Hasn't cleared 99 points in a game.", "10": "First win, best score, trending up."
+ },
+ "ads": [
+  {"team": 11, "title": "Wanted: a quarterback", "text": "Released Baker Mayfield. Signed C.J. Stroud, who started and scored 23.08 in a win."},
+  {"team": 5, "title": "Kicker, lightly used", "text": "Out: Jake Bates. In: Spencer Shrader, who kicked for 16 in his first start."},
+  {"team": 1, "title": "Running back, never unpacked", "text": "Ollie Gordon II, added this week. Kept in original packaging on the bench. 18 points."},
+  {"team": 10, "title": "Busy week at the Pony", "text": "Kalif Raymond for Jake Ferguson, Commanders D/ST for Panthers D/ST, Braelon Allen for Jadarian Price. Result: first win of the season."},
+  {"team": 7, "title": "Defense for rent", "text": "Bills D/ST, added and started immediately. One point. The 49ers D/ST remains available on our bench."},
+  {"team": 5, "title": "Tight end upgrade", "text": "Released Kyle Pitts Sr. for Darren Waller. Also added Devaughn Vele, who scored 17.4 on the bench."},
+  {"team": 2, "title": "Defense swap", "text": "Eagles D/ST out, Bears D/ST in. The Bears scored 9 in a 68-point win."},
+  {"team": 8, "title": "Claimed off waivers", "text": "Ravens D/ST, replacing the Bengals D/ST. Seven points in a 4-point loss."}
+ ],
+ "forecast_blurbs": {
+  "2-3": "Heavy rain over 8D. Detroit has been sunny for three weeks.",
+  "12-9": "First- and sixth-ranked teams. Highest projected total of the week.",
+  "7-5": "The unluckiest team meets the luckiest. A front is coming for somebody.",
+  "8-6": "Beefy should be fine if the starters are the ones scoring.",
+  "11-1": "Chimpanzini's scoring has fallen three weeks running. Kazakhstan just hit 161.",
+  "4-10": "Pink Pony is on a one-game heater. Clear skies for the Bruisers if Nico Collins starts."
+ }
+}
