@@ -34,6 +34,12 @@ jobs:
           WEEK: ${{ github.event.inputs.week }}
           FORCE: ${{ github.event.inputs.force }}
         run: python fetch_espn.py
+      - name: Fetch trade activity
+        continue-on-error: true
+        env:
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+        run: python fetch_trades.py
       - name: Commit data
         run: |
           git config user.name "daily-fantasizer-bot"
