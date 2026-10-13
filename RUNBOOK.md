@@ -7,13 +7,13 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 | File | Role | Changes weekly? |
 |---|---|---|
 | `RUNBOOK.md` | This document | no |
-| `extract.js` | Browser snippet: pulls the week's data from ESPN and writes it into the page | set `WEEK` only |
+| `extract.js` | Fallback browser snippet: pulls the week's data from ESPN and writes it into the page | set `WEEK` only |
 | `extract_logos.js` | Browser snippet: turns team crests into small webp data URIs | only when crests change |
 | `facts.py` | Story finder: raw data → `weekN_facts.json` + readable `weekN_facts.md` | no |
 | `render.py` | Renderer: template + facts + copy + crests → `daily-fantasizer-weekN.html` | no |
 | `template.html` | The approved design (all CSS + page skeleton with placeholders) | no |
 | `league.json` | League constants, short team names, running lore | add lore when told |
-| `fetch_espn.py` + `.github/workflows/fetch.yml` | No-browser fetcher for a GitHub repo (pending setup; see "Automation") | no |
+| `fetch_espn.py` + `.github/workflows/fetch.yml` | Weekly no-browser fetcher run by GitHub Actions in rcf4765/daily-fantasizer | no |
 | `logos.txt` | 12 crests, one line each: `@<teamId> data:image/webp;base64,...` | only when crests change |
 | `logo_urls.txt` | ESPN logo URL per team, used to detect crest changes | with logos |
 | `week4_raw.txt` | Example raw dump (format reference) | — |
@@ -22,22 +22,19 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 
 ## Weekly procedure
 
-1. **Set up the workspace.** `mkdir -p paper/data && cd paper`. `project_read` each file above into it (`data/` holds `logos.txt`, `logo_urls.txt`, `weekN_raw.txt`, `weekN_copy.json`; scripts, `template.html`, `league.json` sit at the top level). `project_read` may return the text inline instead of as a local file; then save it with Write exactly as returned (keep the final newline). **Self-test before anything else**: run `sha256sum` on the restored files and compare with `MANIFEST.txt`; re-read any file that doesn't match. Then `python3 facts.py data/week4_raw.txt && python3 render.py 4` and check `sha256sum daily-fantasizer-week4.html` equals the `daily-fantasizer-week4.html` line in the manifest. That proves the pipeline reproduces the approved edition byte for byte. (Later weeks' copy files change nothing about this test.) The workspace cannot reach ESPN directly, so all ESPN access goes through the user's Chrome.
+1. **Set up the workspace.** The GitHub repo **rcf4765/daily-fantasizer** is the source of truth (the project folder mirrors it). Attach it with `add_repo` (owner `rcf4765`, repo `daily-fantasizer`, access `push`) and clone it to `/home/claude/daily-fantasizer`; work there. Only if the repo can't be reached, restore the files from the project folder instead (`project_read` each into `paper/` and `paper/data/`; save inline results with Write exactly as returned). **Self-test before anything else**: `sha256sum` the files listed in `MANIFEST.txt` and compare; then `python3 facts.py data/week4_raw.txt && python3 render.py 4` and confirm `daily-fantasizer-week4.html` matches its manifest hash. That proves the pipeline reproduces the approved edition byte for byte. The workspace cannot reach ESPN directly.
 2. **Pick the week.** The edition covers the most recent *completed* week. NFL weeks end after Monday Night Football; ESPN finalizes overnight. If the user doesn't say, use (current matchup period − 1) on a Tuesday-or-later run; on Monday evening the current week is usually still running, so cover the previous one and say so.
-3. **Pull data via Claude in Chrome** (the user's Chrome is signed into ESPN; the league is private, so never ask for passwords or cookies):
-   - Load the Chrome tools in one ToolSearch (`tabs_context_mcp, navigate, javascript_tool, get_page_text, tabs_create_mcp, tabs_close_mcp`), read the chrome-browser skill if listed, open a new tab, navigate to `https://fantasy.espn.com/football/league?leagueId=1196354715&seasonId=2026`.
-   - Paste the full contents of `extract.js` into `javascript_tool` with `WEEK` set. It returns `ok: N lines, week W complete=true|false`. If `complete=false`, stop and tell the user the week isn't final yet.
-   - Call `get_page_text` on the same tab. Its output (META…LOGOURLS) is the raw dump. **Do not use javascript_tool return values for data; they truncate at ~1,000 characters.** `get_page_text` returned 40K+ characters without truncation.
-   - Write the dump verbatim to `data/weekN_raw.txt` (everything from the `META|` line through the last `LOGOURLS` line).
-   - Compare the LOGOURLS block with `data/logo_urls.txt`. If any URL changed (or a team is new), navigate the tab back to the league URL, run `extract_logos.js` (set `ONLY = [ids]` for just the changed teams), `get_page_text`, and replace those lines in `logos.txt` verbatim; update `logo_urls.txt`. Validate every crest: `python3 -c` with PIL to base64-decode each line and `Image.open(...).load()`; a failure means a transcription error, so redo that line.
-   - Close the tab.
+3. **Get the data.** A GitHub Actions workflow (`.github/workflows/fetch.yml` running `fetch_espn.py` with the ESPN_S2/ESPN_SWID repo secrets) fetches the latest completed week every Tuesday ~6:17am Pacific (retry Wednesday) and commits `data/weekN_raw.txt` plus any crest updates (`logos.txt`, `logo_urls.txt`) and `data/latest.json`. So: `git pull`, then check `data/latest.json` and that `data/weekN_raw.txt` exists for the week.
+   - If it's missing, trigger it yourself: `gh api -X POST repos/rcf4765/daily-fantasizer/actions/workflows/fetch.yml/dispatches -f ref=main -f 'inputs[week]=N'`, wait ~1–2 min, poll `gh api "repos/rcf4765/daily-fantasizer/actions/runs?per_page=1"` until `completed`, then `git pull`. A run that prints "not final" means ESPN hasn't finished the week: stop and report.
+   - If the run fails with 401/403/HTML, the ESPN cookies in the repo secrets have expired. Tell the user to replace `ESPN_S2` and `ESPN_SWID` at https://github.com/rcf4765/daily-fantasizer/settings/secrets/actions (values from Chrome DevTools → Application → Cookies → fantasy.espn.com). Never ask for or handle the cookie values yourself.
+   - **Fallback only if GitHub is unavailable**: the Claude in Chrome method. Load the Chrome tools in one ToolSearch (`tabs_context_mcp, navigate, javascript_tool, get_page_text, tabs_create_mcp, tabs_close_mcp`), open a new tab at `https://fantasy.espn.com/football/league?leagueId=1196354715&seasonId=2026`, run `extract.js` with `WEEK` set via `javascript_tool`, then `get_page_text` and save the dump verbatim to `data/weekN_raw.txt` (javascript_tool return values truncate at ~1,000 chars; get_page_text doesn't). For changed crests, run `extract_logos.js` the same way and validate each crest with PIL. Close the tab.
 4. **Compute facts.** `python3 facts.py data/weekN_raw.txt`. It warns if the week isn't final or if any team's starter total doesn't match ESPN's score (a mismatch means bad data; re-extract). Read `data/weekN_facts.md` in full. It lists each game, each team's starters with projections, optimal lineups, points left on the bench, season highs/lows, all-play, luck, misses vs projection, transactions (UNVERIFIED adds may be post-game pickups; skip them or treat with care) and next week's lines.
 5. **Write `data/weekN_copy.json`.** Same schema as `week4_copy.json` (read it first, every time). Rules in "Writing the copy" below.
 6. **Render.** `python3 render.py N` → `daily-fantasizer-weekN.html`. It fails loudly if a Missing Persons player isn't a starter, and prints leftover placeholders (must be `[]`).
 7. **Check before publishing.** One headless screenshot pass (Playwright is installed): 1200px and 400px wide, full page. Look at the hero, the scoreboard chart (axis labels must not collide), game cards, blotter, posters, table, forecast. Fix copy that overflows (long headlines) and re-render once.
 8. **Fact-check the copy against `weekN_facts.md`**: every number in the prose must appear in the facts (or be simple arithmetic on them). Recompute any sum you wrote.
 9. **Publish** with the Artifact tool as a **new** artifact per week: `file_path` = `daily-fantasizer-weekN.html`, `icon` = `newspaper`, description "Week N edition of The Daily Fantasizer for the Men Fantasizing ESPN league…". The `<title>` stays "The Daily Fantasizer".
-10. **Save back to the project**: `project_write` `daily-fantasizer/weekN_raw.txt` and `daily-fantasizer/weekN_copy.json` (via `local_path`), plus `logos.txt`/`logo_urls.txt` if they changed. Don't rewrite unchanged files.
+10. **Save.** Commit `data/weekN_copy.json` and `daily-fantasizer-weekN.html` to the repo and push (data/*_facts.* stay ignored). Also `project_write` `daily-fantasizer/weekN_raw.txt` and `weekN_copy.json` to the project as a mirror, plus `logos.txt`/`logo_urls.txt`/`league.json` if they changed.
 11. **Report** to the user in a few sentences: which week, the lead story, anything odd (unfinished week, unverified transactions, crests updated). Remind them the page is private until shared.
 
 ## Writing the copy (voice and rules)
@@ -69,5 +66,7 @@ Tabloid layout: Big Shoulders Display headlines, Literata body, IBM Plex Mono nu
 
 ## Automation
 
-- A Claude scheduled task runs every Tuesday ~9am Pacific and follows this runbook to build and publish that week's edition. No email or text delivery: the user asked for the edition to be created and published only (2026-10-12).
-- Data source: Claude in Chrome on the user's computer (needs the computer awake with Chrome signed into ESPN). Planned upgrade: a private GitHub repo `daily-fantasizer` holding this pipeline, where `fetch_espn.py` runs via GitHub Actions on Tuesday mornings using ESPN_S2/ESPN_SWID repo secrets and commits `data/weekN_raw.txt`. Once the repo exists, its name goes in `league.json` as `"repo"`; then clone it (attach with add_repo) and use its `data/weekN_raw.txt` instead of Chrome.
+- **Tuesday ~6:17am Pacific**: GitHub Actions fetches the week's ESPN data into the repo (no computer or browser needed). Wednesday same time: retry if the week wasn't final.
+- **Tuesday ~9am Pacific**: a Claude scheduled task ("Daily Fantasizer weekly edition") follows this runbook, builds and publishes the edition as a new artifact. No email or text delivery (user's choice, 2026-10-12).
+- ESPN cookies usually last about a year. GitHub disables scheduled workflows after 60 days with no repo activity; the weekly commits keep it alive, but in the off-season it may need re-enabling from the repo's Actions tab.
+- `fetch_espn.py` was validated 2026-10-12: its week 4 dump matched the Chrome extraction exactly (plus one waiver row facts.py flags UNVERIFIED), and the rendered week 4 edition was byte-identical to the approved one.
