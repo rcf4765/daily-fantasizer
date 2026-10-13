@@ -3,25 +3,23 @@
  "hero": {
   "winner": 8,
   "loser": 6,
-  "big": "0",
-  "label": "pts left on bench"
+  "big": "59.6",
+  "label": "point margin, biggest of the week"
  },
  "lead": {
   "kicker": "Page one",
-  "headline": "Beefy Boys Go Perfect: 164.2 and a Rout",
-  "deck": "The Big Beefy Boys posted the highest score of the season with a lineup that could not have been improved by a single point.",
+  "headline": "Beefy Goes Perfect: 164.2",
+  "deck": "Season-high score. Zero points left on the bench. Four players combined for 133.0.",
   "paragraphs": [
-   "{T8} scored 164.2 in week 5, the best total anyone has posted this season. The old mark was 161.28, shared by Kazakhstan and the Doughboys. Jahmyr Gibbs scored 37.7, Jaylen Warren 36.8 on a 17.6 projection, Josh Allen 30.5 and George Pickens 28.0 from the flex. That is 133.0 points from four players.",
-   "The best possible lineup from that roster also scored 164.2. Deebo Samuel Sr. started for 2.5 and Mark Andrews for 4.8, and both were still the right call: David Montgomery's 1.1 was the best score on the bench. A week ago this same team lost by 4.16 with 46 points sitting there.",
-   "Across the field, {T6} set a perfect lineup too. It scored 104.6, and so did its best possible lineup. Chase Brown returned 7.0 on a 17.4 projection and Romeo Doubs 2.6 on 12.2. Two perfect lineups produced the largest margin of the week, 59.6 points.",
-   "Beefy is 4–1 and went 11–0 in this week's all-play, which counts a team's record as if it played everyone every week. It now leads the league in points for at 671.96, 0.88 ahead of {S12}. Both teams are 4–1 with a 41–14 all-play record."
+   "{T8} posted the best total of the season, beating the old mark of 161.28. The best possible lineup from that roster? Also 164.2.",
+   "{S6} went perfect too, scoring 104.6 with nothing on the bench. It lost by 59.6. Beefy now leads the league in points for at 671.96."
   ]
  },
  "sidebar": [
   {
    "style": "hi",
    "kicker": "Strange but true",
-   "title": "Best Game of the Week: Benched",
+   "title": "Best Game: Benched",
    "viz": {
     "type": "bars",
     "rows": [
@@ -40,7 +38,7 @@
      }
     ]
    },
-   "text": "{T10} left Drake Maye on the bench, and he scored 39.46, more than any starter in the league. The projections favored Jared Goff, 19.4 to 18.5, and Goff scored 28.94. Pink Pony won by 18.34 anyway."
+   "text": "{S10} sat Drake Maye. He outscored every starter in the league. Pony won anyway."
   },
   {
    "style": "plain",
@@ -53,33 +51,33 @@
      11
     ]
    },
-   "text": "{S2} has scored 642.42 and is 4–1. {S11} has scored 641.08 and is 2–3. Detroit has allowed 456.04, the fewest in the league; Kazakhstan has allowed 689.48, the most. This week Detroit won with 99.14, a score that beat one team. It was the team they played."
+   "text": "{S2}: 642.42 pts, 4–1. {S11}: 641.08 pts, 2–3."
   }
  ],
  "recaps": {
   "12-9": {
    "headline": "Two Zeros, Still a Win",
-   "text": "Bucky Irving scored 31.5 from the flex and Joe Burrow 24.6. {S12} won while starting the Chiefs D/ST and Harrison Butker, both projected for zero. {S9} got 32.3 from Christian Watson and 32.26 from Jayden Daniels, but RJ Harvey started for 0.7 with Jacory Croskey-Merritt's 14.2 on the bench. Their best lineup, 127.76, would have won."
+   "text": "Bucky Irving 31.5 covered for a zero-projection D/ST and kicker. Travis benched 14.2 for RJ Harvey's 0.7."
   },
   "7-5": {
-   "headline": "The Winning Lineup Sat on the Bench",
-   "text": "Matthew Stafford scored 27.32, Jaxon Smith-Njigba 22.8, and the 49ers D/ST 20 on a 4.9 projection. {S5} started Tyler Shough at quarterback for -0.16 while Sam Darnold scored 8.3 on the bench, and CeeDee Lamb for 2.9 over Emeka Egbuka's 17.2. Their best lineup, 142.8, would have won."
+   "headline": "The Winner Sat on CeeDeez's Bench",
+   "text": "Shough −0.16 and Lamb 2.9 started. Egbuka's 17.2 didn't. Best lineup: 142.8."
   },
   "10-4": {
-   "headline": "Pony Wins Again; Perfect Isn't Enough",
-   "text": "Malik Nabers scored 29.1 and Jared Goff 28.94 as {S10} posted its best score of the season, 24.68 above the old high. {S4} left nothing on the bench and still lost by 18.34. Kenyon Sadiq scored 0.3 at tight end and Bijan Robinson 15.8 on a 22.2 projection."
+   "headline": "Pony's Season High",
+   "text": "Nabers 29.1, Goff 28.94. Bruisers went perfect and lost by 18.34."
   },
   "2-3": {
-   "headline": "Doughboys' Worst Week Is Still a Win",
-   "text": "{S2} scored a season-low 99.14 and won by 21.94, its fourth straight win. Jeremiyah Love started for 2.2 while MarShawn Lloyd scored 16.7 on the bench. {S3} started Josh Jacobs and Jaxson Dart, both projected for zero, for the second week running. Its best lineup, 93.8, would still have lost."
+   "headline": "Worst Week, Fourth Straight Win",
+   "text": "Doughboys' season-low 99.14 still beat 8D by 21.94."
   },
   "1-11": {
    "headline": "Chimpanzini Snaps Out of It",
-   "text": "Isaiah Likely scored 32.4 on a 12.9 projection, the biggest beat in the league, and Parker Washington added 30.4. New pickups Jacoby Brissett (25.28) and Will Reichard (16) both delivered. {S11} got 37.7 from Puka Nacua, but 5.3 from DK Metcalf and 1 from the Steelers D/ST."
+   "text": "Likely 32.4 on a 12.9 projection. Pickups Brissett (25.28) and Reichard (16) both hit."
   },
   "8-6": {
    "headline": "See Page One",
-   "text": "Gibbs 37.7, Warren 36.8, Allen 30.5, Pickens 28.0. For {S6}, Sam LaPorta scored 19.8 and Ka'imi Fairbairn kicked for 17."
+   "text": "Gibbs 37.7, Warren 36.8, Allen 30.5, Pickens 28.0."
   }
  },
  "honor": {
@@ -88,119 +86,72 @@
   "big_label": "pts left on bench",
   "kicker": "Manager of the week",
   "title": "Big Beefy Boys",
-  "text": "Nathan LaWarre left 0.00 points on the bench while scoring the season's highest total. Two other teams also went perfect; neither won. Last week this lineup left 46 points on the bench in a 4-point loss."
+  "text": "Nathan's lineup was perfect and posted the season's best score. A week ago it left 46 on the bench in a 4-point loss."
  },
  "blotter": [
   {
    "team": 5,
-   "title": "Quarterback below zero",
-   "text": "Started Tyler Shough for -0.16 with Sam Darnold's 8.3 on the bench, and CeeDee Lamb's 2.9 over Emeka Egbuka's 17.2. Lost by 14.18 with 22.76 on the bench."
+   "title": "QB below zero",
+   "text": "Shough −0.16 started, Darnold 8.3 sat. Lost by 14.18."
   },
   {
    "team": 9,
    "title": "Lost by 12.84, benched 25.2",
-   "text": "RJ Harvey started for 0.7 while Jacory Croskey-Merritt scored 14.2 on the bench. Khalil Shakir's 11.0 sat too. The best lineup would have won by 3.06."
+   "text": "Croskey-Merritt 14.2 and Shakir 11.0 on the bench."
   },
   {
    "team": 3,
    "title": "Repeat offender",
-   "text": "Josh Jacobs and Jaxson Dart, projected for zero, started for the second straight week. Bo Nix (7.92) and Michael Wilson (7.28) watched from the bench again."
+   "text": "Jacobs and Dart, projected for zero, started again."
   },
   {
    "team": 12,
    "title": "Kicking with no kicker",
-   "text": "Started the Chiefs D/ST and Harrison Butker, both projected for zero. Both scored zero. Won by 12.84, so nobody is pressing charges."
-  },
-  {
-   "team": 10,
-   "title": "Possession of the week's best game",
-   "text": "Drake Maye scored 39.46 on the bench, the most by any player in the league. Released on account of the win."
+   "text": "Butker and the Chiefs D/ST: two zeros. Won, so no charges."
   }
  ],
  "missing": [
   {
    "team": 5,
    "player": "Tyler Shough",
-   "text": "Started at quarterback. Found with negative points."
+   "text": "Found with negative points."
   },
   {
    "team": 5,
    "player": "CeeDee Lamb",
-   "text": "Scored 41.3 last week for the team named after him. Has not been seen since."
+   "text": "41.3 last week. Gone since."
   },
   {
    "team": 2,
    "player": "Jeremiyah Love",
-   "text": "Started over MarShawn Lloyd. His team won anyway and requests no search."
+   "text": "Team won. No search requested."
   },
   {
    "team": 3,
    "player": "Carnell Tate",
-   "text": "Scored a third of 8D's points last week. This week, 1.6 from the flex."
-  },
-  {
-   "team": 9,
-   "player": "RJ Harvey",
-   "text": "Missed by 10.6 in a 12.84-point loss. Please see the Police Blotter."
+   "text": "1.6 from the flex."
   }
  ],
  "pecking_notes": {
-  "8": "Season high, perfect lineup, first in points for.",
-  "12": "0.88 points out of first in points for.",
-  "5": "Third in all-play at 2–3. Still the unluckiest.",
-  "11": "Has allowed the most points in the league.",
-  "2": "Four straight wins. Fewest points allowed.",
-  "1": "Three straight drops, then 159.38.",
-  "7": "4–1 and still the luckiest team in the league.",
-  "9": "Between 88 and 112 four weeks running.",
-  "4": "Perfect lineup, 113.6, a loss. Now 1–4.",
-  "6": "Perfect lineup. Lost by 59.6.",
-  "10": "Two straight wins, each a season high.",
-  "3": "0–5. Hasn't cleared 99 points in a game."
+  "8": "Season high, perfect lineup.",
+  "12": "0.88 out of first in PF.",
+  "5": "Unluckiest team in the league.",
+  "11": "Most points allowed.",
+  "2": "Four straight wins.",
+  "1": "159.38 after three drops.",
+  "7": "Luckiest team in the league.",
+  "9": "88–112 four weeks running.",
+  "4": "Perfect lineup, still lost.",
+  "6": "Perfect lineup, lost by 59.6.",
+  "10": "Two straight season highs.",
+  "3": "0–5. Never cleared 99."
  },
- "ads": [
-  {
-   "team": 1,
-   "title": "Wanted: a quarterback",
-   "text": "Released Dontayvion Wicks. Signed Jacoby Brissett, who started and scored 25.28 in a 31-point win."
-  },
-  {
-   "team": 1,
-   "title": "Kicker, new in box",
-   "text": "Out: Jason Myers. In: Will Reichard, who kicked for 16 in his first start."
-  },
-  {
-   "team": 10,
-   "title": "Running back, lightly used",
-   "text": "Emanuel Wilson in off waivers for Rico Dowdle. Started and scored 13.2 in a win."
-  },
-  {
-   "team": 10,
-   "title": "Defense, one careful owner",
-   "text": "Bengals D/ST in, Cowboys D/ST out. Nine points in an 18-point win."
-  },
-  {
-   "team": 4,
-   "title": "Receiver swap",
-   "text": "Released Marvin Harrison Jr. for Malik Washington, who started at flex and scored 12.1."
-  },
-  {
-   "team": 6,
-   "title": "Quarterback, immediate start",
-   "text": "Added Deshaun Watson and started him. 12.2 points on a 16.9 projection."
-  },
-  {
-   "team": 8,
-   "title": "Claimed off waivers",
-   "text": "Falcons D/ST, replacing the Ravens D/ST. Ten points in a 59.6-point win."
-  }
- ],
  "forecast_blurbs": {
-  "3-9": "Travis's team by 29.5 over a winless 8D. Lowest projected total of the week.",
-  "5-2": "Half a point between them. Highest projected total of the week, 256.5.",
-  "6-12": "Bedazzled by 30. Bring a coat, IDK.",
-  "1-7": "Chimpanzini by 6.5 against the luckiest team in the league.",
-  "10-8": "Biggest spread of the week: Beefy by 41.5. Pink Pony has won two straight.",
-  "4-11": "Kazakhstan by 21 over a 1–4 Bruisers team. Clear skies, for once."
+  "3-9": "Lowest projected total of the week.",
+  "5-2": "Half a point. Game of the week.",
+  "6-12": "Bring a coat, IDK.",
+  "1-7": "Chimpanzini vs the luckiest team alive.",
+  "10-8": "Biggest spread. Pony has won two straight.",
+  "4-11": "Clear skies for Kazakhstan, for once."
  }
 }

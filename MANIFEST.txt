@@ -1,13 +1,16 @@
-# sha256 of the approved pipeline files (updated 2026-10-12 after the GitHub fetcher was validated).
-# league.json changes when lore is added; that's expected. If template/scripts are intentionally changed, regenerate this file.
+# sha256 of the approved pipeline files (graphics-first design, approved 2026-10-13 with the week 5 edition).
+# league.json changes when lore is added; data/trades.json changes weekly (it feeds the week 5 render's Trade Rumors). Regenerate after intentional changes.
 8fb57787be9543a8d399bf78792595cdc9f0708806daba875ca4e19b2c2cf50f  extract.js
 2978def423d24bed739a9bda1c23ad5de5790b4d3e6fab9283f26d943f255cc8  extract_logos.js
 a0c5daf194f257569525584cb38fbc07167a386a9b1c37317c99888123ef072d  facts.py
-2c747812f642a348b48689c24233c8c0f2b3c0a3f536f06bf4fcdccadcd13768  render.py
-728640847e4ec5620532c38d82d02adeb9bf2fa91b11a76bc1ae7e12b4ef04ca  template.html
-0701e0a5f5436bccfa83699842ecfee2d23c62e24ac01affd15e1b896f9e8523  league.json
+e8cf62859ab433be736e18da8f2d44450ff2983602c507a42d9624cd8ddc2f6c  fetch_espn.py
+823cf42261fb1dc85af19072fa3d1c148fa3de16a9511949f5fd96cacd869c8c  fetch_trades.py
+a3f24d30bd956fac8dd9371a73253ae8d24420508acdf42ea1c7449f77c5b5c4  render.py
+a6155f2750f36b77336a63b115097ac3f12f72cd49414224721af94d8429f24b  template.html
+3a83f25236890c51bbf9d83ada5a5319b9c30bc1df6c13907c40b4f2fa4c5dd7  league.json
 102653f27a3f0ee62271c5cfa767a14e5fc70997149052458736738fb3ab7905  logos.txt
 0e11d8c0c5d48552114a4c144b35aeb52521ad6d16795357e422b7613f859f79  logo_urls.txt
-bc7a521663b5a626d02ed6133fc50a130fd022a0b2f5ddb05eb16e25dee560b2  week4_raw.txt
-b17f8801dcd7a2d75c549c0889eb797f3a39ffd2403e29ee330cc39b28bf399a  week4_copy.json
-8f60a748464d10cb52878d3af1286e66a80d0835eca4af342ee6168342183b6c  daily-fantasizer-week4.html
+35bd5ae98709a234762f9a22037f29e293d871d33acfe3f801afabd801988af2  week5_raw.txt
+ec590350a156d33143882a0fc809d7454fe2d52db244061ad821ad68bd37fb2d  week5_copy.json
+8386a3c5e3dcbfcfa76e806af2182df98f18bb6520ee7a8306a4600a14b3aacc  trades.json
+1f5e507d2c46fee7fe3c22100c78e03eeb232ed0fffebd2cc8e95dc5ce6b2328  daily-fantasizer-week5.html
