@@ -1,0 +1,591 @@
+{
+ "fetched_at": "2026-10-13T13:27:18.013153Z",
+ "latest_period": 6,
+ "kinds_seen": {
+  "DRAFT/EXECUTED": 156,
+  "ROSTER/EXECUTED": 127,
+  "FREEAGENT/EXECUTED": 33,
+  "WAIVER/EXECUTED": 17,
+  "FUTURE_ROSTER/EXECUTED": 17,
+  "TRADE_PROPOSAL/PENDING": 8,
+  "TRADE_PROPOSAL/CANCELED": 8,
+  "WAIVER/PENDING": 6,
+  "WAIVER/CANCELED": 3,
+  "WAIVER/FAILED_INVALIDPLAYERSOURCE": 6,
+  "TRADE_DECLINE/EXECUTED": 4,
+  "TRADE_ACCEPT/None": 1
+ },
+ "trades": [
+  {
+   "id": "45a665dd-7af0-4e6d-a9b8-f26ca420cb8b",
+   "type": "TRADE_PROPOSAL",
+   "status": "PENDING",
+   "team": 1,
+   "period": 2,
+   "proposed": "2026-09-16T11:10:50.782000Z",
+   "processed": null,
+   "related": null,
+   "items": [
+    {
+     "player": "Bhayshul Tuten",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Isaiah Likely",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Saquon Barkley",
+     "from": 4,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "aa83ad08-09fb-4eb3-a94a-1d8764816ae3",
+   "type": "TRADE_PROPOSAL",
+   "status": "CANCELED",
+   "team": 1,
+   "period": 2,
+   "proposed": "2026-09-17T18:02:00.850000Z",
+   "processed": null,
+   "related": "45a665dd-7af0-4e6d-a9b8-f26ca420cb8b",
+   "items": [
+    {
+     "player": "Bhayshul Tuten",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Isaiah Likely",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Saquon Barkley",
+     "from": 4,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "d76b3d22-692f-43be-84b8-e6c84b391db2",
+   "type": "TRADE_PROPOSAL",
+   "status": "PENDING",
+   "team": 1,
+   "period": 2,
+   "proposed": "2026-09-19T16:02:38.061000Z",
+   "processed": null,
+   "related": null,
+   "items": [
+    {
+     "player": "Parker Washington",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Bhayshul Tuten",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Isaiah Likely",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "DJ Moore",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Nico Collins",
+     "from": 4,
+     "to": 1,
+     "type": "TRADE"
+    },
+    {
+     "player": "Saquon Barkley",
+     "from": 4,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "be2b86b8-0b46-45a8-9c80-f9e5593f1614",
+   "type": "TRADE_PROPOSAL",
+   "status": "CANCELED",
+   "team": 1,
+   "period": 2,
+   "proposed": "2026-09-20T15:35:20.549000Z",
+   "processed": null,
+   "related": "d76b3d22-692f-43be-84b8-e6c84b391db2",
+   "items": [
+    {
+     "player": "Parker Washington",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Bhayshul Tuten",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Isaiah Likely",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "DJ Moore",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Nico Collins",
+     "from": 4,
+     "to": 1,
+     "type": "TRADE"
+    },
+    {
+     "player": "Saquon Barkley",
+     "from": 4,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "acca440c-2d8a-4472-bab1-a7fe49e22cb7",
+   "type": "TRADE_PROPOSAL",
+   "status": "PENDING",
+   "team": 1,
+   "period": 2,
+   "proposed": "2026-09-20T23:54:09.845000Z",
+   "processed": null,
+   "related": null,
+   "items": [
+    {
+     "player": "Isaiah Likely",
+     "from": 1,
+     "to": 12,
+     "type": "TRADE"
+    },
+    {
+     "player": "Joe Burrow",
+     "from": 12,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "2b900e12-7e13-4823-85e9-b48066fffba4",
+   "type": "TRADE_PROPOSAL",
+   "status": "CANCELED",
+   "team": 1,
+   "period": 2,
+   "proposed": "2026-09-22T23:54:06.116000Z",
+   "processed": null,
+   "related": "acca440c-2d8a-4472-bab1-a7fe49e22cb7",
+   "items": [
+    {
+     "player": "Isaiah Likely",
+     "from": 1,
+     "to": 12,
+     "type": "TRADE"
+    },
+    {
+     "player": "Joe Burrow",
+     "from": 12,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "8a50cbe1-ab3f-4c3e-a34c-9965ff9f6e90",
+   "type": "TRADE_PROPOSAL",
+   "status": "PENDING",
+   "team": 1,
+   "period": 4,
+   "proposed": "2026-09-29T14:21:47.336000Z",
+   "processed": null,
+   "related": null,
+   "items": [
+    {
+     "player": "DJ Moore",
+     "from": 1,
+     "to": 5,
+     "type": "TRADE"
+    },
+    {
+     "player": "Omarion Hampton",
+     "from": 1,
+     "to": 5,
+     "type": "TRADE"
+    },
+    {
+     "player": "James Cook III",
+     "from": 5,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "a9412049-2704-40d2-81d7-becdac5d6448",
+   "type": "TRADE_PROPOSAL",
+   "status": "PENDING",
+   "team": 1,
+   "period": 4,
+   "proposed": "2026-09-29T14:45:35.685000Z",
+   "processed": null,
+   "related": null,
+   "items": [
+    {
+     "player": "Isaiah Likely",
+     "from": 1,
+     "to": 8,
+     "type": "TRADE"
+    },
+    {
+     "player": "DJ Moore",
+     "from": 1,
+     "to": 8,
+     "type": "TRADE"
+    },
+    {
+     "player": "Jonathan Taylor",
+     "from": 1,
+     "to": 8,
+     "type": "TRADE"
+    },
+    {
+     "player": "Jahmyr Gibbs",
+     "from": 8,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "060ba980-66d3-47cb-811f-39890374145b",
+   "type": "TRADE_DECLINE",
+   "status": "EXECUTED",
+   "team": 8,
+   "period": 4,
+   "proposed": "2026-09-29T15:07:28.161000Z",
+   "processed": null,
+   "related": "a9412049-2704-40d2-81d7-becdac5d6448",
+   "items": []
+  },
+  {
+   "id": "45d18698-aa54-4dab-85c2-c9dcb134e062",
+   "type": "TRADE_PROPOSAL",
+   "status": "CANCELED",
+   "team": 1,
+   "period": 4,
+   "proposed": "2026-09-29T15:07:28.161000Z",
+   "processed": null,
+   "related": "a9412049-2704-40d2-81d7-becdac5d6448",
+   "items": [
+    {
+     "player": "Isaiah Likely",
+     "from": 1,
+     "to": 8,
+     "type": "TRADE"
+    },
+    {
+     "player": "DJ Moore",
+     "from": 1,
+     "to": 8,
+     "type": "TRADE"
+    },
+    {
+     "player": "Jonathan Taylor",
+     "from": 1,
+     "to": 8,
+     "type": "TRADE"
+    },
+    {
+     "player": "Jahmyr Gibbs",
+     "from": 8,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "ba1e8cea-ca9d-4bf2-bab9-da3eb4213b94",
+   "type": "TRADE_DECLINE",
+   "status": "EXECUTED",
+   "team": 5,
+   "period": 4,
+   "proposed": "2026-09-29T22:14:35.677000Z",
+   "processed": null,
+   "related": "8a50cbe1-ab3f-4c3e-a34c-9965ff9f6e90",
+   "items": []
+  },
+  {
+   "id": "d40e5ba0-203a-434d-bc41-00dfe4697160",
+   "type": "TRADE_PROPOSAL",
+   "status": "CANCELED",
+   "team": 1,
+   "period": 4,
+   "proposed": "2026-09-29T22:14:35.677000Z",
+   "processed": null,
+   "related": "8a50cbe1-ab3f-4c3e-a34c-9965ff9f6e90",
+   "items": [
+    {
+     "player": "DJ Moore",
+     "from": 1,
+     "to": 5,
+     "type": "TRADE"
+    },
+    {
+     "player": "Omarion Hampton",
+     "from": 1,
+     "to": 5,
+     "type": "TRADE"
+    },
+    {
+     "player": "James Cook III",
+     "from": 5,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "4135b903-c3ee-4119-ad20-04b450795554",
+   "type": "TRADE_PROPOSAL",
+   "status": "PENDING",
+   "team": 1,
+   "period": 4,
+   "proposed": "2026-09-29T22:18:24.674000Z",
+   "processed": null,
+   "related": null,
+   "items": [
+    {
+     "player": "Kyler Murray",
+     "from": 1,
+     "to": 2,
+     "type": "TRADE"
+    },
+    {
+     "player": "Trevor Lawrence",
+     "from": 2,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "ec9778b5-736b-4073-ae34-74c629015c8f",
+   "type": "TRADE_DECLINE",
+   "status": "EXECUTED",
+   "team": 10,
+   "period": 4,
+   "proposed": "2026-10-01T01:29:21.008000Z",
+   "processed": null,
+   "related": "046804d8-ee23-48a0-bc39-2491283875f3",
+   "items": []
+  },
+  {
+   "id": "16ef8943-822f-4a94-b8d3-cc7448dcc033",
+   "type": "TRADE_ACCEPT",
+   "status": null,
+   "team": 5,
+   "period": 4,
+   "proposed": "2026-10-01T03:19:16.228000Z",
+   "processed": null,
+   "related": "852b7670-f9e4-4179-bf1e-4d1cb7f5562b",
+   "items": []
+  },
+  {
+   "id": "f5af2981-aacc-4c91-9436-6973fe9b4369",
+   "type": "TRADE_PROPOSAL",
+   "status": "CANCELED",
+   "team": 1,
+   "period": 4,
+   "proposed": "2026-10-01T22:18:01.400000Z",
+   "processed": null,
+   "related": "4135b903-c3ee-4119-ad20-04b450795554",
+   "items": [
+    {
+     "player": "Kyler Murray",
+     "from": 1,
+     "to": 2,
+     "type": "TRADE"
+    },
+    {
+     "player": "Trevor Lawrence",
+     "from": 2,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "9e6d05a6-b8a3-4eac-bd0c-5d74eaa1a7b1",
+   "type": "TRADE_PROPOSAL",
+   "status": "PENDING",
+   "team": 1,
+   "period": 4,
+   "proposed": "2026-10-06T00:25:37.434000Z",
+   "processed": null,
+   "related": null,
+   "items": [
+    {
+     "player": "Ollie Gordon II",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Parker Washington",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Nico Collins",
+     "from": 4,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "a3a29df9-9bd8-4d9e-9cc4-70c2aaceb6a8",
+   "type": "TRADE_PROPOSAL",
+   "status": "PENDING",
+   "team": 1,
+   "period": 5,
+   "proposed": "2026-10-07T12:28:43.098000Z",
+   "processed": null,
+   "related": null,
+   "items": [
+    {
+     "player": "Ollie Gordon II",
+     "from": 1,
+     "to": 10,
+     "type": "TRADE"
+    },
+    {
+     "player": "DJ Moore",
+     "from": 1,
+     "to": 10,
+     "type": "TRADE"
+    },
+    {
+     "player": "Parker Washington",
+     "from": 1,
+     "to": 10,
+     "type": "TRADE"
+    },
+    {
+     "player": "Drake London",
+     "from": 10,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "067675c5-3a22-425f-8a42-5680fafb0577",
+   "type": "TRADE_PROPOSAL",
+   "status": "CANCELED",
+   "team": 1,
+   "period": 4,
+   "proposed": "2026-10-08T00:25:01.079000Z",
+   "processed": null,
+   "related": "9e6d05a6-b8a3-4eac-bd0c-5d74eaa1a7b1",
+   "items": [
+    {
+     "player": "Ollie Gordon II",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Parker Washington",
+     "from": 1,
+     "to": 4,
+     "type": "TRADE"
+    },
+    {
+     "player": "Nico Collins",
+     "from": 4,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  },
+  {
+   "id": "b557d1df-4a0e-4be3-8e90-4c9ed1790d06",
+   "type": "TRADE_DECLINE",
+   "status": "EXECUTED",
+   "team": 10,
+   "period": 5,
+   "proposed": "2026-10-08T22:57:23.856000Z",
+   "processed": null,
+   "related": "a3a29df9-9bd8-4d9e-9cc4-70c2aaceb6a8",
+   "items": []
+  },
+  {
+   "id": "0f0a02a4-6f3d-4778-bac4-150133e54115",
+   "type": "TRADE_PROPOSAL",
+   "status": "CANCELED",
+   "team": 1,
+   "period": 5,
+   "proposed": "2026-10-08T22:57:23.856000Z",
+   "processed": null,
+   "related": "a3a29df9-9bd8-4d9e-9cc4-70c2aaceb6a8",
+   "items": [
+    {
+     "player": "Ollie Gordon II",
+     "from": 1,
+     "to": 10,
+     "type": "TRADE"
+    },
+    {
+     "player": "DJ Moore",
+     "from": 1,
+     "to": 10,
+     "type": "TRADE"
+    },
+    {
+     "player": "Parker Washington",
+     "from": 1,
+     "to": 10,
+     "type": "TRADE"
+    },
+    {
+     "player": "Drake London",
+     "from": 10,
+     "to": 1,
+     "type": "TRADE"
+    }
+   ]
+  }
+ ]
+}
