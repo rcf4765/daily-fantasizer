@@ -1,0 +1,70 @@
+{
+ "week": 5,
+ "hero": {"winner": 8, "loser": 6, "big": "59.6", "label": "point margin, biggest of the week"},
+ "lead": {
+  "kicker": "Page one",
+  "headline": "Beefy Goes Perfect: 164.2",
+  "deck": "Season-high score. Zero points left on the bench. Four players combined for 133.0.",
+  "paragraphs": [
+   "{T8} posted the best total of the season, beating the old mark of 161.28. The best possible lineup from that roster? Also 164.2.",
+   "{S6} went perfect too, scoring 104.6 with nothing on the bench. It lost by 59.6. Beefy now leads the league in points for at 671.96."
+  ]
+ },
+ "sidebar": [
+  {"style": "hi", "kicker": "Strange but true", "title": "Best Game: Benched",
+   "viz": {"type": "bars", "rows": [{"label": "Maye (bench)", "value": 39.46, "alt": true}, {"label": "Gibbs", "value": 37.7}, {"label": "Nacua", "value": 37.7}]},
+   "text": "{S10} sat Drake Maye. He outscored every starter in the league. Pony won anyway."},
+  {"style": "plain", "kicker": "The record is lying", "title": "Same Points, Two Wins Apart",
+   "viz": {"type": "wins", "teams": [2, 11]},
+   "text": "{S2}: 642.42 pts, 4–1. {S11}: 641.08 pts, 2–3."}
+ ],
+ "memes": [
+  {"format": "nobody", "setup": "Nobody:", "line": "Tyler Shough, starting at QB for CeeDeez Nuts:", "punch": "−0.16", "foot": "Sam Darnold scored 8.3 on the bench."},
+  {"format": "expect", "title": "Pink Pony's QB decision", "left_label": "Projection", "left": "Goff 19.4 · Maye 18.5. Start Goff. Easy.", "right_label": "Reality", "right": "Maye 39.46. On the bench.", "team": 10},
+  {"format": "fine", "title": "8D, week 5", "line": "Starts two players projected for zero. Second straight week.", "punch": "0–5. This is fine.", "team": 3}
+ ],
+ "recaps": {
+  "12-9": {"headline": "Two Zeros, Still a Win", "text": "Bucky Irving 31.5 covered for a zero-projection D/ST and kicker. Travis benched 14.2 for RJ Harvey's 0.7."},
+  "7-5": {"headline": "The Winner Sat on CeeDeez's Bench", "text": "Shough −0.16 and Lamb 2.9 started. Egbuka's 17.2 didn't. Best lineup: 142.8."},
+  "10-4": {"headline": "Pony's Season High", "text": "Nabers 29.1, Goff 28.94. Bruisers went perfect and lost by 18.34."},
+  "2-3": {"headline": "Worst Week, Fourth Straight Win", "text": "Doughboys' season-low 99.14 still beat 8D by 21.94."},
+  "1-11": {"headline": "Chimpanzini Snaps Out of It", "text": "Likely 32.4 on a 12.9 projection. Pickups Brissett (25.28) and Reichard (16) both hit."},
+  "8-6": {"headline": "See Page One", "text": "Gibbs 37.7, Warren 36.8, Allen 30.5, Pickens 28.0."}
+ },
+ "honor": {"team": 8, "big": "0.00", "big_label": "pts left on bench", "kicker": "Manager of the week", "title": "Big Beefy Boys",
+  "text": "Nathan's lineup was perfect and posted the season's best score. A week ago it left 46 on the bench in a 4-point loss."},
+ "blotter": [
+  {"team": 5, "title": "QB below zero", "text": "Shough −0.16 started, Darnold 8.3 sat. Lost by 14.18."},
+  {"team": 9, "title": "Lost by 12.84, benched 25.2", "text": "Croskey-Merritt 14.2 and Shakir 11.0 on the bench."},
+  {"team": 3, "title": "Repeat offender", "text": "Jacobs and Dart, projected for zero, started again."},
+  {"team": 12, "title": "Kicking with no kicker", "text": "Butker and the Chiefs D/ST: two zeros. Won, so no charges."}
+ ],
+ "missing": [
+  {"team": 5, "player": "Tyler Shough", "text": "Found with negative points."},
+  {"team": 5, "player": "CeeDee Lamb", "text": "41.3 last week. Gone since."},
+  {"team": 2, "player": "Jeremiyah Love", "text": "Team won. No search requested."},
+  {"team": 3, "player": "Carnell Tate", "text": "1.6 from the flex."}
+ ],
+ "pecking_notes": {
+  "8": "Season high, perfect lineup.",
+  "12": "0.88 out of first in PF.",
+  "5": "Unluckiest team in the league.",
+  "11": "Most points allowed.",
+  "2": "Four straight wins.",
+  "1": "159.38 after three drops.",
+  "7": "Luckiest team in the league.",
+  "9": "88–112 four weeks running.",
+  "4": "Perfect lineup, still lost.",
+  "6": "Perfect lineup, lost by 59.6.",
+  "10": "Two straight season highs.",
+  "3": "0–5. Never cleared 99."
+ },
+ "forecast_blurbs": {
+  "3-9": "Lowest projected total of the week.",
+  "5-2": "Half a point. Game of the week.",
+  "6-12": "Bring a coat, IDK.",
+  "1-7": "Chimpanzini vs the luckiest team alive.",
+  "10-8": "Biggest spread. Pony has won two straight.",
+  "4-11": "Clear skies for Kazakhstan, for once."
+ }
+}
