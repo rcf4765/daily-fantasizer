@@ -1,5 +1,5 @@
 {
- "fetched_at": "2026-10-13T13:49:30.821752Z",
+ "fetched_at": "2026-10-14T14:33:26.195577Z",
  "teams_total": 12,
  "teams_reporting": [
   1,
@@ -14,7 +14,38 @@
   10
  ],
  "block": {
-  "1": [],
+  "1": [
+   {
+    "player": "DJ Moore",
+    "pos": "WR",
+    "status": "ON_THE_BLOCK"
+   },
+   {
+    "player": "DeVonta Smith",
+    "pos": "WR",
+    "status": "ON_THE_BLOCK"
+   },
+   {
+    "player": "Jonathan Taylor",
+    "pos": "RB",
+    "status": "UNTOUCHABLE"
+   },
+   {
+    "player": "Dalton Kincaid",
+    "pos": "TE",
+    "status": "ON_THE_BLOCK"
+   },
+   {
+    "player": "Omarion Hampton",
+    "pos": "RB",
+    "status": "ON_THE_BLOCK"
+   },
+   {
+    "player": "Ollie Gordon II",
+    "pos": "RB",
+    "status": "ON_THE_BLOCK"
+   }
+  ],
   "2": [],
   "3": [],
   "4": [],
