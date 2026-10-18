@@ -17,7 +17,7 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 | `extract.js`, `extract_logos.js` | Browser fallback snippets for when GitHub is unavailable | set `WEEK` only |
 | `league.json` | League constants, short team names, `owner_team`, running lore | add lore when told |
 | `data/logos.txt`, `data/logo_urls.txt` | 12 crests as webp data URIs + their ESPN URLs | only when crests change |
-| `data/weekN_raw.txt` | ESPN dump for week N | add each week |
+| `data/weekN_raw.txt` | ESPN dump for week N. **Keep every week's file**: the What If section re-scores all weeks 1–N from them | add each week |
 | `data/weekN_copy.json` | Every word of week N's edition. **`data/week5_copy.json` is the voice and schema reference** | add each week |
 | `data/trades.json` | Season-to-date **completed** trades (no pending/declined offers) | refreshed weekly |
 | `data/trade_block.json` | Each team's ESPN trading block + which teams ESPN returned it for | refreshed weekly |
@@ -57,20 +57,25 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 - `missing`: 4 starters with the biggest misses vs projection, names exactly as in facts; text ≤ 8 words.
 - `pecking_notes`: all 12 teams, ≤ 6 words each.
 - `forecast_blurbs`: one per next-week matchup keyed `"homeId-awayId"`, ≤ 8 words.
-- Automatic sections (no copy): stat tiles, hero strips, Week at a Glance, Boom or Bust, Scoreboard lanes, Points by Position, Position Kings, Season Heat Map, Good or Lucky?, The Wire (verified transactions), Trade Desk, On the Block, forecast bars.
+- Automatic sections (no copy): stat tiles, hero strips, Week at a Glance, Boom or Bust, Scoreboard lanes, Points by Position, Position Kings, Season Heat Map, Good or Lucky?, What If?, The Wire (verified transactions), Trade Desk, On the Block, forecast bars.
 - **Running lore**: add rivalries/jokes/nicknames the user shares to `league.json` `lore` and weave them in later.
 
 ## Design facts (don't change unless the user asks)
 
 Fonts: Big Shoulders Display headlines, Literata body, IBM Plex Mono numbers. Ink #151a24 on #f4f5f0 sheet, royal blue #1c3fae (won/main data), yellow #f2d23c (highlights, bench gap), red #b3261e (average line, busts, misses). **Lions accents, kept subtle:** Honolulu blue #0076b6 and silver #b0b7bc for the pinstripe under the masthead, the tab on every section rule, the heat-map scale, the "earned" bars, position colors, forecast card tops, and the Honolulu Manager of the Week band with silver ring; losing bars are silver; footer "printed in the 313". Full dark theme.
 
-Sections in order: masthead with 12 crests → blue stat tiles (avg, high, low, top player, left on benches, perfect lineups) → halftone hero (two crests, margin, starter strips) → lead + two sidebar boxes → Week at a Glance (score bars + bench gap + avg line) beside Boom or Bust (top 5 beats / top 5 misses vs projection) → The Scoreboard (six game cards, closest first, score lanes with yellow best-lineup tick, "Best lineup would have won" tag) → Manager of the Week band → Points by Position stacked bars beside Position Kings → Police Blotter beside Missing Persons → Season Heat Map beside Good or Lucky? (PF vs PA scatter) → Pecking Order table (all-play rank, record, W/L form chips, all-play, PF, sparkline, luck bar, note) → Trade Desk (only when a trade has been completed: season tallies + newest 6 completed trades, players received with week-N points) → On the Block (when at least 10 teams report trading-block data) → The Wire (add/drop chips with points) → Week N+1 Forecast → footer.
+Sections in order: masthead with 12 crests → blue stat tiles (avg, high, low, top player, left on benches, perfect lineups) → halftone hero (two crests, margin, starter strips) → lead + two sidebar boxes → Week at a Glance (score bars + bench gap + avg line) beside Boom or Bust (top 5 beats / top 5 misses vs projection) → The Scoreboard (six game cards, closest first, score lanes with yellow best-lineup tick, "Best lineup would have won" tag) → Manager of the Week band → Points by Position stacked bars beside Position Kings → Police Blotter beside Missing Persons → Season Heat Map beside Good or Lucky? (PF vs PA scatter) → Pecking Order table (all-play rank, record, W/L form chips, all-play, PF, sparkline, luck bar, note) → What If? (standings if every team started its best possible lineup every week: stat tiles for games flipped, bench points, biggest climber, playoff picture; actual-vs-what-if rank slope chart with the playoff line; table with move badge, record and PF actual → what-if, and each flipped game) → Trade Desk (only when a trade has been completed: season tallies + newest 6 completed trades, players received with week-N points) → On the Block (when at least 10 teams report trading-block data) → The Wire (add/drop chips with points) → Week N+1 Forecast → footer.
 
 ## Trades and the trading block
 
 - **No trade rumors.** The user decided (2026-10-13) to publish only trades that actually happened. ESPN only shows pending/declined/expired offers to the managers involved, so those are never fetched, stored or mentioned.
 - **Trade Desk**: completed trades (`TRADE_PROPOSAL` with status EXECUTED) are league-public. The section appears automatically when the season has at least one; otherwise it is omitted.
 - **On the Block** lists players managers marked "on the trading block" in ESPN (ON_THE_BLOCK only; untouchable and normal players are never shown), as yellow-tagged cards with week-N points, projection and whether they started. **User's rule (updated 2026-10-13): 10 of 12 teams reporting is enough** (`league.json` `trade_block_min_teams`). The note under the section names teams with no trading block data. If no player is listed, the section shows a "Nobody's selling" card. As of 2026-10-13 ESPN returns the field for 10 of 12 teams (not Kazakhstan [11] or Bedazzled Balls [12]).
+
+## What If? notes
+
+- Built by `render.py` from `data/week1_raw.txt` … `data/weekN_raw.txt` using `facts.optimal`. Both teams in every game get their best possible lineup from that week's roster; standings rank by wins, then points for; playoff line from META `playoffteams` (6). Added at the user's request 2026-10-18.
+- The section is left out unless every week 1–N has a raw file. If one is missing, dispatch the fetch workflow for that week (`-f 'inputs[week]=K'`); weeks 1–3 were backfilled this way on 2026-10-18. A backfill run rewrites `data/latest.json` to that week; set it back to the latest week afterwards.
 
 ## Known quirks
 
