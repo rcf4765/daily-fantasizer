@@ -450,7 +450,6 @@ def build(short_names, week=None):
                        f'<div class="rum-stats rs5">{tiles}</div>{bv}{season}{every}'
                        f'<p class="note-s">Every week\'s consensus PPR ranks (top 60 WR, 48 RB, 24 QB, 24 TE) graded against where each player actually finished at his position. Variance = actual points minus projected points; rank arrows read ranked → finished. Underrated/overrated lists need 3+ graded weeks.</p>'))
 
-    out.append(f'<p class="note-s ps-foot">Updated {esc(d.meta.get("fetched", ""))} UTC. Blends public consensus rankings and projections with ESPN data; usage from play-by-play charting.</p>')
     out.append(SCRIPT)
     # the tab carries its own styles, so a midweek --patch also updates them
     import mobile  # phone card layout for the tables (tags each cell with its role and column label)
@@ -750,7 +749,7 @@ button.rw-row:focus-visible{outline:3px solid var(--hi);outline-offset:-3px}
 .bv-r{font-size:.74rem;color:var(--muted);white-space:nowrap}
 .bv-p{font-size:.84rem;text-align:right;white-space:nowrap}.bv-p em{font-style:normal;color:var(--muted);font-size:.7rem}
 .twocol2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
-.ps-foot{border-top:1px dashed var(--line);padding-top:8px}
+
 .gr-every{display:grid;gap:10px;min-width:0}
 .gr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:10px}
 .gr-head h3{font-size:1.45rem;font-weight:800;text-transform:uppercase}
