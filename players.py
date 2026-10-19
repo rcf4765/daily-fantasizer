@@ -190,28 +190,47 @@ def build(short_names):
     out.append(sec("ps-current", "Current Data", f"PPR usage, {live_note}",
                    postabs("cur", panes) + '<p class="note-s">Ranked by PPR points per game played (2+ games). Snap % and shares are per-game averages. Last 3 = PPR per game over his last three games, arrow vs. season.</p>'))
 
-    # ---------- 2. volume vs scoring ----------
-    cand = [p for p in d.P if p["pos"] in ("RB", "WR", "TE") and p.get("xp") is not None and p["xp"] >= 6]
-    cand.sort(key=lambda p: -p["xp"]); cand = cand[:70]
+    # ---------- 2. volume vs scoring (interactive: search, filters, tooltips) ----------
+    cand = [p for p in d.P if p["pos"] in ("RB", "WR", "TE") and p.get("xp") is not None and p["xp"] >= 4]
+    cand.sort(key=lambda p: -p["xp"])
     if cand:
-        hot = sorted(cand, key=lambda p: -p["res"])[:6]; cold = sorted(cand, key=lambda p: p["res"])[:6]
+        ranked = cand[:70]  # hot/cold lists come from the 70 biggest-volume players, as before
+        hot = sorted(ranked, key=lambda p: -p["res"])[:6]; cold = sorted(ranked, key=lambda p: p["res"])[:6]
         lab = {p["key"] for p in hot[:4] + cold[:4]}
         lo = 0; hi = math.ceil(max(max(p["xp"], p["ppg"]) for p in cand) / 5) * 5
-        X = lambda v: (v - lo) / (hi - lo) * 100; Y = lambda v: 100 - (v - lo) / (hi - lo) * 100
-        dots = "".join(f'<span class="vd p-{p["pos"]}{" lab" if p["key"] in lab else ""}" style="left:{X(p["xp"]):.1f}%;top:{Y(p["ppg"]):.1f}%" title="{esc(p["name"])}: {p["ppg"]:.1f} PPR/g on volume worth {p["xp"]:.1f}">'
-                       + (f'<em>{esc(short_name(p["name"]))}</em>' if p["key"] in lab else "") + '</span>' for p in cand)
+        X = lambda v: (v - lo) / (hi - lo) * 100; Y = lambda v: 100 - (max(v, lo) - lo) / (hi - lo) * 100
+        info = []
+        dots = []
+        for i, p in enumerate(cand):
+            o = p.get("owner") or 0
+            info.append({"n": p["name"], "pos": p["pos"], "tm": p["team"], "o": o, "on": d.short.get(o, "Free agent") if o else "Free agent",
+                         "g": p["g"], "ppg": round(p["ppg"], 1), "xp": round(p["xp"], 1), "r": round(p["res"], 1),
+                         "tg": round(p["tgt_g"], 1), "cg": round(p["car_g"], 1), "ts": None if p["ts"] is None else round(p["ts"] * 100),
+                         "sn": None if p["snap"] is None else round(p["snap"] * 100), "inj": p.get("inj", "ACTIVE")})
+            dots.append(f'<button type="button" class="vd p-{p["pos"]}{" lab" if p["key"] in lab else ""}{" fa" if not o else ""}" data-i="{i}" data-k="{esc(p["key"])}" '
+                        f'style="left:{X(p["xp"]):.1f}%;top:{Y(p["ppg"]):.1f}%" aria-label="{esc(p["name"])}, {p["ppg"]:.1f} PPR per game, expected {p["xp"]:.1f}">'
+                        + (f'<em>{esc(short_name(p["name"]))}</em>' if p["key"] in lab else "") + '</button>')
         ticks = "".join(f'<span style="left:{X(v):.0f}%">{v}</span>' for v in range(0, hi + 1, 5))
-        chart = (f'<div class="vs-wrap"><span class="sc-y">PPR points per game</span><div class="vs">'
+        names = "".join(f'<option value="{esc(x["n"])}">' for x in sorted(info, key=lambda x: x["n"]))
+        controls = ('<div class="vs-ctl"><label class="vs-find"><span class="kicker">Find a player</span>'
+                    '<input type="search" id="vs-q" list="vs-names" placeholder="Type a name…" autocomplete="off"></label>'
+                    f'<datalist id="vs-names">{names}</datalist>'
+                    '<div class="vs-f" role="group" aria-label="Positions">'
+                    + "".join(f'<button type="button" class="pt" data-f="{x}" aria-pressed="true"><i class="sw p-{x}"></i>{x}</button>' for x in ("RB", "WR", "TE"))
+                    + '<button type="button" class="pt" data-f="FA" aria-pressed="false">Free agents only</button></div></div>')
+        chart = (f'<div class="vs-wrap"><span class="sc-y">PPR points per game</span><div class="vs" id="vs-plot">'
                  f'<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="100" x2="100" y2="0" class="vs-eq"/></svg>'
-                 f'<span class="q q2">Scoring above<br>his volume</span><span class="q q4">Volume not<br>cashing in yet</span>{dots}</div>'
+                 f'<span class="q q2">Scoring above<br>his volume</span><span class="q q4">Volume not<br>cashing in yet</span>{"".join(dots)}'
+                 '<div class="vs-tip" id="vs-tip" role="status" hidden></div></div>'
                  f'<div class="vs-x">{ticks}</div><span class="sc-x"><span>Expected PPR/g from volume</span></span></div>'
-                 '<div class="legend"><span><i class="sw p-RB"></i>RB</span><span><i class="sw p-WR"></i>WR</span><span><i class="sw p-TE"></i>TE</span><span><i class="sw vs-sw"></i>points = volume</span></div>')
-        li = lambda ps, cls: "".join(f'<div class="rw-row">{d.owner(p)}{d.pname(p)}<span class="rw-v num {cls}">{p["res"]:+.1f}</span><span class="rw-s num">{p["ppg"]:.1f} vs {p["xp"]:.1f}</span></div>' for p in ps)
+                 '<div class="legend"><span><i class="sw p-RB"></i>RB</span><span><i class="sw p-WR"></i>WR</span><span><i class="sw p-TE"></i>TE</span><span><i class="sw vs-sw"></i>points = volume</span></div>'
+                 f'<script type="application/json" id="vs-data">{json.dumps(info, separators=(",", ":")).replace("</", "<\\/")}</script>')
+        li = lambda ps, cls: "".join(f'<button type="button" class="rw-row" data-k="{esc(p["key"])}">{d.owner(p)}{d.pname(p)}<span class="rw-v num {cls}">{p["res"]:+.1f}</span><span class="rw-s num">{p["ppg"]:.1f} vs {p["xp"]:.1f}</span></button>' for p in ps)
         lists = (f'<div class="rw"><h3>Running hot</h3><p class="note-s">Scoring more than his volume supports. Sell-high watch.</p>{li(hot, "up")}</div>'
                  f'<div class="rw"><h3>Running cold</h3><p class="note-s">Volume is there, points aren\'t yet. Buy-low watch.</p>{li(cold, "dn")}</div>')
         out.append(sec("ps-volume", "Volume vs. Scoring", "The regression watch",
-                       f'<div class="vs-grid"><div>{chart}</div><div class="rw-col">{lists}</div></div>'
-                       '<p class="note-s">Expected points come from a fit of PPR points per game on targets, carries and air yards per game across every player at the position with 3+ games. Dots: the 70 skill players with the most volume.</p>'))
+                       f'{controls}<div class="vs-grid"><div>{chart}</div><div class="rw-col">{lists}</div></div>'
+                       f'<p class="note-s">Hover or tap a dot for the player; search to find anyone; tap a hot/cold name to spot him on the chart. Expected points come from a fit of PPR points per game on targets, carries and air yards per game across every player at the position with 3+ games. {len(cand)} RB/WR/TE plotted (3+ games, 4+ expected PPR/g); the hot and cold lists use the 70 with the most volume.</p>'))
 
     # ---------- 3/4/5. next week: projections, start/sit, rankings ----------
     N = d.next
@@ -391,7 +410,8 @@ def build(short_names):
 
     out.append(f'<p class="note-s ps-foot">Updated {esc(d.meta.get("fetched", ""))} UTC. Blends public consensus rankings and projections with ESPN data; usage from play-by-play charting.</p>')
     out.append(SCRIPT)
-    return "<!--PS-->\n" + "\n".join(out) + "\n<!--/PS-->"
+    # the tab carries its own styles, so a midweek --patch also updates them
+    return "<!--PS-->\n<style>" + CSS + "</style>\n" + "\n".join(out) + "\n<!--/PS-->"
 
 
 def trend(p):
@@ -424,6 +444,89 @@ SCRIPT = r"""<script>
       p.forEach(function(q){q.hidden=q.dataset.pos!==x.dataset.pos});
     })});
   });
+  (function(){
+    var plot=document.getElementById('vs-plot'),src=document.getElementById('vs-data');if(!plot||!src)return;
+    var info=JSON.parse(src.textContent),tip=document.getElementById('vs-tip'),q=document.getElementById('vs-q');
+    var dots=[].slice.call(plot.querySelectorAll('.vd')),pinned=null,show={RB:1,WR:1,TE:1},faOnly=false;
+    function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
+    function html(p){
+      var own=p.o?'<i class="lg lg-'+p.o+'"></i>'+e(p.on):'<span class="own fa">FA</span>';
+      var inj=(p.inj&&p.inj!=='ACTIVE'&&p.inj!=='NORMAL')?' <span class="inj">'+e(p.inj.replace('_',' ').toLowerCase())+'</span>':'';
+      var cls=p.r>0?'up':p.r<0?'dn':'';
+      return '<span class="kicker">'+e(p.pos)+' · '+e(p.tm)+' · '+p.g+' games</span><b class="nm">'+e(p.n)+'</b>'+inj+
+        '<span class="tt-own">'+own+'</span>'+
+        '<span>'+p.ppg.toFixed(1)+' PPR/g vs '+p.xp.toFixed(1)+' expected <span class="tt-v '+cls+'">'+(p.r>0?'+':'')+p.r.toFixed(1)+'</span></span>'+
+        '<span class="tt-g"><span><em>Tgt/g</em><b>'+p.tg.toFixed(1)+'</b></span><span><em>Carries/g</em><b>'+p.cg.toFixed(1)+'</b></span>'+
+        '<span><em>Tgt share</em><b>'+(p.ts==null?'–':p.ts+'%')+'</b></span><span><em>Snap %</em><b>'+(p.sn==null?'–':p.sn+'%')+'</b></span></span>';
+    }
+    function place(d){
+      var p=info[+d.dataset.i];tip.innerHTML=html(p);tip.hidden=false;
+      var x=parseFloat(d.style.left),y=parseFloat(d.style.top);
+      tip.style.left=tip.style.right=tip.style.top=tip.style.bottom='';
+      if(x>55)tip.style.right=(100-x+2)+'%';else tip.style.left=(x+2)+'%';
+      if(y>55)tip.style.bottom=(100-y+2)+'%';else tip.style.top=(y+2)+'%';
+    }
+    function hide(){if(pinned){place(pinned)}else{tip.hidden=true}}
+    function pin(d){
+      dots.forEach(function(x){x.classList.toggle('on',x===d)});
+      document.querySelectorAll('button.rw-row').forEach(function(r){r.classList.toggle('on',!!d&&r.dataset.k===d.dataset.k)});
+      pinned=d;if(d){place(d)}else{tip.hidden=true}
+    }
+    function filter(){
+      var t=(q.value||'').trim().toLowerCase(),hits=[];
+      dots.forEach(function(d){
+        var p=info[+d.dataset.i],vis=show[p.pos]&&(!faOnly||!p.o);
+        d.classList.toggle('off',!vis);
+        var m=t&&vis&&p.n.toLowerCase().indexOf(t)>=0;if(m)hits.push(d);
+        d.classList.toggle('hit',!!m);d.classList.toggle('dim',!!t&&!m);
+      });
+      plot.classList.toggle('searching',!!t);
+      if(pinned&&pinned.classList.contains('off'))pin(null);
+      if(t&&hits.length===1)pin(hits[0]);else if(t&&pinned&&hits.indexOf(pinned)<0)pin(null);
+    }
+    // the nearest visible dot to the pointer (snaps, so crowded spots and fingers work)
+    function near(ev,max){
+      var best=null,bd=max*max;
+      dots.forEach(function(d){
+        if(d.classList.contains('off'))return;
+        var r=d.getBoundingClientRect(),dx=r.left+r.width/2-ev.clientX,dy=r.top+r.height/2-ev.clientY,dd=dx*dx+dy*dy;
+        if(dd<bd){bd=dd;best=d}
+      });
+      return best;
+    }
+    var hov=null;
+    plot.addEventListener('pointermove',function(ev){
+      if(ev.pointerType!=='mouse')return;
+      var d=near(ev,22);if(d===hov)return;hov=d;
+      dots.forEach(function(x){x.classList.toggle('hov',x===d)});
+      if(d)place(d);else hide();
+    });
+    plot.addEventListener('pointerleave',function(){hov=null;dots.forEach(function(x){x.classList.remove('hov')});hide()});
+    dots.forEach(function(d){
+      d.addEventListener('focus',function(){place(d)});
+      d.addEventListener('blur',hide);
+    });
+    document.addEventListener('click',function(ev){
+      if(pinned&&!plot.contains(ev.target)&&!ev.target.closest('button.rw-row,.vs-ctl'))pin(null);
+    });
+    plot.addEventListener('click',function(ev){
+      var d=ev.detail===0&&ev.target.classList.contains('vd')?ev.target:near(ev,30);  // detail 0 = keyboard
+      pin(d&&pinned!==d?d:null);
+    });
+    q.addEventListener('input',filter);
+    document.querySelectorAll('.vs-f .pt').forEach(function(b){b.addEventListener('click',function(){
+      var on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on?'true':'false');
+      if(b.dataset.f==='FA')faOnly=on;else show[b.dataset.f]=on?1:0;filter();
+    })});
+    document.querySelectorAll('button.rw-row').forEach(function(r){r.addEventListener('click',function(){
+      var d=plot.querySelector('.vd[data-k="'+r.dataset.k+'"]');if(!d)return;
+      if(d.classList.contains('off')){var p=info[+d.dataset.i];show[p.pos]=1;faOnly=false;
+        document.querySelectorAll('.vs-f .pt').forEach(function(b){if(b.dataset.f===p.pos)b.setAttribute('aria-pressed','true');if(b.dataset.f==='FA')b.setAttribute('aria-pressed','false')});
+        q.value='';filter();}
+      pin(pinned===d?null:d);
+      if(window.innerWidth<760)plot.scrollIntoView({block:'center',behavior:'smooth'});
+    })});
+  })();
   var el=document.getElementById('ss-data'); if(!el)return;
   var D=JSON.parse(el.textContent),C=D.c,T=D.teams,byk={};C.forEach(function(c){byk[c.k]=c});
   var A=document.getElementById('ss-a'),B=document.getElementById('ss-b'),O=document.getElementById('ss-out');
@@ -497,15 +600,46 @@ tr.avail{background:color-mix(in srgb,var(--hi) 22%,transparent)}
 .vs-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:28px;align-items:start}
 .vs-wrap{display:grid;grid-template-columns:22px minmax(0,1fr);gap:4px}
 .vs-wrap .sc-y{grid-row:1}
-.vs{grid-column:2;position:relative;aspect-ratio:1.1;border-left:2px solid var(--rule);border-bottom:2px solid var(--rule);background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 20%,linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/20% 100%}
+.vs{grid-column:2;position:relative;aspect-ratio:1.1;touch-action:manipulation;cursor:crosshair;border-left:2px solid var(--rule);border-bottom:2px solid var(--rule);background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 20%,linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/20% 100%}
 .vs svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .vs-eq{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 4;vector-effect:non-scaling-stroke}
 .vs-x{grid-column:2;position:relative;height:16px;font-family:var(--mono);font-size:.64rem;color:var(--muted)}
 .vs-x span{position:absolute;transform:translateX(-50%)}
 .vs-wrap .sc-x{grid-column:2}
-.vd{position:absolute;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);border:1.5px solid var(--sheet);z-index:1}
+.vd{appearance:none;padding:0;cursor:pointer;position:absolute;width:11px;height:11px;border-radius:50%;transform:translate(-50%,-50%);border:1.5px solid var(--sheet);z-index:1;transition:opacity .15s,transform .15s}
+.vd::after{content:"";position:absolute;inset:-6px;border-radius:50%}
 .vd.lab{width:13px;height:13px;border-color:var(--ink);z-index:2}
-.vd em{position:absolute;left:12px;top:-4px;font-style:normal;font-size:.66rem;font-weight:600;white-space:nowrap;background:var(--sheet);padding:0 3px;line-height:1.3}
+.vd em{position:absolute;left:12px;top:-4px;font-style:normal;font-family:var(--body);color:var(--ink);font-size:.66rem;font-weight:600;white-space:nowrap;background:var(--sheet);padding:0 3px;line-height:1.3;pointer-events:none}
+.vd.hov,.vd:focus-visible,.vd.on{transform:translate(-50%,-50%) scale(1.6);z-index:4;border-color:var(--ink);outline:none}
+.vd.hit{transform:translate(-50%,-50%) scale(1.5);z-index:3;border-color:var(--ink)}
+.vd.dim{opacity:.15}
+.vd.off{display:none}
+.vs.searching .vd em{display:none}
+.vs.searching .vd.hit em,.vd.on em{display:block}
+.vs-tip{position:absolute;z-index:6;width:min(230px,70%);background:var(--sheet);border:2px solid var(--rule);box-shadow:4px 4px 0 var(--rule);padding:10px 12px;display:grid;gap:6px;pointer-events:none;font-size:.82rem}
+.vs-tip[hidden]{display:none}
+.vs-tip b.nm{font-family:var(--display);font-weight:900;font-size:1.25rem;text-transform:uppercase;line-height:1}
+.vs-tip .kicker{font-size:.6rem}
+.vs-tip .tt-own{display:flex;align-items:center;gap:6px;font-size:.78rem}
+.vs-tip .tt-own .lg{width:18px;height:18px}
+.vs-tip .tt-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 8px;border-top:1px dashed var(--line);padding-top:6px}
+.vs-tip .tt-g span{display:grid;font-family:var(--mono)}
+.vs-tip .tt-g em{font-style:normal;font-size:.56rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.vs-tip .tt-g b{font-size:.9rem}
+.vs-tip .tt-v{font-family:var(--mono);font-weight:600}
+.vs-ctl{display:flex;flex-wrap:wrap;align-items:end;gap:10px 18px}
+.vs-find{display:grid;gap:4px;flex:1 1 240px;max-width:360px}
+.vs-find input{font:inherit;font-size:.95rem;padding:8px 10px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);width:100%}
+.vs-find input:focus{outline:3px solid var(--hi);outline-offset:1px}
+.vs-f{display:flex;flex-wrap:wrap;gap:4px}
+.vs-f .pt{display:inline-flex;align-items:center;gap:6px}
+.vs-f .pt .sw{border:1.5px solid var(--sheet)}
+.vs-f .pt[aria-pressed="false"]{opacity:.55}
+.vs-f .pt[data-f="FA"][aria-pressed="false"]{opacity:1}
+.vs-f .pt[data-f="FA"][aria-pressed="true"]{background:var(--hi);color:var(--hi-ink);border-color:var(--hi)}
+button.rw-row{appearance:none;background:none;border:0;border-bottom:1px solid var(--line);width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+button.rw-row:hover,button.rw-row.on{background:var(--paper)}
+button.rw-row:focus-visible{outline:3px solid var(--hi);outline-offset:-3px}
 .p-RB{background:var(--honolulu)}.p-WR{background:var(--blue)}.p-TE{background:var(--hi)}
 .sw.p-RB,.sw.p-WR,.sw.p-TE{width:10px;height:10px;border-radius:50%}
 .sw.vs-sw{height:0;border-top:2px dashed var(--muted);border-radius:0}
@@ -567,6 +701,7 @@ tr.avail{background:color-mix(in srgb,var(--hi) 22%,transparent)}
 .twocol2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
 .ps-foot{border-top:1px dashed var(--line);padding-top:8px}
 @media (max-width:760px){
+  .vs-tip{position:fixed;left:12px!important;right:12px!important;top:auto!important;bottom:12px!important;width:auto;z-index:50}
   .vs-grid,.bv,.twocol2,.ss-cards{grid-template-columns:minmax(0,1fr)}
   .pj-row{grid-template-columns:2.6ch minmax(0,1fr) 54px 44px;gap:6px}
   .pj-row .own,.pj-row .pj-t{display:none}
