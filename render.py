@@ -228,6 +228,150 @@ if len(WI_WEEKS) == W:
               f'<tbody>{"".join(wrows)}</tbody></table></div></div>'
               f'<p class="note-s">Both teams in every game get their best lineup from that week\'s roster. Ranked by wins, then points for. Top {PO} make the playoffs.</p></section>')
 
+# ---------- season sections: power rankings over time, playoff odds, floor/ceiling, bench hall of shame, waiver MVP ----------
+# All built from data/week1_raw.txt .. data/weekN_raw.txt (and data/schedule.json for playoff odds). Skipped if a week is missing.
+import random as _random, statistics as _st
+power_html = odds_html = rangebench_html = waiver_html = ""
+if all(_os.path.exists(f"data/week{k}_raw.txt") for k in range(1, W + 1)):
+    SD = {}  # week -> dict(score, opt, opp, starters, tx)
+    for k in range(1, W + 1):
+        _m, _slots, _t, _sched, _ros, _tx, _lu = _load(f"data/week{k}_raw.txt")
+        sc, opp = {}, {}
+        for gm in _sched:
+            if gm["wk"] == k and gm["away"]:
+                sc[gm["home"]], sc[gm["away"]] = gm["hp"], gm["ap"]; opp[gm["home"]], opp[gm["away"]] = gm["away"], gm["home"]
+        SD[k] = dict(score=sc, opp=opp, opt={t: _optimal(_ros[t], _slots)[0] for t in _ros}, ros=_ros, tx=_tx)
+    WEEKS = list(range(1, W + 1))
+
+    # --- power rankings over time: cumulative all-play wins, then points for (same rule as the Pecking Order) ---
+    ranks = {}
+    cap, cpf = {t: 0 for t in teams}, {t: 0.0 for t in teams}
+    for k in WEEKS:
+        s = SD[k]["score"]
+        for t in teams:
+            cap[t] += sum(s[t] > s[o] for o in s if o != t); cpf[t] += s[t]
+        ranks[k] = {t: i + 1 for i, t in enumerate(sorted(teams, key=lambda t: (-cap[t], -cpf[t])))}
+    PR_RH = 34; PR_H = PR_RH * NT; XW = 100
+    last, prev = ranks[W], ranks[W - 1] if W > 1 else ranks[W]
+    def pr_y(r): return (r - 1) * PR_RH + PR_RH / 2
+    plines = []
+    for t in teams:
+        pts = " ".join(f"{(k - 1) * XW:.0f},{pr_y(ranks[k][t]):.0f}" for k in WEEKS)
+        mv = prev[t] - last[t]
+        plines.append((mv != 0, f'<polyline points="{pts}" class="pw-{"up" if mv > 0 else "dn" if mv < 0 else "eq"}"><title>{esc(teams[t]["name"])}: ' + " → ".join(str(ranks[k][t]) for k in WEEKS) + '</title></polyline>'))
+    pr_right = "".join(
+        f'<div class="pw-row"><b class="num">{r}</b>{lg(t)}<span>{esc(SHORT[t])}</span><em class="mv {"up" if prev[t] > r else "dn" if prev[t] < r else "eq"}">'
+        + ("▲" + str(prev[t] - r) if prev[t] > r else "▼" + str(r - prev[t]) if prev[t] < r else "–") + '</em></div>'
+        for t, r in sorted(last.items(), key=lambda x: x[1]))
+    pr_left = "".join(f'<div class="pw-row l">{lg(t)}</div>' for t, r in sorted(ranks[1].items(), key=lambda x: x[1]))
+    power_html = (f'<section class="sec" id="power"><div class="sec-head"><h2>Power Rankings Over Time</h2><span class="kicker">All-play rank after every week · color = this week\'s move</span></div>'
+                  f'<div class="pw"><div class="pw-wk"><span></span><span class="pw-ticks">' + "".join(f'<span>Wk {k}</span>' for k in WEEKS) + '</span><span></span></div>'
+                  f'<div class="pw-body"><div class="pw-col">{pr_left}</div>'
+                  f'<svg viewBox="0 0 {max((W - 1) * XW, 1)} {PR_H}" preserveAspectRatio="none" height="{PR_H}" aria-hidden="true">'
+                  + "".join(f'<line x1="0" x2="{(W - 1) * XW}" y1="{i * PR_RH}" y2="{i * PR_RH}" class="pw-grid"/>' for i in range(1, NT))
+                  + "".join(l for _, l in sorted(plines, key=lambda x: x[0])) + f'</svg><div class="pw-col">{pr_right}</div></div></div></section>')
+
+    # --- playoff odds: Monte Carlo over the remaining schedule ---
+    if _os.path.exists("data/schedule.json"):
+        SCH = json.load(open("data/schedule.json"))
+        REG, POT = SCH["regweeks"], SCH["playoff_teams"]
+        left_games = [(g["wk"], g["home"], g["away"]) for g in SCH["games"] if W < g["wk"] <= REG]
+        allw = [SD[k]["score"][t] for k in WEEKS for t in teams]
+        lmean = _st.mean(allw)
+        mu = {t: (sum(SD[k]["score"][t] for k in WEEKS) + 3 * lmean) / (W + 3) for t in teams}
+        sig = _st.pstdev([SD[k]["score"][t] - _st.mean(SD[j]["score"][t] for j in WEEKS) for k in WEEKS for t in teams])
+        w0 = {t: sum(SD[k]["score"][t] > SD[k]["score"][SD[k]["opp"][t]] for k in WEEKS) for t in teams}
+        pf0 = {t: sum(SD[k]["score"][t] for k in WEEKS) for t in teams}
+        rng = _random.Random(20260000 + W); NS = 10000
+        made = {t: 0 for t in teams}; seeds = {t: [0] * NT for t in teams}; wins_tot = {t: 0 for t in teams}
+        for _ in range(NS):
+            wv, pv = dict(w0), dict(pf0)
+            for wk, h, a in left_games:
+                sh, sa = rng.gauss(mu[h], sig), rng.gauss(mu[a], sig)
+                pv[h] += sh; pv[a] += sa; wv[h if sh > sa else a] += 1
+            for i, t in enumerate(sorted(teams, key=lambda t: (-wv[t], -pv[t]))):
+                seeds[t][i] += 1; made[t] += i < POT
+            for t in teams: wins_tot[t] += wv[t]
+        lw = {t: 0 for t in teams}; ll = {t: 0 for t in teams}
+        for t in teams: ll[t] = W - w0[t]
+        orow = []
+        for t in sorted(teams, key=lambda t: (-made[t], -wins_tot[t])):
+            p = made[t] / NS * 100; ew = wins_tot[t] / NS
+            cells = "".join(f'<i class="sd{" po" if i < POT else ""}" style="--p:{min(100, (seeds[t][i] / NS) ** 0.5 * 160):.0f}%" title="Seed {i+1}: {seeds[t][i] / NS * 100:.1f}%"></i>' for i in range(NT))
+            pl = "&gt;99%" if p > 99.4 else "&lt;1%" if p < 0.5 else f"{p:.0f}%"
+            orow.append(f'<div class="od-row"><span class="br-name">{lg(t)}<span>{esc(SHORT[t])}</span></span><span class="od-rec num">{w0[t]}–{W - w0[t]}</span>'
+                        f'<span class="od-track"><span class="od-bar" style="width:{p:.1f}%"></span></span><b class="od-p num">{pl}</b>'
+                        f'<span class="od-proj num">{ew:.1f}–{REG - ew:.1f}</span><span class="seeds">{cells}</span></div>')
+        odds_html = (f'<section class="sec" id="playoff-odds"><div class="sec-head"><h2>Playoff Odds</h2><span class="kicker">10,000 simulated seasons · top {POT} of {NT} make it</span></div>'
+                     f'<div class="od"><div class="od-row od-head"><span>Team</span><span>Now</span><span>Chance to make playoffs</span><span></span><span>Proj. record</span><span class="seeds-h">Seed 1 → {NT}</span></div>{"".join(orow)}</div>'
+                     f'<p class="note-s">Weeks {W + 1}–{REG} are played out 10,000 times on the real schedule. Each team scores around its season average (pulled slightly toward the league average of {lmean:.1f}) '
+                     f'with the league\'s typical week-to-week swing of ±{sig:.1f}. Ties go to points for. Darker seed cells = more likely.</p></section>')
+
+    # --- floor and ceiling ---
+    fl = {t: sorted(SD[k]["score"][t] for k in WEEKS) for t in teams}
+    flo, fhi = min(v[0] for v in fl.values()), max(v[-1] for v in fl.values())
+    flo, fhi = math.floor((flo - 5) / 10) * 10, math.ceil((fhi + 5) / 10) * 10
+    def fx(v): return (v - flo) / (fhi - flo) * 100
+    frows = "".join(
+        f'<div class="fc-row" title="{esc(teams[t]["name"])}: low {fl[t][0]:.2f}, median {_st.median(fl[t]):.2f}, high {fl[t][-1]:.2f}, week {W} {SD[W]["score"][t]:.2f}">'
+        f'<span class="br-name">{lg(t)}<span>{esc(SHORT[t])}</span></span><span class="fc-track">'
+        f'<span class="fc-range" style="left:{fx(fl[t][0]):.1f}%;width:{fx(fl[t][-1]) - fx(fl[t][0]):.1f}%"></span>'
+        f'<span class="fc-med" style="left:{fx(_st.median(fl[t])):.1f}%"></span><span class="fc-now" style="left:{fx(SD[W]["score"][t]):.1f}%"></span></span>'
+        f'<span class="fc-v num">{fl[t][0]:.0f}<em>–</em>{fl[t][-1]:.0f}</span></div>'
+        for t in sorted(teams, key=lambda t: -_st.median(fl[t])))
+    fticks = "".join(f'<span style="left:{fx(v):.1f}%">{v}</span>' for v in range(flo, fhi + 1, 20))
+    floor_html = (f'<div class="sec" id="floor-ceiling"><div class="sec-head"><h2>Floor &amp; Ceiling</h2><span class="kicker">Worst to best week · sorted by median</span></div>'
+                  f'<div class="fcc"><div class="fc-row fc-axis"><span></span><span class="fc-ticks">{fticks}</span><span></span></div>{frows}'
+                  f'<div class="legend"><span><i class="sw fcr"></i>Season range</span><span><i class="sw fcm"></i>Median</span><span><i class="sw fcn"></i>Week {W}</span></div></div></div>')
+
+    # --- bench hall of shame ---
+    bench = {t: [round(SD[k]["opt"][t] - SD[k]["score"][t], 2) for k in WEEKS] for t in teams}
+    cost = {t: sum(1 for k in WEEKS if SD[k]["score"][t] < SD[k]["score"][SD[k]["opp"][t]] < SD[k]["opt"][t]) for t in teams}
+    bmx = max(sum(v) for v in bench.values()) or 1
+    brows = "".join(
+        f'<div class="bh-row"><span class="br-name">{lg(t)}<span>{esc(SHORT[t])}</span></span><span class="bh-bar">'
+        + "".join(f'<span class="bh-seg bw{(k - 1) % 5}" style="width:{bench[t][k - 1] / bmx * 100:.2f}%" title="Week {k}: {bench[t][k - 1]:.2f}"></span>' for k in WEEKS)
+        + f'</span><b class="num">{sum(bench[t]):.1f}</b><span class="bh-cost">' + ("✕" * cost[t] if cost[t] else "") + '</span></div>'
+        for t in sorted(teams, key=lambda t: -sum(bench[t])))
+    bench_html = (f'<div class="sec" id="bench-shame"><div class="sec-head"><h2>Bench Hall of Shame</h2><span class="kicker">Points left on the bench, weeks 1–{W}</span></div>'
+                  f'<div class="bh">{brows}<div class="legend">' + "".join(f'<span><i class="sw bw{(k - 1) % 5}"></i>Wk {k}</span>' for k in WEEKS)
+                  + '<span><b class="bh-x">✕</b> = a loss the best lineup would have won</span></div></div></div>')
+    rangebench_html = f'<section class="twocol">{floor_html}{bench_html}</section>'
+
+    # --- waiver wire MVP: points scored in the starting lineup by players a team picked up ---
+    adds = {}  # (team, player) -> first week added
+    for k in WEEKS:
+        for tx in SD[k]["tx"]:
+            if tx["kind"] not in ("free agent", "waiver"): continue
+            for mv in tx["moves"]:
+                if mv.startswith("ADD:"): adds.setdefault((tx["team"], mv[4:]), (k, tx["kind"]))
+    pick = {}
+    for (t, n), (k0, kind) in adds.items():
+        pts, starts, pos = 0.0, 0, ""
+        for k in range(k0, W + 1):
+            for p in SD[k]["ros"][t]:
+                if p["name"] == n:
+                    pos = p["pos"]
+                    if p["slot"] not in ("BE", "IR"): pts += p["pts"]; starts += 1
+        pick[(t, n)] = dict(pts=round(pts, 2), starts=starts, pos=pos, wk=k0, kind=kind)
+    top = sorted((x for x in pick.items() if x[1]["starts"]), key=lambda x: -x[1]["pts"])[:8]
+    if top:
+        wmx = top[0][1]["pts"]
+        wrows = "".join(
+            f'<div class="wv-row"><b class="wv-rk">{i}</b>{lg(t, "lg-sm")}<span class="wv-name"><b>{esc(n)}</b><small>{esc(v["pos"])} · {esc(SHORT[t])} · {v["kind"]} add, wk {v["wk"]}</small></span>'
+            f'<span class="wv-track"><span class="wv-bar" style="width:{v["pts"] / wmx * 100:.1f}%"></span></span>'
+            f'<span class="wv-v num"><b>{v["pts"]:.1f}</b><small>{v["starts"]} start{"s" if v["starts"] != 1 else ""}</small></span></div>'
+            for i, ((t, n), v) in enumerate(top, 1))
+        tpts = {t: sum(v["pts"] for (u, _), v in pick.items() if u == t) for t in teams}
+        tadd = {t: sum(1 for (u, _) in adds if u == t) for t in teams}
+        best_t = max(teams, key=lambda t: tpts[t]); busy = max(teams, key=lambda t: tadd[t])
+        waiver_html = (f'<section class="sec" id="waiver-mvp"><div class="sec-head"><h2>Waiver Wire MVP</h2><span class="kicker">Pickups ranked by points scored while starting · weeks 1–{W}</span></div>'
+                       f'<div class="rum-stats"><div class="rs"><b class="num">{len(adds)}</b><span>Pickups this season</span></div>'
+                       f'<div class="rs"><b class="num">{sum(tpts.values()):.1f}</b><span>Points pickups scored as starters</span></div>'
+                       f'<div class="rs">{lg(best_t, "lg-sm")}<span>Best waiver team</span><small>{esc(SHORT[best_t])}: {tpts[best_t]:.1f} pts</small></div>'
+                       f'<div class="rs">{lg(busy, "lg-sm")}<span>Busiest</span><small>{esc(SHORT[busy])}: {tadd[busy]} pickups</small></div></div>'
+                       f'<div class="wv">{wrows}</div></section>')
+
 # ---------- pecking order ----------
 allvals = allv; lo, hi = min(allvals) - 4, max(allvals) + 4
 def spark(t, w=110, h=32):
@@ -366,7 +510,7 @@ for k, v in {"/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for 
              "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--BOOMBUST-->": boombust, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
-             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--WHATIF-->": whatif, "<!--WIRE-->": wire_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
+             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--WHATIF-->": whatif, "<!--POWER-->": power_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--WIRE-->": wire_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
              "{{WEEK}}": str(W), "{{SEASON}}": str(LG["season"]), "{{VOLUME}}": str(LG["volume"]), "{{LEAGUE_NAME}}": esc(LG["league_name"]),
              "{{LEAGUE_FORMAT}}": esc(LG["league_format"]), "{{PRICE}}": esc(LG["price"]), "{{NWEEKS}}": str(len(weeks))}.items():
     out = out.replace(k, v)

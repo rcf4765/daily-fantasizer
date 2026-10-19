@@ -307,6 +307,68 @@ table.wi .po-team small{display:none}
 .rs small{font-size:.82rem}
 .rs .lg{margin-bottom:2px}
 
+/* power rankings over time */
+.pw{display:grid;gap:6px}
+.pw-wk,.pw-body{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(150px,200px);gap:10px}
+.pw-ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pw-ticks span:first-child{transform:translateX(-50%)}.pw-ticks span:last-child{transform:translateX(50%)}
+.pw-body svg{width:100%;display:block;overflow:visible}
+.pw-row{height:34px;display:flex;align-items:center;gap:7px;font-size:.86rem;min-width:0}
+.pw-row.l{justify-content:flex-end}
+.pw-row b{font-family:var(--display);font-weight:900;font-size:1.15rem;width:1.3em;flex:none}
+.pw-row span{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pw-row em{margin-left:auto;flex:none;font-style:normal}
+.pw-row .lg{width:24px;height:24px}
+.pw-up,.pw-dn,.pw-eq,.pw-grid{vector-effect:non-scaling-stroke;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.pw-grid{stroke:var(--line);stroke-width:1}
+.pw-eq{stroke:var(--silver);stroke-width:2}
+.pw-up{stroke:var(--honolulu);stroke-width:3.5}
+.pw-dn{stroke:var(--red);stroke-width:3.5}
+
+/* playoff odds */
+.od{display:grid;gap:4px}
+.od-row{display:grid;grid-template-columns:minmax(110px,150px) 44px minmax(0,1fr) 52px 78px 168px;gap:10px;align-items:center;padding:3px 0;border-bottom:1px solid var(--line)}
+.od-head{font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:3px solid var(--rule)}
+.od-rec,.od-proj{font-size:.8rem;color:var(--muted)}
+.od-track{height:16px;background:var(--paper);position:relative}
+.od-bar{position:absolute;inset:0 auto 0 0;background:var(--honolulu)}
+.od-p{text-align:right;font-size:1rem}
+.seeds{display:grid;grid-template-columns:repeat(12,1fr);gap:2px}
+.sd{height:14px;background:color-mix(in srgb,var(--silver) var(--p),var(--heat0));border-radius:1px}
+.sd.po{background:color-mix(in srgb,var(--blue) var(--p),var(--heat0))}
+
+/* floor & ceiling */
+.fcc{display:grid;gap:6px}
+.fc-row{display:grid;grid-template-columns:minmax(96px,130px) minmax(0,1fr) 64px;gap:10px;align-items:center}
+.fc-ticks{position:relative;height:16px;font-family:var(--mono);font-size:.64rem;color:var(--muted)}
+.fc-ticks span{position:absolute;transform:translateX(-50%)}
+.fc-track{position:relative;height:20px;background:linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/16.66% 100%}
+.fc-range{position:absolute;top:7px;height:6px;background:var(--silver);border-radius:3px}
+.fc-med{position:absolute;top:2px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--blue);border:2px solid var(--sheet)}
+.fc-now{position:absolute;top:0;width:0;height:20px;border-left:3px solid var(--honolulu)}
+.fc-v{font-size:.78rem;text-align:right}.fc-v em{font-style:normal;color:var(--muted)}
+.sw.fcr{background:var(--silver);height:6px}.sw.fcm{background:var(--blue);border-radius:50%;width:10px}.sw.fcn{width:0;border-left:3px solid var(--honolulu);border-radius:0}
+
+/* bench hall of shame */
+.bh{display:grid;gap:6px}
+.bh-row{display:grid;grid-template-columns:minmax(96px,130px) minmax(0,1fr) 48px 34px;gap:8px;align-items:center}
+.bh-bar{display:flex;height:18px;gap:1px}
+.bh-seg{display:block;height:100%}
+.bw0{background:#f2d23c}.bw1{background:#d9b72a}.bw2{background:#f6e17a}.bw3{background:#c29f1f}.bw4{background:#f9eaa6}
+.bh-row b{font-size:.84rem;text-align:right}
+.bh-cost,.bh-x{color:var(--red);font-weight:700;font-size:.8rem;letter-spacing:1px}
+
+/* waiver wire mvp */
+.wv{display:grid;gap:0}
+.wv-row{display:grid;grid-template-columns:28px auto minmax(150px,1.1fr) minmax(0,2fr) 76px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.wv-rk{font-family:var(--display);font-weight:900;font-size:1.5rem;line-height:1}
+.wv-name{display:grid;line-height:1.2;min-width:0}
+.wv-name b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wv-name small{font-family:var(--mono);font-size:.64rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.wv-track{height:14px;background:var(--paper);position:relative}
+.wv-bar{position:absolute;inset:0 auto 0 0;background:var(--blue)}
+.wv-v{display:grid;text-align:right;line-height:1.15}.wv-v small{font-size:.66rem;color:var(--muted)}
+
 /* table */
 .tbl-wrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:900px;font-size:.9rem}
@@ -394,6 +456,15 @@ footer b{color:var(--honolulu);font-weight:600}
   .strip-n{font-size:.82rem}
   .seg{font-size:.56rem;padding-inline:3px}
   .wire-row{grid-template-columns:auto 84px minmax(0,1fr)}
+  .pw-wk,.pw-body{grid-template-columns:30px minmax(0,1fr) 116px;gap:6px}
+  .pw-row{font-size:.76rem}.pw-row .lg{width:20px;height:20px}.pw-row em{display:none}
+  .od-row{grid-template-columns:92px 34px minmax(0,1fr) 40px;gap:6px}
+  .od-proj,.seeds,.seeds-h,.od-head span:nth-child(5){display:none}
+  .fc-row,.bh-row{grid-template-columns:92px minmax(0,1fr) 54px}
+  .fc-v{font-size:.68rem;white-space:nowrap}
+  .bh-cost{display:none}
+  .wv-row{grid-template-columns:22px auto minmax(0,1fr) 56px}
+  .wv-track{display:none}
   .wi-grid{grid-template-columns:minmax(0,1fr)}
   table.wi{min-width:520px}
   .sl-row{font-size:.76rem}
@@ -485,6 +556,8 @@ footer b{color:var(--honolulu);font-weight:600}
   </div>
 </section>
 
+<!--RANGEBENCH-->
+
 <section class="sec" id="pecking-order">
   <div class="sec-head"><h2>The Pecking Order</h2><span class="kicker">Ranked by all-play (your score vs. everyone, every week)</span></div>
   <div class="tbl-wrap">
@@ -495,9 +568,15 @@ footer b{color:var(--honolulu);font-weight:600}
   </div>
 </section>
 
+<!--POWER-->
+
+<!--ODDS-->
+
 <!--WHATIF-->
 
 <!--RUMORS-->
+
+<!--WAIVERMVP-->
 
 <section class="sec" id="wire">
   <div class="sec-head"><h2>The Wire</h2><span class="kicker">Adds, drops, and what the new guy scored</span></div>

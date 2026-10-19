@@ -13,7 +13,7 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 | `render.py` | Renderer: template + facts + raw rosters + trades + copy + crests → `daily-fantasizer-weekN.html` | no |
 | `facts.py` | Story finder: raw data → `weekN_facts.json` + readable `weekN_facts.md` | no |
 | `fetch_espn.py` | Weekly no-browser fetcher (GitHub Actions): `data/weekN_raw.txt`, crests, `data/latest.json` | no |
-| `fetch_trades.py` | Same workflow: completed trades → `data/trades.json`; league trading block → `data/trade_block.json` | no |
+| `fetch_trades.py` | Same workflow: completed trades → `data/trades.json`; trading block → `data/trade_block.json`; full schedule → `data/schedule.json` | no |
 | `extract.js`, `extract_logos.js` | Browser fallback snippets for when GitHub is unavailable | set `WEEK` only |
 | `league.json` | League constants, short team names, `owner_team`, running lore | add lore when told |
 | `data/logos.txt`, `data/logo_urls.txt` | 12 crests as webp data URIs + their ESPN URLs | only when crests change |
@@ -21,6 +21,7 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 | `data/weekN_copy.json` | Every word of week N's edition. **`data/week5_copy.json` is the voice and schema reference** | add each week |
 | `data/trades.json` | Season-to-date **completed** trades (no pending/declined offers) | refreshed weekly |
 | `data/trade_block.json` | Each team's ESPN trading block + which teams ESPN returned it for | refreshed weekly |
+| `data/schedule.json` | Full regular-season schedule (all 14 weeks), for Playoff Odds | refreshed weekly |
 | `legacy/` | The retired v1 design (template, renderer, copies, renders). Reference only | never |
 
 ## Weekly procedure
@@ -57,14 +58,14 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 - `missing`: 4 starters with the biggest misses vs projection, names exactly as in facts; text ≤ 8 words.
 - `pecking_notes`: all 12 teams, ≤ 6 words each.
 - `forecast_blurbs`: one per next-week matchup keyed `"homeId-awayId"`, ≤ 8 words.
-- Automatic sections (no copy): stat tiles, hero strips, Week at a Glance, Boom or Bust, Scoreboard lanes, Points by Position, Position Kings, Season Heat Map, Good or Lucky?, What If?, The Wire (verified transactions), Trade Desk, On the Block, forecast bars.
+- Automatic sections (no copy): stat tiles, hero strips, Week at a Glance, Boom or Bust, Scoreboard lanes, Points by Position, Position Kings, Season Heat Map, Good or Lucky?, Floor & Ceiling, Bench Hall of Shame, Power Rankings Over Time, Playoff Odds, What If?, Waiver Wire MVP, The Wire (verified transactions), Trade Desk, On the Block, forecast bars.
 - **Running lore**: add rivalries/jokes/nicknames the user shares to `league.json` `lore` and weave them in later.
 
 ## Design facts (don't change unless the user asks)
 
 Fonts: Big Shoulders Display headlines, Literata body, IBM Plex Mono numbers. Ink #151a24 on #f4f5f0 sheet, royal blue #1c3fae (won/main data), yellow #f2d23c (highlights, bench gap), red #b3261e (average line, busts, misses). **Lions accents, kept subtle:** Honolulu blue #0076b6 and silver #b0b7bc for the pinstripe under the masthead, the tab on every section rule, the heat-map scale, the "earned" bars, position colors, forecast card tops, and the Honolulu Manager of the Week band with silver ring; losing bars are silver; footer "printed in the 313". Full dark theme.
 
-Sections in order: masthead with 12 crests → blue stat tiles (avg, high, low, top player, left on benches, perfect lineups) → halftone hero (two crests, margin, starter strips) → lead + two sidebar boxes → Week at a Glance (score bars + bench gap + avg line) beside Boom or Bust (top 5 beats / top 5 misses vs projection) → The Scoreboard (six game cards, closest first, score lanes with yellow best-lineup tick, "Best lineup would have won" tag) → Manager of the Week band → Points by Position stacked bars beside Position Kings → Police Blotter beside Missing Persons → Season Heat Map beside Good or Lucky? (PF vs PA scatter) → Pecking Order table (all-play rank, record, W/L form chips, all-play, PF, sparkline, luck bar, note) → What If? (standings if every team started its best possible lineup every week: stat tiles for games flipped, bench points, biggest climber, playoff picture; actual-vs-what-if rank slope chart with the playoff line; table with move badge, record and PF actual → what-if, and each flipped game) → Trade Desk (only when a trade has been completed: season tallies + newest 6 completed trades, players received with week-N points) → On the Block (when at least 10 teams report trading-block data) → The Wire (add/drop chips with points) → Week N+1 Forecast → footer.
+Sections in order: masthead with 12 crests → blue stat tiles (avg, high, low, top player, left on benches, perfect lineups) → halftone hero (two crests, margin, starter strips) → lead + two sidebar boxes → Week at a Glance (score bars + bench gap + avg line) beside Boom or Bust (top 5 beats / top 5 misses vs projection) → The Scoreboard (six game cards, closest first, score lanes with yellow best-lineup tick, "Best lineup would have won" tag) → Manager of the Week band → Points by Position stacked bars beside Position Kings → Police Blotter beside Missing Persons → Season Heat Map beside Good or Lucky? (PF vs PA scatter) → Floor & Ceiling (each team's season range, median dot, this-week tick) beside Bench Hall of Shame (season points left on the bench stacked by week, ✕ per loss the best lineup would have won) → Pecking Order table (all-play rank, record, W/L form chips, all-play, PF, sparkline, luck bar, note) → Power Rankings Over Time (bump chart of all-play rank after every week, lines colored by this week's move, final rank list with move badges) → Playoff Odds (10,000-season simulation: chance to make the playoffs bar, current and projected record, seed 1–12 heat strip) → What If? (standings if every team started its best possible lineup every week: stat tiles for games flipped, bench points, biggest climber, playoff picture; actual-vs-what-if rank slope chart with the playoff line; table with move badge, record and PF actual → what-if, and each flipped game) → Trade Desk (only when a trade has been completed: season tallies + newest 6 completed trades, players received with week-N points) → On the Block (when at least 10 teams report trading-block data) → Waiver Wire MVP (season tiles + top 8 pickups by points scored as a starter on the team that added them) → The Wire (add/drop chips with points) → Week N+1 Forecast → footer.
 
 ## Trades and the trading block
 
@@ -76,6 +77,15 @@ Sections in order: masthead with 12 crests → blue stat tiles (avg, high, low, 
 
 - Built by `render.py` from `data/week1_raw.txt` … `data/weekN_raw.txt` using `facts.optimal`. Both teams in every game get their best possible lineup from that week's roster; standings rank by wins, then points for; playoff line from META `playoffteams` (6). Added at the user's request 2026-10-18.
 - The section is left out unless every week 1–N has a raw file. If one is missing, dispatch the fetch workflow for that week (`-f 'inputs[week]=K'`); weeks 1–3 were backfilled this way on 2026-10-18. A backfill run rewrites `data/latest.json` to that week; set it back to the latest week afterwards.
+
+## Season sections (added 2026-10-18/19 at the user's request)
+
+All automatic in `render.py`, no copy needed, and all need every `data/weekK_raw.txt` for weeks 1–N (otherwise they're left out; backfill as described under What If?).
+- **Power Rankings Over Time**: cumulative all-play wins after each week, tiebreak points for (same rule as the Pecking Order, so the last column matches it).
+- **Playoff Odds**: needs `data/schedule.json`. Simulates the remaining regular-season weeks 10,000 times with a fixed seed (20260000 + N, so renders are reproducible). Each team's weekly score ~ Normal(mean, σ): mean = (season points + 3 × league average) / (weeks + 3); σ = league-wide standard deviation of each team's weekly scores around its own average. Standings by wins, then points for; top `playoff_teams` (6) make it. The note under the chart prints the league average and σ.
+- **Floor & Ceiling**: min / median / max of each team's weekly scores, plus this week's score.
+- **Bench Hall of Shame**: season sum of (best lineup − actual), stacked by week; ✕ marks each loss where the team's best lineup beat the opponent's actual score.
+- **Waiver Wire MVP**: every free-agent/waiver ADD in the weekly TX rows; a pickup's points count only in weeks the adding team started him, from the add week on. Top 8 shown. A player re-claimed after being dropped counts as a pickup (e.g. Mahomes to Bedazzled Balls, week 1).
 
 ## Known quirks
 
