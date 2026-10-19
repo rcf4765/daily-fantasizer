@@ -138,6 +138,10 @@ The phone layout was first hand-tuned in the Claude copy of the week 5 paper; it
 - `template.html`: the phone CSS (end of the main style), the jump menu (`{{NEXTWEEK}}` forecast label; links to sections missing that week hide themselves), `id="blotter"` on the Police Blotter section, and the phone scripts after the page.
 - Verified: the week 5 rebuild matches the hand-tuned Claude copy table for table (all 20 tables identical).
 
+## Unofficial previews (added 2026-10-19)
+
+For a sample of a week still in progress: `gh api -X POST repos/rcf4765/daily-fantasizer/actions/workflows/preview.yml/dispatches -f ref=main -f 'inputs[week]=N'`, wait for the run, then `git fetch origin +refs/heads/preview:refs/remotes/origin/preview` and `git show origin/preview:preview/weekN_raw.txt`. It runs `fetch_espn.py` with `PREVIEW=1` (complete=0, nothing written to `data/`, no crests or `latest.json`) and force-pushes only to the separate `preview` branch, so main, the website and the Tuesday run are untouched. Matchup totals are 0 until ESPN finalizes; sum each team's starters into the SCHED lines first. Build previews in a scratch copy, label them unofficial with the snapshot time and the starters still to play, and never commit or publish them to `docs/`.
+
 ## Known quirks
 
 - ESPN `record.overall` ignores in-progress games; facts.py computes records from the schedule.

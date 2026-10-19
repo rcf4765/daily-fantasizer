@@ -79,7 +79,7 @@ for u in UPS:
 <div class="ups-m"><b class="num">+{u["margin"]:.2f}</b><span>margin</span></div>
 <div class="ups-l">{lg(l, cs)}<span class="ups-n">{esc(SHORT[l])}</span><b class="num">{f2(u["ls"])}</b><small>now {esc(u["l_now"].replace("-", "–"))}</small></div></div>
 {f"<p>{fill(rc['text'])}</p>" if rc.get("text") else ""}
-<div class="ups-salt">{"".join(f"<span>{esc(s)}</span>" for s in salt)}</div></article>''')
+{f'<div class="ups-salt">{"".join(f"<span>{esc(s)}</span>" for s in salt)}</div>' if salt else ""}</article>''')
 # No qualifying games -> no section at all (the paper opens with the hero as before).
 upsets_html = (f'<section class="ups-news" id="upsets" aria-label="The biggest news of week {W}"><div class="ups">{"".join(ucards)}</div></section>') if ucards else ""
 
