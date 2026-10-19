@@ -1,0 +1,511 @@
+{
+ "fetched_at": "2026-10-19T11:13:09.912095Z",
+ "regweeks": 14,
+ "playoff_teams": 6,
+ "games": [
+  {
+   "wk": 1,
+   "home": 1,
+   "away": 12,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 1,
+   "home": 4,
+   "away": 8,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 1,
+   "home": 5,
+   "away": 9,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 1,
+   "home": 6,
+   "away": 2,
+   "winner": "HOME"
+  },
+  {
+   "wk": 1,
+   "home": 10,
+   "away": 7,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 1,
+   "home": 11,
+   "away": 3,
+   "winner": "HOME"
+  },
+  {
+   "wk": 2,
+   "home": 2,
+   "away": 10,
+   "winner": "HOME"
+  },
+  {
+   "wk": 2,
+   "home": 3,
+   "away": 8,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 2,
+   "home": 5,
+   "away": 6,
+   "winner": "HOME"
+  },
+  {
+   "wk": 2,
+   "home": 7,
+   "away": 11,
+   "winner": "HOME"
+  },
+  {
+   "wk": 2,
+   "home": 9,
+   "away": 1,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 2,
+   "home": 12,
+   "away": 4,
+   "winner": "HOME"
+  },
+  {
+   "wk": 3,
+   "home": 1,
+   "away": 6,
+   "winner": "HOME"
+  },
+  {
+   "wk": 3,
+   "home": 4,
+   "away": 9,
+   "winner": "HOME"
+  },
+  {
+   "wk": 3,
+   "home": 7,
+   "away": 3,
+   "winner": "HOME"
+  },
+  {
+   "wk": 3,
+   "home": 8,
+   "away": 12,
+   "winner": "HOME"
+  },
+  {
+   "wk": 3,
+   "home": 10,
+   "away": 5,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 3,
+   "home": 11,
+   "away": 2,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 4,
+   "home": 1,
+   "away": 10,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 4,
+   "home": 2,
+   "away": 7,
+   "winner": "HOME"
+  },
+  {
+   "wk": 4,
+   "home": 3,
+   "away": 12,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 4,
+   "home": 5,
+   "away": 11,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 4,
+   "home": 6,
+   "away": 4,
+   "winner": "HOME"
+  },
+  {
+   "wk": 4,
+   "home": 9,
+   "away": 8,
+   "winner": "HOME"
+  },
+  {
+   "wk": 5,
+   "home": 2,
+   "away": 3,
+   "winner": "HOME"
+  },
+  {
+   "wk": 5,
+   "home": 4,
+   "away": 10,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 5,
+   "home": 7,
+   "away": 5,
+   "winner": "HOME"
+  },
+  {
+   "wk": 5,
+   "home": 8,
+   "away": 6,
+   "winner": "HOME"
+  },
+  {
+   "wk": 5,
+   "home": 11,
+   "away": 1,
+   "winner": "AWAY"
+  },
+  {
+   "wk": 5,
+   "home": 12,
+   "away": 9,
+   "winner": "HOME"
+  },
+  {
+   "wk": 6,
+   "home": 1,
+   "away": 7,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 6,
+   "home": 3,
+   "away": 9,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 6,
+   "home": 4,
+   "away": 11,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 6,
+   "home": 5,
+   "away": 2,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 6,
+   "home": 6,
+   "away": 12,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 6,
+   "home": 10,
+   "away": 8,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 7,
+   "home": 2,
+   "away": 1,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 7,
+   "home": 5,
+   "away": 3,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 7,
+   "home": 7,
+   "away": 4,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 7,
+   "home": 8,
+   "away": 11,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 7,
+   "home": 9,
+   "away": 6,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 7,
+   "home": 12,
+   "away": 10,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 8,
+   "home": 1,
+   "away": 5,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 8,
+   "home": 3,
+   "away": 6,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 8,
+   "home": 4,
+   "away": 2,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 8,
+   "home": 8,
+   "away": 7,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 8,
+   "home": 10,
+   "away": 9,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 8,
+   "home": 11,
+   "away": 12,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 9,
+   "home": 1,
+   "away": 3,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 9,
+   "home": 2,
+   "away": 8,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 9,
+   "home": 5,
+   "away": 4,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 9,
+   "home": 6,
+   "away": 10,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 9,
+   "home": 9,
+   "away": 11,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 9,
+   "home": 12,
+   "away": 7,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 10,
+   "home": 3,
+   "away": 10,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 10,
+   "home": 4,
+   "away": 1,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 10,
+   "home": 7,
+   "away": 9,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 10,
+   "home": 8,
+   "away": 5,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 10,
+   "home": 11,
+   "away": 6,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 10,
+   "home": 12,
+   "away": 2,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 11,
+   "home": 1,
+   "away": 8,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 11,
+   "home": 4,
+   "away": 3,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 11,
+   "home": 5,
+   "away": 12,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 11,
+   "home": 6,
+   "away": 7,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 11,
+   "home": 9,
+   "away": 2,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 11,
+   "home": 10,
+   "away": 11,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 12,
+   "home": 2,
+   "away": 6,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 12,
+   "home": 3,
+   "away": 11,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 12,
+   "home": 7,
+   "away": 10,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 12,
+   "home": 8,
+   "away": 4,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 12,
+   "home": 9,
+   "away": 5,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 12,
+   "home": 12,
+   "away": 1,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 13,
+   "home": 1,
+   "away": 9,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 13,
+   "home": 4,
+   "away": 12,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 13,
+   "home": 6,
+   "away": 5,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 13,
+   "home": 8,
+   "away": 3,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 13,
+   "home": 10,
+   "away": 2,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 13,
+   "home": 11,
+   "away": 7,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 14,
+   "home": 2,
+   "away": 11,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 14,
+   "home": 3,
+   "away": 7,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 14,
+   "home": 5,
+   "away": 10,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 14,
+   "home": 6,
+   "away": 1,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 14,
+   "home": 9,
+   "away": 4,
+   "winner": "UNDECIDED"
+  },
+  {
+   "wk": 14,
+   "home": 12,
+   "away": 8,
+   "winner": "UNDECIDED"
+  }
+ ]
+}
