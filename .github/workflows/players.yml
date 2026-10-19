@@ -14,7 +14,7 @@ on:
 
 permissions:
   contents: write
-  pages: write
+  actions: write
 
 jobs:
   refresh:
@@ -44,4 +44,5 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Player Stats refresh $(date -u +%Y-%m-%dT%H:%MZ)"
           git push
-          gh api -X POST "repos/${{ github.repository }}/pages/builds" >/dev/null || echo "Pages build request failed; the next push will rebuild"
+          # pushes made with the workflow token don't trigger other workflows, so start the deploy directly
+          gh workflow run pages.yml --ref main || echo "Could not start the site deploy; the next push will"
