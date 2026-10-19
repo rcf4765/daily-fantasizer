@@ -89,6 +89,12 @@ All automatic in `render.py`, no copy needed, and all need every `data/weekK_raw
 - **Bench Hall of Shame**: season sum of (best lineup − actual), stacked by week; ✕ marks each loss where the team's best lineup beat the opponent's actual score.
 - **Waiver Wire MVP**: every free-agent/waiver ADD in the weekly TX rows; a pickup's points count only in weeks the adding team started him, from the add week on. Top 8 shown. A player re-claimed after being dropped counts as a pickup (e.g. Mahomes to Bedazzled Balls, week 1).
 
+## Tabs and the Player Stats page (added 2026-10-19 at the user's request)
+
+`template.html` now has a tab bar under the masthead: **This Week's Paper** (everything from the stat tiles to the forecast, inside `<div class="tab-pane" id="paper">`) and **Player Stats** (`#player-stats`, linkable). Player Stats is an "under construction" page for now; it is static template markup, so `render.py` needs no copy for it and the weekly procedure is unchanged.
+
+The user's end goal for Player Stats (PPR): current usage data (snaps, routes, targets, target share, air yards, touches) vs. scoring; next week's projections; start/sit assist; next week's rankings; rest-of-season rankings; rankings vs. actuals with the variance noted. Inputs to blend: Joel Smyth's and Luke Garza's research/projections plus the user's own regression models. Until the user hands over those sources and asks for a desk to open, leave the tab as is.
+
 ## Known quirks
 
 - ESPN `record.overall` ignores in-progress games; facts.py computes records from the schedule.

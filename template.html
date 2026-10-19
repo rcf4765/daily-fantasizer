@@ -478,6 +478,47 @@ footer b{color:var(--honolulu);font-weight:600}
   .br-bar,.lane-bar,.seg{transition:filter .15s}
   .br:hover .br-bar{filter:brightness(1.1)}
 }
+
+/* tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:4px 0;border-bottom:3px solid var(--rule);margin-top:-14px}
+.tab{appearance:none;background:none;border:0;border-bottom:5px solid transparent;margin-bottom:-3px;padding:10px 18px 7px;cursor:pointer;font-family:var(--display);font-weight:800;font-size:clamp(1.05rem,2.4vw,1.35rem);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);display:flex;align-items:center;gap:8px}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--blue)}
+.tab:focus-visible{outline:3px solid var(--hi);outline-offset:-3px}
+.tab-tag{font-family:var(--mono);font-size:.58rem;font-weight:600;letter-spacing:.08em;background:var(--hi);color:var(--hi-ink);padding:2px 6px;line-height:1.4}
+.tab-pane{display:grid;gap:40px;min-width:0}
+.tab-pane[hidden]{display:none}
+
+/* player stats: under construction */
+.uc{display:grid;gap:14px;padding:30px 22px;text-align:center;justify-items:center;background:radial-gradient(var(--dot) 1.4px,transparent 1.6px) 0 0/9px 9px,var(--paper);border:3px solid var(--rule);position:relative;overflow:hidden}
+.uc::before,.uc::after{content:"";position:absolute;left:0;right:0;height:16px;background:repeating-linear-gradient(-45deg,var(--hi) 0 14px,var(--ink) 14px 28px)}
+.uc::before{top:0}.uc::after{bottom:0}
+.uc h2{font-size:clamp(3rem,10vw,6.4rem);font-weight:900;text-transform:uppercase;margin-top:10px}
+.uc h2 span{color:var(--blue)}
+.uc .deck{font-size:1.1rem;font-style:italic;color:var(--muted);max-width:56ch}
+.uc .kicker{color:var(--ink)}
+.uc-stamp{font-family:var(--display);font-weight:900;font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase;color:var(--red);border:3px solid currentColor;padding:3px 10px;transform:rotate(-3deg);margin-bottom:8px}
+.blend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto minmax(0,1.2fr);gap:12px;align-items:stretch}
+.src{border:2px solid var(--rule);padding:14px;display:grid;gap:6px;align-content:start;border-top:6px solid var(--honolulu);background:var(--sheet)}
+.src h3{font-size:1.55rem;font-weight:800;text-transform:uppercase}
+.src p{font-size:.86rem;color:var(--muted)}
+.src.house{border-top-color:var(--blue)}
+.blend-arrow{align-self:center;font-family:var(--mono);font-size:1.6rem;color:var(--muted)}
+.src.out{background:var(--blue);color:var(--blue-ink);border-color:var(--blue)}
+.src.out .kicker,.src.out p{color:var(--blue-ink);opacity:.9}
+.plan{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:14px}
+.desk{border:2px dashed var(--rule);padding:14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-content:start}
+.desk b{font-family:var(--display);font-weight:900;font-size:2.4rem;line-height:.9;color:var(--honolulu);grid-row:1/4}
+.desk h3{font-size:1.35rem;font-weight:800;text-transform:uppercase}
+.desk p{font-size:.86rem}
+.desk .kicker{font-size:.62rem}
+@media (max-width:760px){
+  .blend{grid-template-columns:minmax(0,1fr)}
+  .blend-arrow{transform:rotate(90deg);justify-self:center}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .tab{padding:9px 8px 6px;font-size:.88rem;white-space:nowrap;flex:none}
+}
+@media (max-width:400px){.tab-tag{display:none}}
 </style>
 
 <div class="page">
@@ -493,6 +534,13 @@ footer b{color:var(--honolulu);font-weight:600}
     <div class="crests" aria-hidden="true"><!--CRESTS--></div>
   </div>
 </header>
+
+<nav class="tabs" role="tablist" aria-label="Sections">
+  <button class="tab" role="tab" id="tab-paper" aria-controls="paper" aria-selected="true">This Week's Paper</button>
+  <button class="tab" role="tab" id="tab-stats" aria-controls="player-stats" aria-selected="false" tabindex="-1">Player Stats <span class="tab-tag">Soon</span></button>
+</nav>
+
+<div class="tab-pane" id="paper" role="tabpanel" aria-labelledby="tab-paper">
 
 <div class="tiles" aria-label="Week {{WEEK}} by the numbers"><!--TILES--></div>
 
@@ -585,9 +633,86 @@ footer b{color:var(--honolulu);font-weight:600}
 
 <!--FORECAST-->
 
+</div>
+
+<div class="tab-pane" id="player-stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
+
+<section class="uc" aria-label="Player stats, under construction">
+  <span class="uc-stamp">Under construction</span>
+  <span class="kicker">The PPR player desk · hard hats required</span>
+  <h2>Player <span>Stats</span></h2>
+  <p class="deck">Who's getting the ball, whether the points match the volume, and whose rankings hold up once the games are actually played.</p>
+</section>
+
+<section class="sec">
+  <div class="sec-head"><h2>The Blend</h2><span class="kicker">Three inputs, one board</span></div>
+  <div class="blend">
+    <div class="src"><span class="kicker">Source 1</span><h3>Joel Smyth</h3><p>Research and weekly projections.</p></div>
+    <div class="src"><span class="kicker">Source 2</span><h3>Luke Garza</h3><p>Research and weekly projections.</p></div>
+    <div class="src house"><span class="kicker">Source 3</span><h3>House Models</h3><p>Our own regression models on usage and PPR scoring.</p></div>
+    <span class="blend-arrow" aria-hidden="true">&rarr;</span>
+    <div class="src out"><span class="kicker">Output</span><h3>Blended Board</h3><p>One consensus projection and ranking per player, with each source's track record kept on file.</p></div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sec-head"><h2>What's Coming</h2><span class="kicker">Seven desks, opening soon</span></div>
+  <div class="plan">
+    <div class="desk"><b>1</b><span class="kicker">Planned</span><h3>Current Data</h3><p>Snaps, routes, targets, target share, air yards and touches for every relevant player, refreshed weekly.</p></div>
+    <div class="desk"><b>2</b><span class="kicker">Planned</span><h3>Volume vs. Scoring</h3><p>Opportunity plotted against PPR points to flag who's running hot or cold for their usage. The regression watch.</p></div>
+    <div class="desk"><b>3</b><span class="kicker">Planned</span><h3>Next Week's Projections</h3><p>Smyth, Garza and the house models side by side, plus the blended number.</p></div>
+    <div class="desk"><b>4</b><span class="kicker">Planned</span><h3>Start / Sit Assist</h3><p>Pick the players you're torn between and get a call, with floor, ceiling and the reason behind it.</p></div>
+    <div class="desk"><b>5</b><span class="kicker">Planned</span><h3>Next Week's Rankings</h3><p>Positional ranks for the upcoming week, built from the blended projections.</p></div>
+    <div class="desk"><b>6</b><span class="kicker">Planned</span><h3>Rest-of-Season Rankings</h3><p>Who to hold, buy and sell for the stretch run and the playoffs.</p></div>
+    <div class="desk"><b>7</b><span class="kicker">Planned</span><h3>Rankings vs. Actuals</h3><p>Every ranking graded against what really happened, with the variance noted per player and per source.</p></div>
+  </div>
+  <p class="note-s">Nothing on this tab is live yet. Each desk fills in as it opens.</p>
+</section>
+
+</div>
+
 <footer>
   <span>Every number computed from ESPN league data, week {{WEEK}}, {{SEASON}}. Crests from each team's ESPN profile.</span>
   <span>The Daily Fantasizer · printed in the <b>313</b></span>
 </footer>
+
+<script>
+(function(){
+  var tabs=[].slice.call(document.querySelectorAll('.tabs .tab'));
+  if(!tabs.length)return;
+  function show(id,focus){
+    tabs.forEach(function(t){
+      var on=t.getAttribute('aria-controls')===id;
+      t.setAttribute('aria-selected',on?'true':'false');
+      t.tabIndex=on?0:-1;
+      var p=document.getElementById(t.getAttribute('aria-controls'));
+      if(p)p.hidden=!on;
+      if(on&&focus)t.focus();
+    });
+  }
+  tabs.forEach(function(t,i){
+    t.addEventListener('click',function(){
+      var id=t.getAttribute('aria-controls');
+      show(id);
+      try{history.replaceState(null,'',id==='paper'?location.pathname+location.search:'#'+id)}catch(e){}
+    });
+    t.addEventListener('keydown',function(e){
+      var d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;
+      if(!d)return;
+      e.preventDefault();
+      var n=tabs[(i+d+tabs.length)%tabs.length];
+      show(n.getAttribute('aria-controls'),true);
+    });
+  });
+  function fromHash(){
+    var h=(location.hash||'').slice(1);
+    if(h==='player-stats')show('player-stats');
+    else if(h)show('paper');
+  }
+  window.addEventListener('hashchange',fromHash);
+  fromHash();
+})();
+</script>
+
 
 </div>
