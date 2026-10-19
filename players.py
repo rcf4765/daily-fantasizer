@@ -291,20 +291,34 @@ def build(short_names, week=None):
 
     # 4. start / sit assist (interactive)
     cands = []
+    seen = set()
+
+    def cand(p, r):
+        e = (r or {}).get("e") or {}
+        ln = d.lean_by.get(p["key"]) if d.lean.get("week") == N else None
+        inj = p.get("inj", "ACTIVE")
+        pr = r["proj"] if r else 0.0
+        st = "" if pr > 0 else ("out" if inj in ("OUT", "INJURY_RESERVE", "SUSPENSION") else "bye")
+        cands.append({"k": p["key"], "n": p["name"], "pos": p["pos"], "tm": p["team"], "o": p.get("owner") or 0,
+                      "pr": round(pr, 1), "lo": round(r["lo"], 1) if r else 0.0, "hi": round(r["hi"], 1) if r else 0.0,
+                      "rk": e.get("pos_rank") or (f"{p['pos']}{r['rank']}" if r and pr > 0 else "–"), "rmin": e.get("rank_min"), "rmax": e.get("rank_max"),
+                      "gr": e.get("start_sit_grade"), "opp": opp(r) if r else "", "ppg": round(p["ppg"], 1), "l3": round(p["l3"], 1),
+                      "ts": None if p["ts_l3"] is None else round(p["ts_l3"] * 100), "sn": None if p["snap_l3"] is None else round(p["snap_l3"] * 100),
+                      "inj": inj, "st": st, "ln": (1 if ln and ln["analyst"] < ln["ecr"] else -1 if ln else 0)})
+        seen.add(p["key"])
+
+    # every player on a league roster (bye and injured players included, so nobody is missing),
+    # plus every free agent with a real projection this week
     for pos in POS:
-        for r in rows_by_pos[pos][:{"QB": 32, "RB": 70, "WR": 90, "TE": 36}[pos]]:
-            p = r["p"]; e = r["e"] or {}
-            ln = d.lean_by.get(p["key"]) if d.lean.get("week") == N else None
-            cands.append({"k": p["key"], "n": p["name"], "pos": pos, "tm": p["team"], "o": p.get("owner") or 0,
-                          "pr": round(r["proj"], 1), "lo": round(r["lo"], 1), "hi": round(r["hi"], 1),
-                          "rk": e.get("pos_rank") or f"{pos}{r['rank']}", "rmin": e.get("rank_min"), "rmax": e.get("rank_max"),
-                          "gr": e.get("start_sit_grade"), "opp": opp(r), "ppg": round(p["ppg"], 1), "l3": round(p["l3"], 1),
-                          "ts": None if p["ts_l3"] is None else round(p["ts_l3"] * 100), "sn": None if p["snap_l3"] is None else round(p["snap_l3"] * 100),
-                          "inj": p.get("inj", "ACTIVE"),
-                          "ln": (1 if ln and ln["analyst"] < ln["ecr"] else -1 if ln else 0)})
-    cands.sort(key=lambda c: (c["o"] == 0, c["o"], -c["pr"]))
+        for r in rows_by_pos[pos]:
+            if (r["p"].get("owner") or r["proj"] >= 1) and r["p"]["key"] not in seen:
+                cand(r["p"], r if r["proj"] > 0 else None)
+    for p in d.P:
+        if p.get("owner") and p["key"] not in seen:
+            cand(p, None)
+    cands.sort(key=lambda c: (c["o"] == 0, c["o"], ["QB", "RB", "WR", "TE"].index(c["pos"]), -c["pr"], c["n"]))
     own = int(d.meta.get("owner_team") or 1)
-    mine = [c for c in cands if c["o"] == own and c["pos"] in ("RB", "WR", "TE")]
+    mine = [c for c in cands if c["o"] == own and c["pos"] in ("RB", "WR", "TE") and not c["st"]]
     mine.sort(key=lambda c: -c["pr"])
     pair = None
     if len(mine) >= 2:  # the closest call among his likely FLEX options (projected 3rd-6th best skill players)
@@ -366,7 +380,7 @@ def build(short_names, week=None):
                 ps = sorted([p for p in d.P if p["pos"] == pos and w in p["act"]], key=lambda p: -p["act"][w]["pts"])
                 finish[(w, pos)] = {p["key"]: i for i, p in enumerate(ps, 1)}
         recs = []  # one per ranked player-week (top-36 ranked RB/WR, top-18 QB/TE)
-        cut = {"QB": 18, "RB": 36, "WR": 36, "TE": 18}
+        cut = {"QB": 24, "RB": 48, "WR": 60, "TE": 24}
         for w in graded:
             for pos in POS:
                 for r in d.fp[w]["pos"].get(pos, []):
@@ -383,8 +397,8 @@ def build(short_names, week=None):
                                  "proj": proj, "pts": p["act"][w]["pts"]})
         lw = max(graded)
         L = [x for x in recs if x["w"] == lw]
-        beats = sorted(L, key=lambda x: -(x["pts"] - (x["proj"] or 0)))[:6]
-        busts = sorted(L, key=lambda x: (x["pts"] - (x["proj"] or 0)))[:6]
+        beats = sorted(L, key=lambda x: -(x["pts"] - (x["proj"] or 0)))[:10]
+        busts = sorted(L, key=lambda x: (x["pts"] - (x["proj"] or 0)))[:10]
         # accuracy: median absolute rank miss and projection miss by position, last week and season
         def mae(xs, f): xs = [abs(f(x)) for x in xs if f(x) is not None]; return sum(xs) / len(xs) if xs else None
         tiles = "".join(f'<div class="rs"><span>{pos} ranks</span><b class="num">{f1(mae([x for x in recs if x["pos"] == pos], lambda x: x["var"]))}</b>'
@@ -405,15 +419,36 @@ def build(short_names, week=None):
         A = [a for a in agg.values() if a["n"] >= 3]
         for a in A:
             a["av"] = a["v"] / a["n"]; a["apd"] = a["pd"] / a["pn"] if a["pn"] else 0
-        under = sorted(A, key=lambda a: -a["apd"])[:8]; over = sorted(A, key=lambda a: a["apd"])[:8]
+        under = sorted(A, key=lambda a: -a["apd"])[:12]; over = sorted(A, key=lambda a: a["apd"])[:12]
         trow = lambda a: (f'<tr><td>{d.pname(a["p"])}</td><td>{d.owner(a["p"])}</td><td class="n">{a["n"]}</td><td class="n">{a["p"]["pos"]}{a["rk"] / a["n"]:.0f}</td>'
                           f'<td class="n">{a["p"]["pos"]}{a["fin"] / a["n"]:.0f}</td><td class="n"><b class="{"up" if a["apd"] > 0 else "dn"}">{a["apd"]:+.1f}</b></td></tr>')
         th = '<thead><tr><th>Player</th><th>Owner</th><th class="n">Wks</th><th class="n">Avg rank</th><th class="n">Avg finish</th><th class="n">Pts vs proj</th></tr></thead>'
         season = (f'<div class="twocol2"><div><h3>Underrated all season</h3><div class="tbl-wrap"><table class="pst sm">{th}<tbody>{"".join(trow(a) for a in under)}</tbody></table></div></div>'
                   f'<div><h3>Overrated all season</h3><div class="tbl-wrap"><table class="pst sm">{th}<tbody>{"".join(trow(a) for a in over)}</tbody></table></div></div></div>')
+        # every graded player, by position, searchable
+        allp = {}
+        for a in agg.values():
+            a["av"] = a["v"] / a["n"]; a["apd"] = a["pd"] / a["pn"] if a["pn"] else 0
+            allp.setdefault(a["p"]["pos"], []).append(a)
+        lastw = {x["p"]["key"]: x for x in L}
+        panes = {}
+        for pos in ["WR", "RB", "TE", "QB"]:
+            rows = sorted(allp.get(pos, []), key=lambda a: -a["apd"])
+            def full(a):
+                lx = lastw.get(a["p"]["key"])
+                lwk = (f'{pos}{lx["rk"]} → {pos}{lx["fin"]} <em class="{"up" if lx["pts"] - (lx["proj"] or 0) > 0 else "dn"}">{lx["pts"] - (lx["proj"] or 0):+.1f}</em>' if lx else "–")
+                return (f'<tr data-n="{esc(a["p"]["name"].lower())}"><td>{d.pname(a["p"])}</td><td>{d.owner(a["p"])}</td><td class="n">{a["n"]}</td>'
+                        f'<td class="n">{pos}{a["rk"] / a["n"]:.0f}</td><td class="n">{pos}{a["fin"] / a["n"]:.0f}</td>'
+                        f'<td class="n">{a["av"]:+.1f}</td><td class="n"><b class="{"up" if a["apd"] > 0 else "dn"}">{a["apd"]:+.1f}</b></td><td class="n lwk">{lwk}</td></tr>')
+            panes[pos] = (f'<div class="tbl-wrap"><table class="pst gr-all"><thead><tr><th>Player</th><th>Owner</th><th class="n">Wks</th><th class="n">Avg rank</th><th class="n">Avg finish</th>'
+                          f'<th class="n">Spots vs rank</th><th class="n">Pts vs proj</th><th class="n">Week {lw}</th></tr></thead><tbody>{"".join(full(a) for a in rows)}</tbody></table></div>')
+        n_all = sum(len(v) for v in allp.values())
+        every = ('<div class="gr-every"><div class="gr-head"><h3>Every graded player</h3><label class="vs-find"><span class="kicker">Find a player</span>'
+                 '<input type="search" id="gr-q" placeholder="Type a name…" autocomplete="off"></label></div>'
+                 + postabs("grade", panes) + f'<p class="note-s">{n_all} players graded. Spots vs rank: positive = finished better than ranked on average. Pts vs proj: average PPR points above or below his projection. Sorted best to worst.</p></div>')
         out.append(sec("ps-variance", "Rankings vs. Actuals", f"Weeks {min(graded)}–{lw} graded",
-                       f'<div class="rum-stats rs5">{tiles}</div>{bv}{season}'
-                       f'<p class="note-s">Every week\'s consensus PPR ranks (top 36 RB/WR, top 18 QB/TE) graded against where each player actually finished at his position. Variance = actual points minus projected points; rank arrows read ranked → finished.</p>'))
+                       f'<div class="rum-stats rs5">{tiles}</div>{bv}{season}{every}'
+                       f'<p class="note-s">Every week\'s consensus PPR ranks (top 60 WR, 48 RB, 24 QB, 24 TE) graded against where each player actually finished at his position. Variance = actual points minus projected points; rank arrows read ranked → finished. Underrated/overrated lists need 3+ graded weeks.</p>'))
 
     out.append(f'<p class="note-s ps-foot">Updated {esc(d.meta.get("fetched", ""))} UTC. Blends public consensus rankings and projections with ESPN data; usage from play-by-play charting.</p>')
     out.append(SCRIPT)
@@ -534,6 +569,13 @@ SCRIPT = r"""<script>
       if(window.innerWidth<760)plot.scrollIntoView({block:'center',behavior:'smooth'});
     })});
   })();
+  var gq=document.getElementById('gr-q');
+  if(gq)gq.addEventListener('input',function(){
+    var t=gq.value.trim().toLowerCase(),g=gq.closest('.gr-every');
+    g.querySelectorAll('tbody tr').forEach(function(r){r.hidden=!!t&&r.dataset.n.indexOf(t)<0});
+    if(t){var first=g.querySelector('tbody tr:not([hidden])');if(first){var pane=first.closest('.pp');
+      if(pane&&pane.hidden){var b=g.querySelector('.pt[data-pos="'+pane.dataset.pos+'"]');if(b)b.click();}}}
+  });
   var el=document.getElementById('ss-data'); if(!el)return;
   var D=JSON.parse(el.textContent),C=D.c,T=D.teams,byk={};C.forEach(function(c){byk[c.k]=c});
   var A=document.getElementById('ss-a'),B=document.getElementById('ss-b'),O=document.getElementById('ss-out');
@@ -541,20 +583,21 @@ SCRIPT = r"""<script>
     var groups={};C.forEach(function(c){var g=c.o?T[c.o]:'Free agents';(groups[g]=groups[g]||[]).push(c)});
     Object.keys(groups).forEach(function(g){
       var og=document.createElement('optgroup');og.label=g;
-      groups[g].forEach(function(c){var o=document.createElement('option');o.value=c.k;o.textContent=c.n+' ('+c.pos+', '+c.tm+')';og.appendChild(o)});
+      groups[g].forEach(function(c){var o=document.createElement('option');o.value=c.k;o.textContent=c.n+' ('+c.pos+', '+c.tm+')'+(c.st==='bye'?' · no game':c.st==='out'?' · out':'');og.appendChild(o)});
       sel.appendChild(og);
     });
   }
   opts(A);opts(B);
   if(D.def.length===2){A.value=D.def[0];B.value=D.def[1]}else if(C.length>1){A.value=C[0].k;B.value=C[1].k}
   function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
-  function score(c){var s=c.pr+0.35*c.lo+(c.ts?c.ts*0.04:0)+(c.sn?c.sn*0.01:0);if(c.inj==='OUT'||c.inj==='INJURY_RESERVE')s-=100;if(c.inj==='DOUBTFUL')s-=8;if(c.inj==='QUESTIONABLE')s-=1.5;return s}
+  function score(c){if(c.st)return -1000;var s=c.pr+0.35*c.lo+(c.ts?c.ts*0.04:0)+(c.sn?c.sn*0.01:0);if(c.inj==='OUT'||c.inj==='INJURY_RESERVE')s-=100;if(c.inj==='DOUBTFUL')s-=8;if(c.inj==='QUESTIONABLE')s-=1.5;return s}
   function card(c,win){
     var inj=(c.inj&&c.inj!=='ACTIVE'&&c.inj!=='NORMAL')?'<span class="inj">'+e(c.inj.replace('_',' ').toLowerCase())+'</span>':'';
     var ln=c.ln>0?'<span class="flag">Contrarian lean: higher</span>':c.ln<0?'<span class="flag dn">Contrarian lean: lower</span>':'';
     return '<div class="ss-card'+(win?' win':'')+'"><div class="ss-top">'+(win?'<span class="fs-tag">Start</span>':'<span class="ss-sit">Sit</span>')+(c.o?'<i class="lg lg-'+c.o+' lg-sm"></i>':'<span class="own fa">FA</span>')+'</div>'+
       '<h3>'+e(c.n)+'</h3><span class="kicker">'+e(c.pos)+' · '+e(c.tm)+(c.opp?' · '+e(c.opp):'')+'</span>'+inj+
-      '<div class="ss-big"><b class="num">'+c.pr.toFixed(1)+'</b><span>projected PPR<br><em class="num">range '+c.lo.toFixed(1)+'–'+c.hi.toFixed(1)+'</em></span></div>'+
+      (c.st?'<div class="ss-big"><b class="num">0.0</b><span>'+(c.st==='bye'?'no game this week<br><em>bye</em>':'not playing<br><em>ruled out</em>')+'</span></div>':
+      '<div class="ss-big"><b class="num">'+c.pr.toFixed(1)+'</b><span>projected PPR<br><em class="num">range '+c.lo.toFixed(1)+'–'+c.hi.toFixed(1)+'</em></span></div>')+
       '<div class="ss-stats"><span><em>Rank</em><b class="num">'+e(c.rk)+'</b></span><span><em>Rank range</em><b class="num">'+(c.rmin?e(c.rmin)+'–'+e(c.rmax):'–')+'</b></span><span><em>Grade</em><b class="num">'+e(c.gr||'–')+'</b></span>'+
       '<span><em>PPR/g</em><b class="num">'+c.ppg.toFixed(1)+'</b></span><span><em>Last 3</em><b class="num">'+c.l3.toFixed(1)+'</b></span><span><em>Tgt share L3</em><b class="num">'+(c.ts==null?'–':c.ts+'%')+'</b></span></div>'+ln+'</div>';
   }
@@ -562,7 +605,7 @@ SCRIPT = r"""<script>
     var a=byk[A.value],b=byk[B.value];if(!a||!b){O.innerHTML='';return}
     if(a.k===b.k){O.innerHTML='<p class="note-s">Pick two different players.</p>';return}
     var sa=score(a),sb=score(b),w=sa>=sb?a:b,l=w===a?b:a,gap=Math.abs(sa-sb);
-    var why=gap<1?'Coin flip. Go with the higher floor: '+e(w.n)+'.':gap<3?'Lean '+e(w.n)+'.':'Clear call: start '+e(w.n)+'.';
+    var why=(a.st&&b.st)?'Neither one plays this week.':l.st?'Easy call: '+e(l.n)+(l.st==='bye'?' has no game this week.':' is out.'):gap<1?'Coin flip. Go with the higher floor: '+e(w.n)+'.':gap<3?'Lean '+e(w.n)+'.':'Clear call: start '+e(w.n)+'.';
     O.innerHTML='<p class="ss-verdict">'+why+'</p><div class="ss-cards">'+card(a,w===a)+card(b,w===b)+'</div>';
   }
   A.addEventListener('change',go);B.addEventListener('change',go);go();
@@ -707,6 +750,14 @@ button.rw-row:focus-visible{outline:3px solid var(--hi);outline-offset:-3px}
 .bv-p{font-size:.84rem;text-align:right;white-space:nowrap}.bv-p em{font-style:normal;color:var(--muted);font-size:.7rem}
 .twocol2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
 .ps-foot{border-top:1px dashed var(--line);padding-top:8px}
+.gr-every{display:grid;gap:10px;min-width:0}
+.gr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:10px}
+.gr-head h3{font-size:1.45rem;font-weight:800;text-transform:uppercase}
+.gr-every .tbl-wrap{max-height:560px;overflow:auto}
+.gr-every thead th{position:sticky;top:0;background:var(--sheet);z-index:1}
+table.gr-all{min-width:760px}
+td.lwk{font-size:.78rem;white-space:nowrap}td.lwk em{font-style:normal;font-weight:600}
+tr[hidden]{display:none}
 @media (max-width:760px){
   .vs-tip{position:fixed;left:12px!important;right:12px!important;top:auto!important;bottom:12px!important;width:auto;z-index:50}
   .vs-grid,.bv,.twocol2,.ss-cards{grid-template-columns:minmax(0,1fr)}
