@@ -271,6 +271,13 @@ p{margin:0} figure{margin:0}
 .ru-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-bottom:2px solid var(--rule)}
 .ru-head .kicker{color:var(--ink)}
 .stamp{font-family:var(--display);font-weight:900;font-size:1rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border:2.5px solid currentColor;transform:rotate(-4deg);white-space:nowrap}
+/* announcements: life events (weddings, babies...), warm and quiet */
+.announce{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center;margin-bottom:22px;padding:18px 22px;background:var(--sheet);border:1px solid var(--rule);box-shadow:inset 0 0 0 4px var(--sheet),inset 0 0 0 5px var(--rule);border-left:8px solid var(--honolulu)}
+.announce .lg{box-shadow:0 0 0 3px var(--sheet),0 0 0 6px var(--silver)}
+.announce .kicker{color:var(--honolulu);font-weight:600}
+.announce h3{font-family:var(--display);font-size:clamp(1.7rem,3.6vw,2.3rem);font-weight:900;text-transform:uppercase;line-height:1;margin:4px 0 6px}
+.announce p{margin:0;max-width:70ch;font-size:1.05rem}
+@media (max-width:760px){.announce{gap:14px;padding:14px}.announce .lg-lg{width:48px;height:48px}}
 /* upsets & heartbreakers (top of the paper) */
 #upsets{margin-bottom:22px}
 .ups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:16px}
@@ -757,6 +764,8 @@ footer b{color:var(--honolulu);font-weight:600}
 <div class="ups-l"><i class="lg lg-6 lg-xl" aria-hidden="true"></i><span class="ups-n">IDK</span><b class="num">104.60</b><small>now 2–3</small></div></div>
 <p><span class="tm"><i class="lg lg-8 " aria-hidden="true"></i>Beefy Boys</span> hung a season-high 164.2 and outscored all 11 teams. <span class="tm"><i class="lg lg-6 " aria-hidden="true"></i>IDK</span> started every right guy and still lost by 59.6. Nothing to fix. Just not enough.</p>
 <div class="ups-salt"><span>Perfect lineup (104.60) still loses by 59.60</span></div></article></div></section>
+
+
 
 
 

@@ -83,6 +83,11 @@ for u in UPS:
 # No qualifying games -> no section at all (the paper opens with the hero as before).
 upsets_html = (f'<section class="ups-news" id="upsets" aria-label="The biggest news of week {W}"><div class="ups">{"".join(ucards)}</div></section>') if ucards else ""
 
+# ---------- announcements (life events the user shares; warm, never a roast) ----------
+an = C.get("announcement")
+announce_html = (f'''<section class="announce" id="announcements" aria-label="Announcements">{lg(an["team"], "lg-lg")}
+<div><span class="kicker">{esc(an.get("kicker", "Announcements"))}</span><h3>{esc(an["title"])}</h3><p>{fill(an["text"])}</p></div></section>''') if an else ""
+
 # ---------- hero with lineup strips ----------
 h = C["hero"]; hw, hl = h["winner"], h["loser"]
 hmax = max(TF[hw]["week_pts"], TF[hl]["week_pts"])
@@ -557,7 +562,7 @@ ps_html = _players.build(LG["short_names"], W) if os.path.exists("data/players/m
 
 out = open("template.html", encoding="utf-8").read()
 for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
-             "<!--CRESTS-->": crests, "<!--UPSETS-->": upsets_html, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
+             "<!--CRESTS-->": crests, "<!--UPSETS-->": upsets_html, "<!--ANNOUNCE-->": announce_html, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
              "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--BOOMBUST-->": boombust, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,

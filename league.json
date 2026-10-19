@@ -21,6 +21,10 @@
   "12": "Bedazzled Balls"
  },
  "lore": [],
+ "announcements": [
+  {"week": 6, "team": 5, "kind": "wedding", "added": "2026-10-19",
+   "note": "Tyler Adams (CeeDeez Nuts) got married the weekend of Oct 17-18, 2026 (user, 2026-10-19: 'it would be nice to have something in there this week for him'). Warm congratulations from the league. No roasting, and no details the user didn't give (no spouse name, venue or jokes about marriage)."}
+ ],
  "repo": "rcf4765/daily-fantasizer",
  "owner_team": 1,
  "trade_block_min_teams": 10,
