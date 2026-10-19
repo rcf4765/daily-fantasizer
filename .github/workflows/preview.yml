@@ -1,8 +1,9 @@
 name: Preview snapshot (unofficial)
 
 # Snapshot of a week that may still be in progress, for sample editions only.
-# Uploads preview/weekN_raw.txt as a run artifact. It never commits anything,
-# so the Tuesday fetch and the official edition are unaffected.
+# Pushes preview/weekN_raw.txt to the separate `preview` branch (force-pushed, one
+# commit). Nothing on main changes, so the Tuesday fetch, the official edition and
+# the league website are unaffected.
 on:
   workflow_dispatch:
     inputs:
@@ -11,7 +12,7 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   snapshot:
@@ -29,8 +30,13 @@ jobs:
           WEEK: ${{ github.event.inputs.week }}
           PREVIEW: "1"
         run: python fetch_espn.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: preview-week${{ github.event.inputs.week }}
-          path: preview/
-          retention-days: 7
+      - name: Push snapshot to the preview branch
+        run: |
+          cp preview/week${{ github.event.inputs.week }}_raw.txt /tmp/snap.txt
+          git config user.name "daily-fantasizer-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout --orphan preview
+          git rm -rfq .
+          mkdir -p preview && cp /tmp/snap.txt preview/week${{ github.event.inputs.week }}_raw.txt
+          git add preview && git commit -qm "Unofficial preview snapshot, week ${{ github.event.inputs.week }}"
+          git push -f origin preview
