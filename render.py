@@ -41,6 +41,43 @@ tiles = [
 tiles_html = "".join(f'<div class="tile"><span class="tile-k">{k}</span><b class="num">{v}</b><span class="tile-s">{c}<span>{esc(s)}</span></span></div>' for k, v, s, c in tiles)
 crests = "".join(lg(t) for t in sorted(teams))
 
+# ---------- upsets & heartbreakers (top of the paper; user, 2026-10-19) ----------
+# Games come from facts.py (F["upsets"]); words from copy "upsets" keyed "winnerId-loserId" (headline, text)
+# and optional "upsets_empty". Salt chips and records are automatic.
+UPS = F.get("upsets", [])
+CU = C.get("upsets", {})
+def rec_s(r): return f'{r["w"]}–{r["l"]}' + (f'–{r["t"]}' if r.get("t") else "")
+ucards = []
+for u in UPS:
+    w, l = u["winner"], u["loser"]
+    rc = key(w, l, CU)
+    if not rc:
+        print(f"WARNING: no upsets copy for {w}-{l}; using an automatic headline")
+        rc = {"headline": (f"No. {u['w_rank_pre']} Topples No. {u['l_rank_pre']}" if u["upset"] else f"Lost by {u['margin']:.2f}"), "text": ""}
+    stamps = (('<span class="stamp up-st">Upset</span>' if u["upset"] else "")
+              + ('<span class="stamp hb-st">Heartbreaker</span>' if u["heartbreaker"] else ""))
+    kick = (f'No. {u["w_rank_pre"]} ({rec_s(u["w_pre"])}) took down No. {u["l_rank_pre"]} ({rec_s(u["l_pre"])})' if u["upset"]
+            else f'Decided by {u["margin"]:.2f} points')
+    salt = [f'Left {u["l_left_on_bench"]:.1f} on the bench']
+    if u["loser_optimal_would_win"]: salt.append(f'Best lineup ({u["l_optimal"]:.2f}) would have won')
+    if u["l_benched_star"] and u["l_benched_star"][2] > 0: salt.append(f'Benched {u["l_benched_star"][0]}: {g(u["l_benched_star"][2])}')
+    if u["l_streak"][0] == "L" and int(u["l_streak"][1:]) >= 2: salt.append(f'{u["l_streak"][1:]} straight losses')
+    ucards.append(f'''<article class="ups-card{" both" if u["upset"] and u["heartbreaker"] else " hb" if u["heartbreaker"] else ""}">
+<div class="ups-top"><span class="kicker">{esc(kick)}</span><span class="ups-stamps">{stamps}</span></div>
+<div class="ups-vs"><div class="ups-w">{lg(w, "lg-lg")}<span class="ups-n">{esc(SHORT[w])}</span><b class="num">{f2(u["ws"])}</b><small>now {esc(u["w_now"].replace("-", "–"))}</small></div>
+<div class="ups-m"><b class="num">+{u["margin"]:.2f}</b><span>margin</span></div>
+<div class="ups-l">{lg(l, "lg-lg")}<span class="ups-n">{esc(SHORT[l])}</span><b class="num">{f2(u["ls"])}</b><small>now {esc(u["l_now"].replace("-", "–"))}</small></div></div>
+<h3>{esc(rc["headline"])}</h3>{f"<p>{fill(rc['text'])}</p>" if rc.get("text") else ""}
+<div class="ups-salt"><span class="kicker">Salt in the wound</span>{"".join(f"<span>{esc(s)}</span>" for s in salt)}</div></article>''')
+if not ucards:
+    cg = L["closest"]
+    txt = C.get("upsets_empty") or f"Every favorite held serve and nothing finished inside {LG.get('heartbreaker_margin', 2)} points. Closest call: {{S{cg['winner']}}} over {{S{cg['loser']}}} by {cg['margin']:.2f}."
+    ucards.append(f'<article class="ups-card empty"><div class="ups-top"><span class="kicker">No upsets · no heartbreakers</span><span class="ups-stamps"><span class="stamp chalk-st">Chalk</span></span></div>'
+                  f'<h3>Chalk Week</h3><p>{fill(txt)}</p></article>')
+upsets_html = (f'<section class="sec" id="upsets"><div class="sec-head"><h2>Upsets &amp; Heartbreakers</h2>'
+               f'<span class="kicker">Giant killings and games lost by less than {LG.get("heartbreaker_margin", 2)} points · records as of kickoff</span></div>'
+               f'<div class="ups">{"".join(ucards)}</div></section>')
+
 # ---------- hero with lineup strips ----------
 h = C["hero"]; hw, hl = h["winner"], h["loser"]
 hmax = max(TF[hw]["week_pts"], TF[hl]["week_pts"])
@@ -510,7 +547,7 @@ ps_html = _players.build(LG["short_names"], W) if os.path.exists("data/players/m
 
 out = open("template.html", encoding="utf-8").read()
 for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
-             "<!--CRESTS-->": crests, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
+             "<!--CRESTS-->": crests, "<!--UPSETS-->": upsets_html, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
              "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--BOOMBUST-->": boombust, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,

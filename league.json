@@ -23,5 +23,8 @@
  "lore": [],
  "repo": "rcf4765/daily-fantasizer",
  "owner_team": 1,
- "trade_block_min_teams": 10
+ "trade_block_min_teams": 10,
+ "upset_top_n": 4,
+ "upset_win_gap": 2,
+ "heartbreaker_margin": 2
 }

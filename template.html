@@ -250,6 +250,35 @@ p{margin:0} figure{margin:0}
 .ru-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-bottom:2px solid var(--rule)}
 .ru-head .kicker{color:var(--ink)}
 .stamp{font-family:var(--display);font-weight:900;font-size:1rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border:2.5px solid currentColor;transform:rotate(-4deg);white-space:nowrap}
+/* upsets & heartbreakers (top of the paper) */
+#upsets{margin-bottom:22px}
+.ups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:16px}
+.ups-card{display:grid;gap:10px;align-content:start;min-width:0;border:3px solid var(--rule);border-top:8px solid var(--honolulu);padding:14px 16px 16px;background:radial-gradient(var(--dot) 1.2px,transparent 1.4px) 0 0/8px 8px,var(--sheet)}
+.ups-card.hb{border-top-color:var(--red)}
+.ups-card.both{border-top-color:var(--red);box-shadow:inset 0 3px 0 var(--honolulu)}
+.ups-card.empty{border-top-color:var(--silver)}
+.ups-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.ups-top .kicker{color:var(--ink);font-weight:600}
+.ups-stamps{display:flex;gap:10px}
+.stamp.up-st{color:var(--honolulu)}.stamp.hb-st{color:var(--red);transform:rotate(3deg)}.stamp.chalk-st{color:var(--muted)}
+.ups-vs{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;padding:6px 0}
+.ups-w,.ups-l{display:grid;justify-items:center;gap:3px;text-align:center;min-width:0}
+.ups-w .lg{box-shadow:0 0 0 3px var(--sheet),0 0 0 6px var(--honolulu)}
+.ups-l .lg{filter:grayscale(1);opacity:.55}
+.ups-n{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:1.05rem;line-height:1.05;overflow-wrap:anywhere}
+.ups-w b{font-size:1.6rem;color:var(--blue)}
+.ups-l b{font-size:1.25rem;color:var(--red);text-decoration:line-through;text-decoration-thickness:2px}
+.ups-l .ups-n{color:var(--muted)}
+.ups-w small,.ups-l small{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ups-m{display:grid;justify-items:center}
+.ups-m b{font-family:var(--display);font-weight:900;font-size:clamp(2rem,5vw,2.8rem);line-height:.9;color:var(--red)}
+.ups-m span{font-family:var(--mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ups-card h3{font-size:1.6rem;font-weight:900;text-transform:uppercase;line-height:1}
+.ups-card p{margin:0}
+.ups-salt{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:2px solid var(--rule);padding-top:9px}
+.ups-salt .kicker{color:var(--red);font-weight:600;margin-right:4px}
+.ups-salt span:not(.kicker){font-family:var(--mono);font-size:.7rem;background:var(--red);color:var(--sheet);padding:3px 7px}
+@media (max-width:760px){.ups-vs{gap:6px}.ups .lg-lg{width:46px;height:46px}.ups-n{font-size:.82rem;overflow-wrap:break-word}.ups-m b{font-size:1.55rem}.ups-w b{font-size:1.25rem}.ups-l b{font-size:1.05rem}.ups-card{padding:12px}.ups-card h3{font-size:1.35rem}}
 .stamp.dec{color:var(--red)}.stamp.exp{color:var(--muted)}.stamp.acc{color:var(--blue)}.stamp.pen{color:var(--honolulu)}
 .ru-body{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;padding:12px;align-items:start}
 .ru-side{display:grid;gap:5px;min-width:0}
@@ -688,6 +717,8 @@ footer b{color:var(--honolulu);font-weight:600}
 <div class="tab-pane" id="paper" role="tabpanel" aria-labelledby="tab-paper">
 
 <nav class="m-jump" style="display:none" aria-label="Jump to section"><span class="kicker">Jump to</span><a href="#games">Scoreboard</a><a href="#scoreboard">At a glance</a><a href="#positions">Positions</a><a href="#blotter">Blotter</a><a href="#heat">Heat map</a><a href="#floor-ceiling">Floor/ceiling</a><a href="#pecking-order">Pecking order</a><a href="#power">Power ranks</a><a href="#playoff-odds">Playoff odds</a><a href="#what-if">What if?</a><a href="#trading-block">Trade block</a><a href="#waiver-mvp">Waivers</a><a href="#wire">The wire</a><a href="#forecast">Wk {{NEXTWEEK}} forecast</a><a href="#player-stats-tab">Player stats →</a></nav>
+
+<!--UPSETS-->
 
 <div class="tiles" aria-label="Week {{WEEK}} by the numbers"><!--TILES--></div>
 

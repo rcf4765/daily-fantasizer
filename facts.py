@@ -106,6 +106,34 @@ def main(path):
         ws, ls = max(g["hp"], g["ap"]), min(g["hp"], g["ap"])
         games.append(dict(winner=w_, loser=l_, ws=ws, ls=ls, margin=round(ws - ls, 2), tie=g["hp"] == g["ap"],
                           loser_optimal=TF[l_]["optimal"], loser_optimal_would_win=TF[l_]["optimal"] > ws))
+    # ---- upsets & heartbreakers (top of the paper; user, 2026-10-19) ----
+    # Upset: the winner had fewer wins going into the week AND the loser was a top-N team going in
+    # (standings = wins, then points for) or had at least `upset_win_gap` more wins.
+    # Heartbreaker: margin under `heartbreaker_margin` points. A game can be both.
+    try: LGc = json.load(open("league.json"))
+    except (OSError, ValueError): LGc = {}
+    UP_TOP, UP_GAP, HB = LGc.get("upset_top_n", 4), LGc.get("upset_win_gap", 2), LGc.get("heartbreaker_margin", 2)
+    pre = {t: dict(w=sum(1 for wk, r in zip(sorted(rec[t]["weekly"]), rec[t]["results"]) if wk < W and r == "W"),
+                   l=sum(1 for wk, r in zip(sorted(rec[t]["weekly"]), rec[t]["results"]) if wk < W and r == "L"),
+                   t=sum(1 for wk, r in zip(sorted(rec[t]["weekly"]), rec[t]["results"]) if wk < W and r == "T"),
+                   pf=sum(v for wk, v in rec[t]["weekly"].items() if wk < W)) for t in teams}
+    pre_rank = {t: i + 1 for i, t in enumerate(sorted(teams, key=lambda t: (-pre[t]["w"], -pre[t]["pf"])))}
+    upsets = []
+    for g in games:
+        w_, l_ = g["winner"], g["loser"]
+        if g["tie"]: continue
+        gap = pre[l_]["w"] - pre[w_]["w"]
+        is_up = W > 1 and gap > 0 and (pre_rank[l_] <= UP_TOP or gap >= UP_GAP)
+        is_hb = g["margin"] < HB
+        if not (is_up or is_hb): continue
+        benched = sorted(TF[l_]["should_have_started"], key=lambda x: -x[2])
+        upsets.append(dict(winner=w_, loser=l_, ws=g["ws"], ls=g["ls"], margin=g["margin"], upset=is_up, heartbreaker=is_hb,
+                           win_gap=gap, w_pre=pre[w_], l_pre=pre[l_], w_rank_pre=pre_rank[w_], l_rank_pre=pre_rank[l_],
+                           l_left_on_bench=TF[l_]["left_on_bench"], l_optimal=TF[l_]["optimal"],
+                           loser_optimal_would_win=g["loser_optimal_would_win"], l_benched_star=benched[0] if benched else None,
+                           w_now=f"{rec[w_]['w']}-{rec[w_]['l']}", l_now=f"{rec[l_]['w']}-{rec[l_]['l']}", l_streak=rec[l_]["streak"]))
+    upsets.sort(key=lambda u: (not (u["upset"] and u["heartbreaker"]), not u["upset"], -u["win_gap"], u["margin"]))
+
     starters = [(t, p) for t, r in rosters.items() for p in r if p["slot"] not in ("BE", "IR")]
     benchp = [(t, p) for t, r in rosters.items() for p in r if p["slot"] == "BE"]
     wk_scores = {t: TF[t]["week_pts"] for t in TF}
@@ -140,7 +168,7 @@ def main(path):
         t_["verified"] = all(m.split(":")[1] in names for m in t_["moves"] if m.startswith("ADD:"))
 
     F = dict(meta=meta, slots=slots, week=W, teams={t: dict(**teams[t], logo_url=logo_urls.get(t)) for t in teams},
-             this_week=TF, games=games, league=league, season=season, ranking=ranking, next_week=nxt, transactions=tx)
+             this_week=TF, games=games, upsets=upsets, league=league, season=season, ranking=ranking, next_week=nxt, transactions=tx)
     base = path.replace("_raw.txt", "")
     json.dump(F, open(base + "_facts.json", "w"), indent=1, default=str)
 
@@ -153,6 +181,14 @@ def main(path):
           f"Best benched: {league['best_benched'][1]['name']} {league['best_benched'][1]['pts']} ({N(league['best_benched'][0])})", "", "## Games"]
     for g in sorted(games, key=lambda g: g["margin"]):
         md.append(f"- {N(g['winner'])} {g['ws']} def. {N(g['loser'])} {g['ls']} (margin {g['margin']}); loser best lineup {g['loser_optimal']}{' WOULD HAVE WON' if g['loser_optimal_would_win'] else ''}")
+    md.append(f"\n## Upsets & heartbreakers (top of the paper; upset = fewer wins going in and beat a top-{UP_TOP} team or one with {UP_GAP}+ more wins; heartbreaker = margin < {HB})")
+    for u in upsets:
+        tags = " + ".join(x for x, on in (("UPSET", u["upset"]), ("HEARTBREAKER", u["heartbreaker"])) if on)
+        star = f"; benched {u['l_benched_star'][0]} ({u['l_benched_star'][2]})" if u["l_benched_star"] else ""
+        md.append(f"- {tags}: {N(u['winner'])} (#{u['w_rank_pre']}, {u['w_pre']['w']}-{u['w_pre']['l']} going in, now {u['w_now']}) {u['ws']} def. "
+                  f"{N(u['loser'])} (#{u['l_rank_pre']}, {u['l_pre']['w']}-{u['l_pre']['l']} going in, now {u['l_now']}, streak {u['l_streak']}) {u['ls']}, margin {u['margin']}; "
+                  f"loser left {u['l_left_on_bench']} on bench (best {u['l_optimal']}{', WOULD HAVE WON' if u['loser_optimal_would_win'] else ''}){star}")
+    if not upsets: md.append("- None this week: the section shows the chalk-week card (optional copy `upsets_empty`).")
     md.append("\n## Teams this week")
     for t in sorted(TF, key=lambda t: -TF[t]["week_pts"]):
         x, s = TF[t], season[t]
