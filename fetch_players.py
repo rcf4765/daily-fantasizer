@@ -52,9 +52,8 @@ def espn():
     final = sorted({s["matchupPeriodId"] for s in sched} - {s["matchupPeriodId"] for s in sched if s.get("winner", "UNDECIDED") == "UNDECIDED"})
     flt = {"players": {"filterSlotIds": {"value": [0, 2, 4, 6]}, "limit": 600,
                        "sortPercOwned": {"sortPriority": 1, "sortAsc": False},
-                       "filterStatsForExternalIds": {"value": [SEASON]},
-                       "filterStatsForSourceIds": {"value": [0, 1]},
-                       "filterStatsForSplitTypeIds": {"value": [1]}}}
+                       "filterStatsForTopScoringPeriodIds": {"value": 40, "additionalValue":
+                           [f"00{SEASON}", f"10{SEASON}"] + [f"11{SEASON}{w}" for w in range(1, 19)] + [f"11{SEASON}{w:02d}" for w in range(1, 19)]}}}
     r = E.get(BASE, params={"view": "kona_player_info", "scoringPeriodId": cur},
               headers={"X-Fantasy-Filter": json.dumps(flt)}, timeout=90)
     r.raise_for_status()
@@ -131,10 +130,12 @@ KEEP = ("player_name", "player_team_id", "player_position_id", "player_opponent"
 
 def fantasypros(cur, final):
     """Weekly ECR for every completed week (fetched once) and the upcoming week (always refreshed)."""
-    upcoming = cur if cur not in final else cur + 1
+    # the week on the field (cur) and the one after it: FantasyPros posts the next week's
+    # rankings early in the week, so cur + 1 is saved as soon as it shows up
+    upcoming = cur + 1
     for wk in range(1, upcoming + 1):
         fn = os.path.join(OUT, f"fp_week{wk}.json")
-        if wk < upcoming and os.path.exists(fn):
+        if wk < cur and os.path.exists(fn):
             continue
         res = {"week": wk, "pos": {}}
         for pos, slug in (("QB", "qb"), ("RB", "ppr-rb"), ("WR", "ppr-wr"), ("TE", "ppr-te")):
