@@ -1,0 +1,47 @@
+name: Refresh Player Stats
+
+# FantasyPros fills in next week's consensus ranks and projections Tuesday to Thursday and keeps
+# adjusting them for injuries, so the Player Stats tab on the league site is refreshed midweek
+# and on Sunday morning. Only the Player Stats tab of the newest edition is rewritten.
+on:
+  schedule:
+    - cron: "17 15 * * 2"   # Tue 11:17am Eastern (after the 6am paper)
+    - cron: "17 15 * * 3"   # Wed
+    - cron: "17 15 * * 4"   # Thu (before Thursday night)
+    - cron: "17 15 * * 6"   # Sat
+    - cron: "47 15 * * 0"   # Sun 11:47am Eastern, before the early games
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Fetch
+        env:
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+        run: python fetch_players.py
+      - name: Rebuild the tab on the newest edition
+        run: |
+          N=$(ls docs/week*.html | sed -E 's/.*week([0-9]+)\.html/\1/' | sort -n | tail -1)
+          python players.py --patch docs/index.html "docs/week$N.html" "daily-fantasizer-week$N.html"
+      - name: Commit and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "daily-fantasizer-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/players docs daily-fantasizer-week*.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Player Stats refresh $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" >/dev/null || echo "Pages build request failed; the next push will rebuild"

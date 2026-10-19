@@ -504,8 +504,12 @@ for n in F["next_week"]:
 forecast = (f'<section class="sec" id="forecast"><div class="sec-head"><h2>Week {W+1} Forecast</h2><span class="kicker">Spreads from season averages. For arguing, not betting.</span></div>'
             f'<div class="forecast">{"".join(fc)}</div></section>') if fc else ""
 
+# Player Stats tab (players.py, data from fetch_players.py); empty if data/players is missing
+import players as _players
+ps_html = _players.build(LG["short_names"]) if os.path.exists("data/players/meta.json") else ""
+
 out = open("template.html", encoding="utf-8").read()
-for k, v in {"/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
+for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
              "<!--CRESTS-->": crests, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
              "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--BOOMBUST-->": boombust, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
@@ -514,6 +518,6 @@ for k, v in {"/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for 
              "{{WEEK}}": str(W), "{{SEASON}}": str(LG["season"]), "{{VOLUME}}": str(LG["volume"]), "{{LEAGUE_NAME}}": esc(LG["league_name"]),
              "{{LEAGUE_FORMAT}}": esc(LG["league_format"]), "{{PRICE}}": esc(LG["price"]), "{{NWEEKS}}": str(len(weeks))}.items():
     out = out.replace(k, v)
-left = re.findall(r"<!--[A-Z0-9]+-->|\{\{[A-Z_]+\}\}|\{[TS]\d+\}", out)
+left = re.findall(r"<!--(?!PS-->)[A-Z0-9]+-->|\{\{[A-Z_]+\}\}|\{[TS]\d+\}", out)
 open(f"daily-fantasizer-week{W}.html", "w", encoding="utf-8").write(out)
 print(f"daily-fantasizer-week{W}.html", len(out), "chars; leftover placeholders:", left)
