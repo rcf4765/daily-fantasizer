@@ -453,7 +453,8 @@ def build(short_names, week=None):
     out.append(f'<p class="note-s ps-foot">Updated {esc(d.meta.get("fetched", ""))} UTC. Blends public consensus rankings and projections with ESPN data; usage from play-by-play charting.</p>')
     out.append(SCRIPT)
     # the tab carries its own styles, so a midweek --patch also updates them
-    return "<!--PS-->\n<style>" + CSS + "</style>\n" + "\n".join(out) + "\n<!--/PS-->"
+    import mobile  # phone card layout for the tables (tags each cell with its role and column label)
+    return "<!--PS-->\n<style>" + CSS + "</style>\n" + mobile.tag("\n".join(out)) + "\n<!--/PS-->"
 
 
 def trend(p):

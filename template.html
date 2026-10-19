@@ -501,6 +501,169 @@ footer b{color:var(--honolulu);font-weight:600}
   .tab-s{font-size:.52rem;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 }
 
+
+/* phone: no sideways scrolling. Tables become stacked cards, heat map squeezes to fit. */
+@media (max-width:760px), (pointer:coarse) and (max-width:1100px){
+  html,body{overflow-x:clip}
+  .tbl-wrap{overflow:visible}
+  #player-stats .tbl-wrap{overflow-x:hidden}
+  .gr-every .tbl-wrap{overflow-y:auto;overflow-x:hidden}
+  table.mcards,table.mcards tbody{display:block;min-width:0!important;width:100%}
+  table.mcards thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.mcards tr{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px 6px;align-items:center;padding:12px 2px;border-bottom:1px solid var(--line)}
+  table.mcards tr:first-child{border-top:3px solid var(--rule)}
+  table.mcards td{display:block;padding:0;border:0;min-width:0;text-align:left;white-space:normal;max-width:none;width:auto}
+  table.mcards td.c-rk{grid-column:1/2;font-size:1.35rem}
+  table.mcards td.c-name{grid-column:2/-1}
+  table.mcards td.c-name:first-child{grid-column:1/-1}
+  table.mcards.has-own td.c-name{grid-column:2/9}
+  table.mcards.has-own td.c-name:first-child{grid-column:1/9}
+  table.mcards td.c-own{grid-column:9/-1;justify-self:end}
+  table.mcards td.c-own .own{white-space:normal;text-align:right;justify-content:flex-end}
+  table.mcards td.c-own .own em{display:inline}
+  table.mcards td:not(.c-rk):not(.c-name):not(.c-own){grid-column:span 4;font-size:.86rem}
+  table.mcards.pst td:not(.c-rk):not(.c-name):not(.c-own){grid-column:span 3}
+  table.mcards td.c-wide{grid-column:1/-1!important;max-width:none}
+  table.mcards td:not(.c-rk):not(.c-name):not(.c-own)::before{content:attr(data-label);display:block;font-family:var(--mono);font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  table.mcards td.c-wide.note::before{display:none}
+  table.mcards td.n{font-size:.86rem}
+  table.mcards .pn b{white-space:normal;max-width:none}
+  table.mcards .spark{width:100%;max-width:110px;height:auto}
+  table.mcards .luck{width:100%;max-width:100px}
+  table.mcards .tsb{grid-template-columns:minmax(0,1fr) auto}
+  table.mcards td.lwk{white-space:normal}
+  table.wi .po-team small{display:block}
+  .heat-wrap{overflow:visible}
+  .heat{min-width:0}
+  .hr{grid-template-columns:minmax(0,84px) repeat(var(--nw),minmax(0,1fr)) 38px;gap:2px}
+  .hr .br-name{min-width:0;overflow:hidden}
+  .hr .br-name span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.74rem}
+  .hc{font-size:.68rem}
+  .hc-avg{font-size:.72rem}
+
+  /* Player Stats tables: header (rank, player, key number), owner line, shaded stat strip */
+  table.mcards.pst tr{grid-template-columns:repeat(12,minmax(0,1fr));gap:1px;padding:12px 0 14px 34px;position:relative}
+  table.mcards.pst tr:first-child{border-top:3px solid var(--rule)}
+  table.mcards.pst td.c-rk{grid-column:auto!important;grid-row:auto;position:absolute;left:0;top:11px;font-size:1.45rem;line-height:1;color:var(--muted)}
+  table.mcards.pst tr:nth-child(-n+3) td.c-rk{color:var(--blue)}
+  table.mcards.pst td.c-name,table.mcards.pst td.c-name:first-child,table.mcards.pst.has-own td.c-name,table.mcards.pst.has-own td.c-name:first-child{grid-column:1/10;grid-row:1}
+  table.mcards.pst:not(:has(td.c-rk)) tr{padding-left:0}
+  table.mcards.pst .pn b{font-size:1rem}
+  table.mcards.pst td.c-key{grid-column:10/-1!important;font-size:1.55rem!important;grid-row:1;justify-self:end;text-align:right;align-self:start;font-family:var(--display);font-weight:900;font-size:1.55rem;line-height:1}
+  table.mcards.pst td.c-key b{font-weight:900}
+  table.mcards.pst td.c-key::before{text-align:right;font-weight:400;margin-bottom:1px}
+  table.mcards.pst td.c-own{grid-column:1/-1;grid-row:2;justify-self:start;margin:3px 0 7px}
+  table.mcards.pst td.c-own .own{justify-content:flex-start;text-align:left;font-size:.74rem}
+  table.mcards.pst td.c-own .own .lg{width:16px;height:16px}
+    table.mcards.pst td:not(:is(.c-rk,.c-name,.c-own,.c-key)){grid-column:span 3!important;white-space:nowrap;background:var(--paper);padding:6px 8px 7px;font-size:.88rem;align-self:stretch}
+  table.mcards.pst:not(.has-own) td.c-name{margin-bottom:8px}
+  table.mcards.pst.s3 td:not(:is(.c-rk,.c-name,.c-own,.c-key)){grid-column:span 4!important}
+  table.mcards.pst.s5 td[data-tail]{grid-column:span 6!important}
+  table.mcards.pst.s7 td[data-tail]{grid-column:span 4!important}
+  table.mcards.pst td:not(:is(.c-rk,.c-name,.c-own,.c-key))::before{font-size:.54rem;letter-spacing:.04em}
+  table.mcards.pst td.c-key::before{font-size:.54rem;letter-spacing:.04em}
+  table.mcards.pst .tsb{grid-template-columns:1fr;gap:3px}
+  table.mcards.pst .tsb i{height:5px}
+  table.mcards.pst .tsb em{font-size:.88rem}
+  /* long lists: first 10 on phones, button for the rest */
+  .ps-more{display:none}
+  table.mcards.clip tbody tr:nth-child(n+11){display:none}
+  .ps-more{margin-top:10px;width:100%;font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;padding:10px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer}
+  .ps-more.on{display:block}
+  /* hero jump links as an even grid; graded tiles without the empty slot */
+  #player-stats .ps-jump{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #player-stats .ps-jump a{text-align:center;padding:8px 4px;font-size:.62rem;letter-spacing:.03em;white-space:nowrap}
+  #player-stats .ps-jump a:last-child{grid-column:1/-1}
+  .rum-stats.rs5 .rs.hot{grid-column:1/-1}
+
+  /* ---- less scrolling, fewer taps ---- */
+  .m-jump{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .m-jump .kicker{grid-column:1/-1;margin-bottom:2px}
+  .m-jump a{font-family:var(--mono);font-size:.6rem;letter-spacing:.03em;text-transform:uppercase;text-align:center;color:var(--ink);text-decoration:none;border:1.5px solid var(--rule);padding:7px 2px;background:var(--sheet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .m-top{position:fixed;right:14px;bottom:18px;z-index:20;width:46px;height:46px;border-radius:50%;border:2px solid var(--rule);background:var(--ink);color:var(--sheet);font:600 .62rem var(--mono);letter-spacing:.06em;display:none;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  .m-top.show{display:grid}
+  section[id],div.sec[id]{scroll-margin-top:12px}
+  /* On the Block: two-up mini cards */
+  .forsale-grid{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  .forsale{padding:9px!important;gap:3px!important;border-top-width:4px!important}
+  .forsale h3{font-size:1.05rem!important;line-height:1}
+  .forsale .kicker{font-size:.56rem;letter-spacing:.04em}
+  .fs-tag{font-size:.62rem!important;padding:1px 5px!important}
+  .forsale .lg-sm{width:22px;height:22px}
+  .fs-stat{gap:3px!important;padding-top:5px!important}
+  .fs-stat span{font-size:.5rem!important;letter-spacing:.02em!important}
+  .fs-stat b{font-size:.86rem!important}
+  /* What If: one line per team */
+  #what-if table.mcards tr{grid-template-columns:30px minmax(0,1fr) auto auto!important;column-gap:10px!important;row-gap:3px!important;padding:8px 0!important;align-items:center}
+  #what-if td.c-rk{grid-row:1/span 2!important;align-self:center!important;font-size:1.3rem!important}
+  #what-if td.c-name{grid-column:2/3!important;grid-row:1!important}
+  #what-if td.c-name .lg-md{width:26px!important;height:26px!important}
+  #what-if .po-team b{font-size:.92rem!important}
+  #what-if .po-team small{font-size:.66rem}
+  #what-if td[data-label="Record"]{grid-column:3!important;grid-row:1!important;background:none!important;padding:0!important;font-size:.9rem!important;text-align:right}
+  #what-if td[data-label="Record"]::before,#what-if td[data-label="Points for"]::before{display:none!important}
+  #what-if td[data-label="Points for"]{grid-column:3!important;grid-row:2!important;background:none!important;padding:0!important;border:0!important;text-align:right;font-size:0!important;line-height:1}
+  #what-if td[data-label="Points for"] .gain{display:inline!important;font-size:.7rem!important;margin:0!important}
+  #what-if td[data-label="Points for"] .gain::before{content:"PF "}
+  #what-if td[data-label="Move"]{grid-column:4!important;grid-row:1/span 2!important;align-self:center!important}
+  #what-if td.c-wide{grid-column:2/-1!important;grid-row:3!important}
+  #what-if td.c-wide:has(.flip.none){display:none!important}
+  #what-if .flip{font-size:.62rem}
+  /* graded lists: one line per player */
+  #player-stats table.mcards.pst.sm tr,#player-stats table.mcards.pst.gr-all tr{grid-template-columns:minmax(0,1fr) auto auto auto!important;column-gap:10px!important;row-gap:2px!important;padding:8px 0!important;align-items:end}
+  #player-stats table.mcards.pst.sm td.c-name,#player-stats table.mcards.pst.gr-all td.c-name{grid-column:1!important;grid-row:1!important;margin:0!important}
+  #player-stats table.mcards.pst.sm td.c-own,#player-stats table.mcards.pst.gr-all td.c-own{grid-column:1!important;grid-row:2!important;margin:0!important}
+  #player-stats table.mcards.pst.sm td[data-label="Avg rank"],#player-stats table.mcards.pst.gr-all td[data-label="Avg rank"]{grid-column:2!important;grid-row:1/span 2!important}
+  #player-stats table.mcards.pst.sm td[data-label="Avg finish"],#player-stats table.mcards.pst.gr-all td[data-label="Avg finish"]{grid-column:3!important;grid-row:1/span 2!important}
+  #player-stats table.mcards.pst.sm td[data-label="Avg rank"],#player-stats table.mcards.pst.sm td[data-label="Avg finish"],#player-stats table.mcards.pst.gr-all td[data-label="Avg rank"],#player-stats table.mcards.pst.gr-all td[data-label="Avg finish"]{background:none!important;padding:0!important;align-self:end!important}
+  #player-stats table.mcards.pst.sm td[data-label="Wks"],#player-stats table.mcards.pst.gr-all td[data-label="Wks"],#player-stats table.mcards.pst.gr-all td[data-label="Spots vs rank"]{display:none!important}
+  #player-stats table.mcards.pst.sm td.c-key,#player-stats table.mcards.pst.gr-all td.c-key{grid-column:4!important;grid-row:1/span 2!important;align-self:end!important;font-size:1.25rem!important}
+  #player-stats table.mcards.pst.gr-all td[data-label="Week 5"]{grid-column:1/-1!important;grid-row:3!important;background:none!important;padding:0!important;font-size:.72rem!important;color:var(--muted)}
+  #player-stats table.mcards.pst.gr-all td[data-label="Week 5"]::before{display:inline!important;margin-right:6px}
+
+  #player-stats table.mcards.pst.sm td[data-label="Avg rank"]::before,#player-stats table.mcards.pst.gr-all td[data-label="Avg rank"]::before{content:"Rank"}
+  #player-stats table.mcards.pst.sm td[data-label="Avg finish"]::before,#player-stats table.mcards.pst.gr-all td[data-label="Avg finish"]::before{content:"Finish"}
+  #player-stats table.mcards.pst.sm td.c-key::before,#player-stats table.mcards.pst.gr-all td.c-key::before{content:"vs proj"}
+  #player-stats table.mcards.pst.sm td:not(.c-name):not(.c-own),#player-stats table.mcards.pst.gr-all td:not(.c-name):not(.c-own){font-size:.84rem}
+  #player-stats table.mcards.pst.sm .pn b,#player-stats table.mcards.pst.gr-all .pn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .m-top{width:40px!important;height:40px!important;opacity:.88;font-size:.56rem!important}
+  /* Pecking Order: team header, form under the name, stat strip, note */
+  #pecking-order table.mcards tr,#what-if table.mcards tr{column-gap:0;row-gap:8px;padding:14px 0 16px}
+  #pecking-order table.mcards tr{grid-template-columns:36px repeat(3,minmax(0,1fr))}
+  #pecking-order td.c-rk,#what-if td.c-rk{grid-column:1;grid-row:1/span 2;align-self:start;font-size:1.75rem;line-height:.9;color:var(--muted)}
+  #pecking-order tr:nth-child(-n+3) td.c-rk,#what-if tr:nth-child(-n+3) td.c-rk{color:var(--blue)}
+  #pecking-order td.c-name,#what-if td.c-name{grid-row:1}
+  #pecking-order td.c-name{grid-column:2/4}
+  #pecking-order .po-team,#what-if .po-team{gap:9px}
+  #pecking-order td.c-name .lg-md,#what-if td.c-name .lg-md{width:34px;height:34px}
+  #pecking-order .po-team b,#what-if .po-team b{font-size:1rem;line-height:1.15}
+  #pecking-order td[data-label="Record"]{grid-column:4;grid-row:1;justify-self:end;align-self:start;font-family:var(--display);font-weight:900;font-size:1.7rem;line-height:.9}
+  #pecking-order td[data-label="Form"]{grid-column:2/-1;grid-row:2;padding-left:43px}
+  #pecking-order td[data-label="Form"]::before,#pecking-order td[data-label="Record"]::before,#pecking-order td.note::before{display:none!important}
+  #pecking-order td .fm{width:17px;height:17px;font-size:.58rem}
+  #pecking-order td[data-label="All-play"],#pecking-order td[data-label="Points for"],#pecking-order td[data-label="Luck"],
+  #what-if td[data-label="Record"],#what-if td[data-label="Points for"]{grid-row:3;background:var(--paper);padding:7px 10px 8px;align-self:stretch;font-size:.95rem}
+  #pecking-order td[data-label="All-play"]{grid-column:2;border-radius:3px 0 0 3px}
+  #pecking-order td[data-label="Points for"]{grid-column:3;border-left:1px solid var(--line)}
+  #pecking-order td[data-label="Luck"]{grid-column:4;border-left:1px solid var(--line);border-radius:0 3px 3px 0}
+  #pecking-order td[data-label="Wk 1–5"]{display:none}
+  #pecking-order td[data-label="Luck"] .luck{display:block;width:100%;max-width:none;height:8px;margin:4px 0 5px;background:var(--sheet)}
+  #pecking-order td[data-label="Luck"] .luck-bar{top:1px;bottom:1px}
+  #pecking-order td[data-label="Luck"] .luck-n{display:block;line-height:1.1}
+  #pecking-order .luck-n{font-size:.95rem;color:var(--ink)}
+  #pecking-order td.note{grid-column:2/-1!important;grid-row:4;font-style:italic;font-size:.84rem;color:var(--muted)}
+  /* What If: same header, then actual -> best-lineup strip and flipped games */
+  #what-if table.mcards tr{grid-template-columns:36px minmax(0,.85fr) minmax(0,1.3fr) auto}
+  #what-if td.c-name{grid-column:2/4}
+  #what-if td[data-label="Move"]{grid-column:4;grid-row:1;justify-self:end;align-self:start}
+  #what-if td[data-label="Move"]::before,#what-if td.c-wide::before{display:none!important}
+  #what-if td[data-label="Record"]{grid-column:2;border-radius:3px 0 0 3px}
+  #what-if td[data-label="Points for"]{grid-column:3/5;border-left:1px solid var(--line);border-radius:0 3px 3px 0}
+  #what-if td[data-label="Points for"],#what-if td[data-label="Record"]{white-space:nowrap}
+  #what-if td[data-label="Points for"] .gain{display:block;margin:2px 0 0;font-size:.74rem}
+  #what-if td.c-wide{grid-column:2/-1!important;grid-row:4}
+  #what-if tr:has(.flip) td.c-name b::after{content:"";}
+}
 </style>
 
 <div class="page">
@@ -523,6 +686,8 @@ footer b{color:var(--honolulu);font-weight:600}
 </nav>
 
 <div class="tab-pane" id="paper" role="tabpanel" aria-labelledby="tab-paper">
+
+<nav class="m-jump" style="display:none" aria-label="Jump to section"><span class="kicker">Jump to</span><a href="#games">Scoreboard</a><a href="#scoreboard">At a glance</a><a href="#positions">Positions</a><a href="#blotter">Blotter</a><a href="#heat">Heat map</a><a href="#floor-ceiling">Floor/ceiling</a><a href="#pecking-order">Pecking order</a><a href="#power">Power ranks</a><a href="#playoff-odds">Playoff odds</a><a href="#what-if">What if?</a><a href="#trading-block">Trade block</a><a href="#waiver-mvp">Waivers</a><a href="#wire">The wire</a><a href="#forecast">Wk {{NEXTWEEK}} forecast</a><a href="#player-stats-tab">Player stats →</a></nav>
 
 <div class="tiles" aria-label="Week {{WEEK}} by the numbers"><!--TILES--></div>
 
@@ -562,7 +727,7 @@ footer b{color:var(--honolulu);font-weight:600}
   </div>
 </section>
 
-<section class="crime">
+<section class="crime" id="blotter">
   <div class="sec">
     <div class="sec-head"><h2>Police Blotter</h2><span class="kicker">Booking no. = pts left on bench</span></div>
     <div class="blotter"><!--BLOTTER--></div>
@@ -667,3 +832,44 @@ footer b{color:var(--honolulu);font-weight:600}
 
 
 </div>
+
+<script>
+(function(){
+  if(!window.matchMedia||!matchMedia('(max-width:760px), (pointer:coarse) and (max-width:1100px)').matches)return;
+  document.querySelectorAll('#player-stats table.mcards.pst').forEach(function(t){
+    if(t.closest('.gr-every'))return;
+    var n=t.tBodies[0]?t.tBodies[0].rows.length:0; if(n<=12)return;
+    t.classList.add('clip');
+    var b=document.createElement('button'); b.type='button'; b.className='ps-more on';
+    b.textContent='Show all '+n; b.setAttribute('aria-expanded','false');
+    b.addEventListener('click',function(){var open=t.classList.toggle('clip');
+      b.textContent=open?'Show all '+n:'Show top 10'; b.setAttribute('aria-expanded',String(!open));
+      if(open)t.scrollIntoView({block:'start'});});
+    (t.closest('.tbl-wrap')||t).after(b);
+  });
+})();
+</script>
+<button type="button" class="m-top" aria-label="Back to top" style="display:none">TOP</button>
+<script>
+(function(){
+  var mq=window.matchMedia&&matchMedia('(max-width:760px), (pointer:coarse) and (max-width:1100px)'); if(!mq||!mq.matches)return;
+  var top=document.querySelector('.m-top'); top.style.display='';
+  document.querySelectorAll('.m-jump a').forEach(function(a){var h=a.getAttribute('href').slice(1);
+    if(h!=='player-stats-tab'&&!document.getElementById(h))a.remove();});
+  addEventListener('scroll',function(){top.classList.toggle('show',scrollY>innerHeight*1.5)},{passive:true});
+  top.addEventListener('click',function(){scrollTo({top:0,behavior:'smooth'})});
+  var st=document.getElementById('tab-stats');
+  document.querySelectorAll('.m-jump a').forEach(function(a){a.addEventListener('click',function(e){
+    if(a.getAttribute('href')==='#player-stats-tab'){e.preventDefault(); if(st){st.click(); scrollTo({top:0});}}
+  })});
+  if(st)st.addEventListener('click',function(){scrollTo({top:0})});
+  document.querySelectorAll('#player-stats .pj').forEach(function(l){
+    var rows=l.querySelectorAll('.pj-row'),n=rows.length; if(n<=12)return;
+    function set(open){for(var i=10;i<n;i++)rows[i].style.display=open?'':'none';}
+    set(false);
+    var b=document.createElement('button'); b.type='button'; b.className='ps-more on'; b.textContent='Show all '+n;
+    var open=false; b.addEventListener('click',function(){open=!open;set(open);b.textContent=open?'Show top 10':'Show all '+n; if(!open)l.scrollIntoView({block:'start'});});
+    l.after(b);
+  });
+})();
+</script>

@@ -23,6 +23,7 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 | `data/trade_block.json` | Each team's ESPN trading block + which teams ESPN returned it for | refreshed weekly |
 | `data/schedule.json` | Full regular-season schedule (all 14 weeks), for Playoff Odds | refreshed weekly |
 | `fetch_players.py` | Player data for the Player Stats tab → `data/players/*.json` (GitHub Actions) | no |
+| `mobile.py` | Phone layout: tags every table cell for the stacked-card view | no |
 | `players.py` | Builds the Player Stats tab; `--patch` swaps it into built pages | no |
 | `data/players/` | Player Stats data (ESPN, nflverse, FantasyPros) | refreshed by Actions |
 | `publish_site.py` | Puts week N on the league website: `docs/index.html`, `docs/weekN.html`, `docs/archive.html` | step 9 |
@@ -117,6 +118,13 @@ All automatic in `render.py`, no copy needed, and all need every `data/weekK_raw
 **Schedule**: Tuesday's ESPN fetch (`fetch.yml`) also runs `fetch_players.py`, so the 6am edition carries fresh player data. `players.yml` refreshes the tab on the newest edition (docs/index.html, docs/weekN.html, daily-fantasizer-weekN.html) Tue/Wed/Thu/Sat 11:17am and Sun 11:47am Eastern as next week's consensus fills in, then asks GitHub Pages to rebuild.
 
 **Self-test note**: the week 5 render now includes the Player Stats tab, so its hash in MANIFEST.txt matches only with the `data/players` files committed alongside it. If those files changed since, a different week 5 hash is expected.
+
+## Phone layout (ported to the pipeline 2026-10-19 at the user's request)
+
+The phone layout was first hand-tuned in the Claude copy of the week 5 paper; it now lives in the pipeline so the league site (one link for desktop and phone) and every future edition get it. On phones (≤760px, or touch screens ≤1100px) every table becomes stacked cards, the heat map squeezes to fit, a "Jump to" menu sits under the tabs, a "Back to top" button appears, and long Player Stats lists start at the top 10 with a "Show all" button. Desktop is unchanged.
+- `mobile.py`: `tag()` gives every table `mcards` (+ `has-own`, `sN` on Player Stats tables) and every `<td>` its role (`c-rk`, `c-name`, `c-own`, `c-wide`, `c-key`, `data-tail`) and a `data-label` from its column header. `render.py` runs it on the finished page; `players.build()` runs it on the Player Stats pane so midweek `--patch` refreshes keep the cards. It holds `PHONE_CSS`, `JUMP_NAV` and `PHONE_JS` as the reference copies of what's in `template.html`.
+- `template.html`: the phone CSS (end of the main style), the jump menu (`{{NEXTWEEK}}` forecast label; links to sections missing that week hide themselves), `id="blotter"` on the Police Blotter section, and the phone scripts after the page.
+- Verified: the week 5 rebuild matches the hand-tuned Claude copy table for table (all 20 tables identical).
 
 ## Known quirks
 
