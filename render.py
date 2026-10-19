@@ -53,17 +53,19 @@ for u in UPS:
     rc = key(w, l, CU)
     if not rc:
         print(f"WARNING: no upsets copy for {w}-{l}; using an automatic headline")
-        rc = {"headline": (f"No. {u['w_rank_pre']} Topples No. {u['l_rank_pre']}" if u["upset"] else f"Lost by {u['margin']:.2f}"), "text": ""}
+        rc = {"headline": (f"No. {u['w_rank_pre']} Topples No. {u['l_rank_pre']}" if u["upset"] else f"Lost by {u['margin']:.2f}" if u["heartbreaker"] else f"Buried by {u['margin']:.0f}"), "text": ""}
     stamps = (('<span class="stamp up-st">Upset</span>' if u["upset"] else "")
-              + ('<span class="stamp hb-st">Heartbreaker</span>' if u["heartbreaker"] else ""))
+              + ('<span class="stamp hb-st">Heartbreaker</span>' if u["heartbreaker"] else "")
+              + ('<span class="stamp bo-st">Blowout</span>' if u.get("blowout") else ""))
     kick = (f'No. {u["w_rank_pre"]} ({rec_s(u["w_pre"])}) took down No. {u["l_rank_pre"]} ({rec_s(u["l_pre"])})' if u["upset"]
-            else f'Decided by {u["margin"]:.2f} points')
-    salt = [f'Left {u["l_left_on_bench"]:.1f} on the bench']
+            else f'Decided by {u["margin"]:.2f} points' if u["heartbreaker"] else f'Week {W}\'s biggest beatdown')
+    salt = [f'Left {u["l_left_on_bench"]:.1f} on the bench'] if u["l_left_on_bench"] > 0 else []
+    if u.get("blowout") and u["l_optimal"] < u["ws"]: salt.append(f'Perfect lineup ({u["l_optimal"]:.2f}) still loses by {u["ws"] - u["l_optimal"]:.2f}')
     if u["loser_optimal_would_win"]: salt.append(f'Best lineup ({u["l_optimal"]:.2f}) would have won')
     if u["l_benched_star"] and u["l_benched_star"][2] > 0: salt.append(f'Benched {u["l_benched_star"][0]}: {g(u["l_benched_star"][2])}')
     if u["l_streak"][0] == "L" and int(u["l_streak"][1:]) >= 2: salt.append(f'{u["l_streak"][1:]} straight losses')
     lead_u = not ucards  # the first game is the page-one banner: full width, giant headline and crests
-    cls = " both" if u["upset"] and u["heartbreaker"] else " hb" if u["heartbreaker"] else ""
+    cls = " both" if u["upset"] and u["heartbreaker"] else " hb" if u["heartbreaker"] else " bo" if u.get("blowout") and not u["upset"] else ""
     cs = "lg-xl" if lead_u else "lg-lg"
     hd = "h2" if lead_u else "h3"
     ucards.append(f'''<article class="ups-card{cls}{" lead-up" if lead_u else ""}">

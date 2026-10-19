@@ -266,11 +266,12 @@ p{margin:0} figure{margin:0}
 .ups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:16px}
 .ups-card{display:grid;gap:10px;align-content:start;min-width:0;border:3px solid var(--rule);border-top:8px solid var(--honolulu);padding:14px 16px 16px;background:radial-gradient(var(--dot) 1.2px,transparent 1.4px) 0 0/8px 8px,var(--sheet)}
 .ups-card.hb{border-top-color:var(--red)}
+.ups-card.bo{border-top-color:var(--rule)}
 .ups-card.both{border-top-color:var(--red);box-shadow:inset 0 3px 0 var(--honolulu)}
 .ups-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .ups-top .kicker{color:var(--ink);font-weight:600}
 .ups-stamps{display:flex;gap:10px}
-.stamp.up-st{color:var(--honolulu)}.stamp.hb-st{color:var(--red);transform:rotate(3deg)}.stamp.chalk-st{color:var(--muted)}
+.stamp.up-st{color:var(--honolulu)}.stamp.hb-st{color:var(--red);transform:rotate(3deg)}.stamp.bo-st{color:var(--ink);transform:rotate(-2deg)}
 .ups-vs{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;padding:6px 0}
 .ups-w,.ups-l{display:grid;justify-items:center;gap:3px;text-align:center;min-width:0}
 .ups-w .lg{box-shadow:0 0 0 3px var(--sheet),0 0 0 6px var(--honolulu)}
@@ -738,7 +739,14 @@ footer b{color:var(--honolulu);font-weight:600}
 
 <div class="tiles" aria-label="Week 5 by the numbers"><div class="tile"><span class="tile-k">League average</span><b class="num">122.4</b><span class="tile-s"><span>points per team</span></span></div><div class="tile"><span class="tile-k">High score</span><b class="num">164.20</b><span class="tile-s"><i class="lg lg-8 " aria-hidden="true"></i><span>Beefy Boys</span></span></div><div class="tile"><span class="tile-k">Low score</span><b class="num">77.20</b><span class="tile-s"><i class="lg lg-3 " aria-hidden="true"></i><span>8D</span></span></div><div class="tile"><span class="tile-k">Top player</span><b class="num">37.7</b><span class="tile-s"><i class="lg lg-8 " aria-hidden="true"></i><span>Jahmyr Gibbs</span></span></div><div class="tile"><span class="tile-k">Left on benches</span><b class="num">115.28</b><span class="tile-s"><span>across all 12 teams</span></span></div><div class="tile"><span class="tile-k">Perfect lineups</span><b class="num">3</b><span class="tile-s"><i class="lg lg-4 " aria-hidden="true"></i><i class="lg lg-6 " aria-hidden="true"></i><i class="lg lg-8 " aria-hidden="true"></i><span>only one of them won</span></span></div></div>
 
-
+<section class="ups-news" id="upsets" aria-label="The biggest news of week 5"><div class="ups"><article class="ups-card bo lead-up">
+<div class="ups-top"><span class="kicker">Week 5&#x27;s biggest beatdown</span><span class="ups-stamps"><span class="stamp bo-st">Blowout</span></span></div>
+<h2 class="ups-h">Perfect Lineup, Still Got Buried</h2>
+<div class="ups-vs"><div class="ups-w"><i class="lg lg-8 lg-xl" aria-hidden="true"></i><span class="ups-n">Beefy Boys</span><b class="num">164.20</b><small>now 4–1</small></div>
+<div class="ups-m"><b class="num">+59.60</b><span>margin</span></div>
+<div class="ups-l"><i class="lg lg-6 lg-xl" aria-hidden="true"></i><span class="ups-n">IDK</span><b class="num">104.60</b><small>now 2–3</small></div></div>
+<p><span class="tm"><i class="lg lg-8 " aria-hidden="true"></i>Beefy Boys</span> hung a season-high 164.2 and outscored all 11 teams. <span class="tm"><i class="lg lg-6 " aria-hidden="true"></i>IDK</span> started every right guy and still lost by 59.6. Nothing to fix. Just not enough.</p>
+<div class="ups-salt"><span>Perfect lineup (104.60) still loses by 59.60</span></div></article></div></section>
 
 <section class="hero" aria-label="Page one result">
   <div class="hero-top">

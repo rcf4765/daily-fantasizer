@@ -153,5 +153,11 @@
   "1-7": "Chimpanzini vs the luckiest team alive.",
   "10-8": "Biggest spread. Pony has won two straight.",
   "4-11": "Clear skies for Kazakhstan, for once."
+ },
+ "upsets": {
+  "8-6": {
+   "headline": "Perfect Lineup, Still Got Buried",
+   "text": "{S8} hung a season-high 164.2 and outscored all 11 teams. {S6} started every right guy and still lost by 59.6. Nothing to fix. Just not enough."
+  }
  }
 }
