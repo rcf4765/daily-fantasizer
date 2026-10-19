@@ -93,7 +93,13 @@ All automatic in `render.py`, no copy needed, and all need every `data/weekK_raw
 
 `template.html` now has a tab bar under the masthead: **This Week's Paper** (everything from the stat tiles to the forecast, inside `<div class="tab-pane" id="paper">`) and **Player Stats** (`#player-stats`, linkable). Player Stats is an "under construction" page for now; it is static template markup, so `render.py` needs no copy for it and the weekly procedure is unchanged.
 
-The user's end goal for Player Stats (PPR): current usage data (snaps, routes, targets, target share, air yards, touches) vs. scoring; next week's projections; start/sit assist; next week's rankings; rest-of-season rankings; rankings vs. actuals with the variance noted. Inputs to blend: Joel Smyth's and Luke Garza's research/projections plus the user's own regression models. The blend works in the background: the page shows the results, not the sources (user, 2026-10-19). Until the user hands over those sources and asks for a desk to open, leave the tab as is.
+The user's end goal for Player Stats (PPR): current usage data (snaps, routes, targets, target share, air yards, touches) vs. scoring; next week's projections; start/sit assist; next week's rankings; rest-of-season rankings; rankings vs. actuals with the variance noted. Inputs to blend: Joel Smyth's and Luke Garza's research/projections plus the user's own regression models. The blend works in the background: the page shows the results, not the sources (user, 2026-10-19). Source details below.
+
+Source notes (checked 2026-10-19):
+- **Luke Garza**: Substack https://lukeagarza.substack.com (list posts via `/api/v1/archive?sort=new`). Free: weekly "Rest-of-Season Rankings entering Week N" (text, tiered, QB 20 / RB 45 / WR 45 / TE 20, movement arrows). Mostly paid: weekly position + top-100 FLEX rankings, team usage-rate posts, target-share and backfield graphics. Rankings only, no point projections.
+- **Joel Smyth**: Yahoo Fantasy (https://linktr.ee/joelsmyth, author page https://sports.yahoo.com/author/joelsmythff/). Weekly full-PPR rankings articles; the list loads inside the page, so plain fetches don't see it (needs a browser read). FantasyPros also tracks his weekly ranks vs. consensus. Rankings only, no point projections.
+
+Until the user hands over those sources and asks for a desk to open, leave the tab as is.
 
 ## Known quirks
 
