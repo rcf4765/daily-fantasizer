@@ -498,14 +498,6 @@ footer b{color:var(--honolulu);font-weight:600}
 .uc .deck{font-size:1.1rem;font-style:italic;color:var(--muted);max-width:56ch}
 .uc .kicker{color:var(--ink)}
 .uc-stamp{font-family:var(--display);font-weight:900;font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase;color:var(--red);border:3px solid currentColor;padding:3px 10px;transform:rotate(-3deg);margin-bottom:8px}
-.blend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto minmax(0,1.2fr);gap:12px;align-items:stretch}
-.src{border:2px solid var(--rule);padding:14px;display:grid;gap:6px;align-content:start;border-top:6px solid var(--honolulu);background:var(--sheet)}
-.src h3{font-size:1.55rem;font-weight:800;text-transform:uppercase}
-.src p{font-size:.86rem;color:var(--muted)}
-.src.house{border-top-color:var(--blue)}
-.blend-arrow{align-self:center;font-family:var(--mono);font-size:1.6rem;color:var(--muted)}
-.src.out{background:var(--blue);color:var(--blue-ink);border-color:var(--blue)}
-.src.out .kicker,.src.out p{color:var(--blue-ink);opacity:.9}
 .plan{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:14px}
 .desk{border:2px dashed var(--rule);padding:14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-content:start}
 .desk b{font-family:var(--display);font-weight:900;font-size:2.4rem;line-height:.9;color:var(--honolulu);grid-row:1/4}
@@ -513,8 +505,6 @@ footer b{color:var(--honolulu);font-weight:600}
 .desk p{font-size:.86rem}
 .desk .kicker{font-size:.62rem}
 @media (max-width:760px){
-  .blend{grid-template-columns:minmax(0,1fr)}
-  .blend-arrow{transform:rotate(90deg);justify-self:center}
   .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
   .tab{padding:9px 8px 6px;font-size:.88rem;white-space:nowrap;flex:none}
 }
@@ -645,26 +635,15 @@ footer b{color:var(--honolulu);font-weight:600}
 </section>
 
 <section class="sec">
-  <div class="sec-head"><h2>The Blend</h2><span class="kicker">Three inputs, one board</span></div>
-  <div class="blend">
-    <div class="src"><span class="kicker">Source 1</span><h3>Joel Smyth</h3><p>Research and weekly projections.</p></div>
-    <div class="src"><span class="kicker">Source 2</span><h3>Luke Garza</h3><p>Research and weekly projections.</p></div>
-    <div class="src house"><span class="kicker">Source 3</span><h3>House Models</h3><p>Our own regression models on usage and PPR scoring.</p></div>
-    <span class="blend-arrow" aria-hidden="true">&rarr;</span>
-    <div class="src out"><span class="kicker">Output</span><h3>Blended Board</h3><p>One consensus projection and ranking per player, with each source's track record kept on file.</p></div>
-  </div>
-</section>
-
-<section class="sec">
   <div class="sec-head"><h2>What's Coming</h2><span class="kicker">Seven desks, opening soon</span></div>
   <div class="plan">
     <div class="desk"><b>1</b><span class="kicker">Planned</span><h3>Current Data</h3><p>Snaps, routes, targets, target share, air yards and touches for every relevant player, refreshed weekly.</p></div>
     <div class="desk"><b>2</b><span class="kicker">Planned</span><h3>Volume vs. Scoring</h3><p>Opportunity plotted against PPR points to flag who's running hot or cold for their usage. The regression watch.</p></div>
-    <div class="desk"><b>3</b><span class="kicker">Planned</span><h3>Next Week's Projections</h3><p>Smyth, Garza and the house models side by side, plus the blended number.</p></div>
+    <div class="desk"><b>3</b><span class="kicker">Planned</span><h3>Next Week's Projections</h3><p>Projected PPR points for every relevant player in the upcoming week.</p></div>
     <div class="desk"><b>4</b><span class="kicker">Planned</span><h3>Start / Sit Assist</h3><p>Pick the players you're torn between and get a call, with floor, ceiling and the reason behind it.</p></div>
     <div class="desk"><b>5</b><span class="kicker">Planned</span><h3>Next Week's Rankings</h3><p>Positional ranks for the upcoming week, built from the blended projections.</p></div>
     <div class="desk"><b>6</b><span class="kicker">Planned</span><h3>Rest-of-Season Rankings</h3><p>Who to hold, buy and sell for the stretch run and the playoffs.</p></div>
-    <div class="desk"><b>7</b><span class="kicker">Planned</span><h3>Rankings vs. Actuals</h3><p>Every ranking graded against what really happened, with the variance noted per player and per source.</p></div>
+    <div class="desk"><b>7</b><span class="kicker">Planned</span><h3>Rankings vs. Actuals</h3><p>Every ranking graded against what really happened, with the variance noted for every player.</p></div>
   </div>
   <p class="note-s">Nothing on this tab is live yet. Each desk fills in as it opens.</p>
 </section>
