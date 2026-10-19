@@ -81,6 +81,19 @@ def espn():
                         "team": TEAM.get(pl.get("proTeamId"), "FA"), "owner": p.get("onTeamId", 0),
                         "inj": pl.get("injuryStatus", "ACTIVE"), "own_pct": round((pl.get("ownership") or {}).get("percentOwned", 0), 1),
                         "act": act, "proj": proj, "ranks": ranks})
+    # ESPN only returns weekly projections for the scoring period asked for: add next week's
+    nxt = cur + 1
+    r2 = E.get(BASE, params={"view": "kona_player_info", "scoringPeriodId": nxt},
+               headers={"X-Fantasy-Filter": json.dumps(flt)}, timeout=90)
+    if r2.ok:
+        byid = {p["id"]: p for p in players}
+        for p in r2.json().get("players", []):
+            pl = p["player"]
+            if pl["id"] not in byid:
+                continue
+            for s in pl.get("stats", []):
+                if s.get("seasonId") == SEASON and s.get("statSourceId") == 1 and s.get("scoringPeriodId") == nxt:
+                    byid[pl["id"]]["proj"][nxt] = round(s.get("appliedTotal", 0), 2)
     save("espn_players.json", players)
     return cur, final
 
