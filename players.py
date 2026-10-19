@@ -35,7 +35,10 @@ def lg(t, size="lg-sm"): return f'<i class="lg lg-{t} {size}" aria-hidden="true"
 
 
 class Data:
-    def __init__(self, short):
+    def __init__(self, short, week=None):
+        """week = the edition's week. The tab then covers games through that week and looks
+        ahead to week + 1 (user, 2026-10-19: the week 5 paper shows week 5 stats and week 6
+        rankings; Tuesday's week 6 paper rolls to week 6 stats and week 7 rankings)."""
         self.short = {int(k): v for k, v in short.items()}
         self.meta = load("meta.json", {})
         self.P = load("espn_players.json", [])
@@ -44,12 +47,16 @@ class Data:
         self.lean = load("fp_lean.json", {"pos": {}})
         self.final = sorted(self.meta.get("final_weeks", []))
         self.live = self.meta.get("espn_week")  # week on the field (may be partly played)
-        # next week = the first week not yet final; jump past the live week once its
-        # successor's consensus ranks are out (FantasyPros posts them Monday/Tuesday)
-        self.next = (max(self.final) + 1) if self.final else 1
-        up = self.meta.get("upcoming")
-        if up and up > self.next and load(f"fp_week{up}.json"):
-            self.next = up
+        if week:
+            self.cap = int(week)
+            self.final = [w for w in self.final if w <= self.cap]
+            self.next = self.cap + 1
+        else:  # no edition week given: follow the live data
+            self.cap = None
+            self.next = (max(self.final) + 1) if self.final else 1
+            up = self.meta.get("upcoming")
+            if up and up > self.next and load(f"fp_week{up}.json"):
+                self.next = up
         self.fp = {w: load(f"fp_week{w}.json") for w in range(1, self.next + 1)}
         self.by = {}
         for p in self.P:
@@ -77,7 +84,7 @@ class Data:
         for pos, rows in self.lean.get("pos", {}).items():
             for r in rows:
                 self.lean_by[norm(r["name"]) + "|" + pos] = r
-        self.weeks_played = sorted({w for p in self.P for w in p["act"]})
+        self.weeks_played = sorted({w for p in self.P for w in p["act"] if self.cap is None or w <= self.cap})
         self._season()
 
     def games(self, p):
@@ -158,8 +165,8 @@ def sec(id_, title, kicker, body):
     return f'<section class="sec" id="{id_}"><div class="sec-head"><h2>{title}</h2><span class="kicker">{kicker}</span></div>{body}</section>'
 
 
-def build(short_names):
-    d = Data(short_names)
+def build(short_names, week=None):
+    d = Data(short_names, week)
     if not d.P:
         return ""
     played = d.weeks_played
@@ -724,10 +731,15 @@ def patch(path, pane):
 
 
 if __name__ == "__main__":
+    # python3 players.py [--week N] [--patch FILE...]
+    args = sys.argv[1:]
+    week = None
+    if args[:1] == ["--week"]:
+        week = int(args[1]); args = args[2:]
     lgj = json.load(open(os.path.join(HERE, "league.json")))
-    pane = build(lgj["short_names"])
-    if sys.argv[1:2] == ["--patch"]:
-        for f in sys.argv[2:]:
+    pane = build(lgj["short_names"], week)
+    if args[:1] == ["--patch"]:
+        for f in args[1:]:
             patch(f, pane)
     else:
         print(pane)

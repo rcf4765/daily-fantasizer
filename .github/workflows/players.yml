@@ -33,7 +33,7 @@ jobs:
       - name: Rebuild the tab on the newest edition
         run: |
           N=$(ls docs/week*.html | sed -E 's/.*week([0-9]+)\.html/\1/' | sort -n | tail -1)
-          python players.py --patch docs/index.html "docs/week$N.html" "daily-fantasizer-week$N.html"
+          python players.py --week "$N" --patch docs/index.html "docs/week$N.html" "daily-fantasizer-week$N.html"
       - name: Commit and publish
         env:
           GH_TOKEN: ${{ github.token }}

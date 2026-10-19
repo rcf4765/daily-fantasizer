@@ -506,7 +506,7 @@ forecast = (f'<section class="sec" id="forecast"><div class="sec-head"><h2>Week 
 
 # Player Stats tab (players.py, data from fetch_players.py); empty if data/players is missing
 import players as _players
-ps_html = _players.build(LG["short_names"]) if os.path.exists("data/players/meta.json") else ""
+ps_html = _players.build(LG["short_names"], W) if os.path.exists("data/players/meta.json") else ""
 
 out = open("template.html", encoding="utf-8").read()
 for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
