@@ -3,6 +3,7 @@
   Pending, declined or expired offers are private to the managers involved and are never stored.
 - data/trade_block.json: each team's ESPN trading block (players marked on the block / untouchable),
   which ESPN shows to the whole league. `teams_reporting` records which teams returned the field.
+- data/schedule.json: the full regular-season schedule (every week, played or not), used by Playoff Odds.
 Read-only; never proposes, accepts or changes anything."""
 import json, os, sys, datetime
 import requests
@@ -48,6 +49,16 @@ def main():
     json.dump({"fetched_at": now(), "teams_total": len(L["teams"]), "teams_reporting": sorted(reporting), "block": block},
               open(os.path.join(HERE, "data", "trade_block.json"), "w"), indent=1)
     print(f"trade block: {len(reporting)}/{len(L['teams'])} teams report; {sum(len(v) for v in block.values())} players listed")
+
+    # ---- full schedule ----
+    M = get([("view", "mMatchupScore"), ("view", "mSettings")])
+    se = M["settings"]["scheduleSettings"]
+    games = [{"wk": g["matchupPeriodId"], "home": (g.get("home") or {}).get("teamId"), "away": (g.get("away") or {}).get("teamId"),
+              "winner": g.get("winner", "UNDECIDED")} for g in M["schedule"] if g.get("away")]
+    json.dump({"fetched_at": now(), "regweeks": se["matchupPeriodCount"], "playoff_teams": se["playoffTeamCount"],
+               "games": sorted(games, key=lambda g: (g["wk"], g["home"]))},
+              open(os.path.join(HERE, "data", "schedule.json"), "w"), indent=1)
+    print(f"schedule: {len(games)} games, regular season {se['matchupPeriodCount']} weeks")
 
     # ---- completed trades ----
     seen, done = set(), []
