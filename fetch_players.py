@@ -36,6 +36,13 @@ ST = {"pa_att": 0, "pa_cmp": 1, "pa_yds": 3, "pa_td": 4, "pa_int": 20, "ru_att":
       "rec": 53, "re_yds": 42, "re_td": 43, "tgt": 58, "fum": 72}
 
 
+def norm(n):
+    """Name key shared with players.py: no suffixes, punctuation or spaces (D.K. Metcalf = DK Metcalf)."""
+    n = n.lower().replace("’", "'")
+    n = re.sub(r"\b(jr|sr|ii|iii|iv|v)\b\.?", "", n)
+    return re.sub(r"[^a-z]", "", n)
+
+
 def save(name, obj):
     with open(os.path.join(OUT, name), "w") as f:
         json.dump(obj, f, separators=(",", ":"), sort_keys=True)
@@ -116,10 +123,10 @@ def nflverse():
         for x in sn:
             if x.get("game_type") != "REG" or x.get("position") not in ("QB", "RB", "WR", "TE"):
                 continue
-            snaps[f'{x["player"]}|{x["position"]}|{x["team"]}|{x["week"]}'] = round(float(x["offense_pct"] or 0), 3)
+            snaps[f'{norm(x["player"])}|{x["position"]}|{x["week"]}'] = round(float(x["offense_pct"] or 0), 3)
         for k, d in out.items():
             for wk, v in d["wk"].items():
-                v["snap"] = snaps.get(f'{d["name"]}|{d["pos"]}|{d["team"]}|{wk}')
+                v["snap"] = snaps.get(f'{norm(d["name"])}|{d["pos"]}|{wk}')
         # snap-only players (no box score yet) are skipped: no usage to show
     except Exception as e:  # nflverse is a nice-to-have; the page degrades without it
         print("nflverse failed:", e)
