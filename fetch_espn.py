@@ -5,6 +5,9 @@ Env:
   ESPN_S2, ESPN_SWID   cookies from a signed-in ESPN session (GitHub secrets)
   WEEK                 optional; default = latest completed matchup period
   FORCE=1              optional; re-fetch even if data/weekN_raw.txt exists
+  PREVIEW=1            optional; snapshot WEEK even if it isn't final, written to
+                       preview/weekN_raw.txt (complete=0). Never touches data/ (no
+                       crests, no latest.json), so the real weekly edition is unaffected.
 Writes data/weekN_raw.txt (same format extract.js produces), refreshes
 data/logos.txt + data/logo_urls.txt for any team whose crest URL changed,
 and data/latest.json. Exit code 0 with "nothing to do" if the week is already saved
@@ -66,16 +69,17 @@ def main():
     W = int(os.environ.get("WEEK") or 0) or (final[-1] if final else 0)
     if not W:
         print("No completed week yet; nothing to do."); return
-    out_path = os.path.join(DATA, f"week{W}_raw.txt")
+    PREVIEW = os.environ.get("PREVIEW") == "1"
+    out_path = os.path.join(HERE, "preview", f"week{W}_raw.txt") if PREVIEW else os.path.join(DATA, f"week{W}_raw.txt")
     complete = W in final
-    if not complete:
+    if not complete and not PREVIEW:
         print(f"Week {W} is not final on ESPN yet; nothing to do."); return
-    if os.path.exists(out_path) and os.environ.get("FORCE") != "1":
+    if not PREVIEW and os.path.exists(out_path) and os.environ.get("FORCE") != "1":
         print(f"{out_path} already exists; nothing to do (set FORCE=1 to refetch)."); return
 
     mem = {m["id"]: f'{m.get("firstName", "")} {m.get("lastName", "")}'.strip() for m in L.get("members", [])}
     st, se = L["settings"], L["settings"]["scheduleSettings"]
-    out = [f'META|league={LEAGUE}|season={SEASON}|week={W}|name={st["name"]}|latest={L["status"]["latestScoringPeriod"]}|complete=1'
+    out = [f'META|league={LEAGUE}|season={SEASON}|week={W}|name={st["name"]}|latest={L["status"]["latestScoringPeriod"]}|complete={1 if complete else 0}'
            f'|regweeks={se["matchupPeriodCount"]}|playoffteams={se["playoffTeamCount"]}']
     out.append("SLOTS|" + ",".join(f'{SLOT.get(int(k), "SLOT" + k)}:{v}' for k, v in st["rosterSettings"]["lineupSlotCounts"].items() if v > 0 and k not in ("20", "21")))
     out.append("TEAMS")
@@ -119,9 +123,10 @@ def main():
     out.append("LOGOURLS")
     urls = {t["id"]: t.get("logo", "") for t in L["teams"]}
     out += [f"{k}|{v}" for k, v in urls.items()]
-    os.makedirs(DATA, exist_ok=True)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
     open(out_path, "w", encoding="utf-8").write("\n".join(out) + "\n")
     print(f"wrote {out_path} ({len(out)} lines)")
+    if PREVIEW: return  # preview snapshots never update crests or latest.json
 
     # crests: refresh only teams whose logo URL changed
     lu_path, lg_path = os.path.join(DATA, "logo_urls.txt"), os.path.join(DATA, "logos.txt")

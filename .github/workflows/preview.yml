@@ -1,0 +1,36 @@
+name: Preview snapshot (unofficial)
+
+# Snapshot of a week that may still be in progress, for sample editions only.
+# Uploads preview/weekN_raw.txt as a run artifact. It never commits anything,
+# so the Tuesday fetch and the official edition are unaffected.
+on:
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Week to snapshot"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests pillow
+      - name: Snapshot
+        env:
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          WEEK: ${{ github.event.inputs.week }}
+          PREVIEW: "1"
+        run: python fetch_espn.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: preview-week${{ github.event.inputs.week }}
+          path: preview/
+          retention-days: 7
