@@ -30,13 +30,17 @@ win = {g_["winner"] for g_ in games if not g_["tie"]}
 
 # ---------- stat tiles ----------
 tp = L["top_player"]; perfect = sorted(t for t in TF if TF[t]["left_on_bench"] == 0)
+_pw = sum(1 for t in perfect if t in win)  # caption computed from the data (was hard-coded)
+perfect_caption = ("nobody got it perfect" if not perfect else ("and it won" if _pw else "and it still lost") if len(perfect) == 1
+                   else "all of them won" if _pw == len(perfect) else "none of them won" if not _pw
+                   else "only one of them won" if _pw == 1 else f"{_pw} of them won")
 tiles = [
     ("League average", f'{L["avg"]:.1f}', "points per team", ""),
     ("High score", f2(TF[L["high"]]["week_pts"]), SHORT[L["high"]], lg(L["high"])),
     ("Low score", f2(TF[L["low"]]["week_pts"]), SHORT[L["low"]], lg(L["low"])),
     ("Top player", g(tp[1]["pts"]), tp[1]["name"], lg(tp[0])),
     ("Left on benches", f2(L["total_left"]), "across all 12 teams", ""),
-    ("Perfect lineups", str(len(perfect)), "only one of them won", "".join(lg(t) for t in perfect)),
+    ("Perfect lineups", str(len(perfect)), perfect_caption, "".join(lg(t) for t in perfect)),
 ]
 tiles_html = "".join(f'<div class="tile"><span class="tile-k">{k}</span><b class="num">{v}</b><span class="tile-s">{c}<span>{esc(s)}</span></span></div>' for k, v, s, c in tiles)
 crests = "".join(lg(t) for t in sorted(teams))
