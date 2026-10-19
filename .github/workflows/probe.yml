@@ -2,6 +2,9 @@ name: probe
 on:
   push:
     branches: [probe]
+permissions:
+  contents: write
+
 jobs:
   p:
     runs-on: ubuntu-latest
@@ -14,5 +17,9 @@ jobs:
           ESPN_S2: ${{ secrets.ESPN_S2 }}
           ESPN_SWID: ${{ secrets.ESPN_SWID }}
         run: python probe.py
-      - uses: actions/upload-artifact@v4
-        with: {name: out, path: out, retention-days: 2}
+      - run: |
+          git config user.name "daily-fantasizer-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f out
+          git commit -qm "probe output [skip ci]"
+          git push origin HEAD:probe
