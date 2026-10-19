@@ -277,7 +277,6 @@ p{margin:0} figure{margin:0}
 .ups-card{display:grid;gap:10px;align-content:start;min-width:0;border:3px solid var(--rule);border-top:8px solid var(--honolulu);padding:14px 16px 16px;background:radial-gradient(var(--dot) 1.2px,transparent 1.4px) 0 0/8px 8px,var(--sheet)}
 .ups-card.hb{border-top-color:var(--red)}
 .ups-card.both{border-top-color:var(--red);box-shadow:inset 0 3px 0 var(--honolulu)}
-.ups-card.empty{border-top-color:var(--silver)}
 .ups-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .ups-top .kicker{color:var(--ink);font-weight:600}
 .ups-stamps{display:flex;gap:10px}
@@ -294,12 +293,20 @@ p{margin:0} figure{margin:0}
 .ups-m{display:grid;justify-items:center}
 .ups-m b{font-family:var(--display);font-weight:900;font-size:clamp(2rem,5vw,2.8rem);line-height:.9;color:var(--red)}
 .ups-m span{font-family:var(--mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.ups-card h3{font-size:1.6rem;font-weight:900;text-transform:uppercase;line-height:1}
+.ups-h{font-family:var(--display);font-size:clamp(1.8rem,3.4vw,2.4rem);font-weight:900;text-transform:uppercase;line-height:.95}
+.ups-card.lead-up{grid-column:1/-1;border-width:4px;border-top-width:12px;padding:20px 24px 22px;gap:14px}
+.lead-up .ups-h{font-size:clamp(2.8rem,8vw,5.6rem);line-height:.86;letter-spacing:-.01em}
+.lead-up .ups-top .kicker{font-size:.85rem}
+.lead-up .stamp{font-size:1.5rem;padding:3px 12px;border-width:3.5px}
+.lead-up .ups-vs{max-width:820px;width:100%;justify-self:center;gap:24px}
+.lead-up .ups-n{font-size:1.5rem}.lead-up .ups-w b{font-size:2.8rem}.lead-up .ups-l b{font-size:2rem}
+.lead-up .ups-m b{font-size:clamp(3rem,9vw,6rem)}
+.lead-up p{font-size:1.15rem;max-width:62ch}
+.lead-up .ups-salt span{font-size:.8rem;padding:4px 9px}
 .ups-card p{margin:0}
 .ups-salt{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:2px solid var(--rule);padding-top:9px}
-.ups-salt .kicker{color:var(--red);font-weight:600;margin-right:4px}
 .ups-salt span:not(.kicker){font-family:var(--mono);font-size:.7rem;background:var(--red);color:var(--sheet);padding:3px 7px}
-@media (max-width:760px){.ups-vs{gap:6px}.ups .lg-lg{width:46px;height:46px}.ups-n{font-size:.82rem;overflow-wrap:break-word}.ups-m b{font-size:1.55rem}.ups-w b{font-size:1.25rem}.ups-l b{font-size:1.05rem}.ups-card{padding:12px}.ups-card h3{font-size:1.35rem}}
+@media (max-width:760px){.ups-vs{gap:6px}.ups .lg-lg{width:46px;height:46px}.ups-n{font-size:.82rem;overflow-wrap:break-word}.ups-m b{font-size:1.55rem}.ups-w b{font-size:1.25rem}.ups-l b{font-size:1.05rem}.ups-card{padding:12px}.ups-h{font-size:1.5rem}.ups-card.lead-up{padding:14px}.lead-up .ups-h{font-size:2.5rem}.lead-up .ups-n{font-size:.95rem}.lead-up .ups-w b{font-size:1.6rem}.lead-up .ups-l b{font-size:1.2rem}.lead-up .ups-m b{font-size:2.2rem}.lead-up .stamp{font-size:1.1rem}.lead-up p{font-size:1rem}}
 .stamp.dec{color:var(--red)}.stamp.exp{color:var(--muted)}.stamp.acc{color:var(--blue)}.stamp.pen{color:var(--honolulu)}
 .ru-body{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;padding:12px;align-items:start}
 .ru-side{display:grid;gap:5px;min-width:0}
@@ -739,9 +746,9 @@ footer b{color:var(--honolulu);font-weight:600}
 
 <nav class="m-jump" style="display:none" aria-label="Jump to section"><span class="kicker">Jump to</span><a href="#games">Scoreboard</a><a href="#scoreboard">At a glance</a><a href="#positions">Positions</a><a href="#blotter">Blotter</a><a href="#heat">Heat map</a><a href="#floor-ceiling">Floor/ceiling</a><a href="#pecking-order">Pecking order</a><a href="#power">Power ranks</a><a href="#playoff-odds">Playoff odds</a><a href="#what-if">What if?</a><a href="#trading-block">Trade block</a><a href="#waiver-mvp">Waivers</a><a href="#wire">The wire</a><a href="#forecast">Wk 6 forecast</a><a href="#player-stats-tab">Player stats →</a></nav>
 
-<section class="sec" id="upsets"><div class="sec-head"><h2>Upsets &amp; Heartbreakers</h2><span class="kicker">Giant killings and games lost by less than 2 points · records as of kickoff</span></div><div class="ups"><article class="ups-card empty"><div class="ups-top"><span class="kicker">No upsets · no heartbreakers</span><span class="ups-stamps"><span class="stamp chalk-st">Chalk</span></span></div><h3>Chalk Week</h3><p>Every favorite held serve and nothing finished inside 2 points. Closest call: <span class="tm"><i class="lg lg-12 " aria-hidden="true"></i>Bedazzled Balls</span> over <span class="tm"><i class="lg lg-9 " aria-hidden="true"></i>Travis&#x27;s Team</span> by 12.84.</p></article></div></section>
-
 <div class="tiles" aria-label="Week 5 by the numbers"><div class="tile"><span class="tile-k">League average</span><b class="num">122.4</b><span class="tile-s"><span>points per team</span></span></div><div class="tile"><span class="tile-k">High score</span><b class="num">164.20</b><span class="tile-s"><i class="lg lg-8 " aria-hidden="true"></i><span>Beefy Boys</span></span></div><div class="tile"><span class="tile-k">Low score</span><b class="num">77.20</b><span class="tile-s"><i class="lg lg-3 " aria-hidden="true"></i><span>8D</span></span></div><div class="tile"><span class="tile-k">Top player</span><b class="num">37.7</b><span class="tile-s"><i class="lg lg-8 " aria-hidden="true"></i><span>Jahmyr Gibbs</span></span></div><div class="tile"><span class="tile-k">Left on benches</span><b class="num">115.28</b><span class="tile-s"><span>across all 12 teams</span></span></div><div class="tile"><span class="tile-k">Perfect lineups</span><b class="num">3</b><span class="tile-s"><i class="lg lg-4 " aria-hidden="true"></i><i class="lg lg-6 " aria-hidden="true"></i><i class="lg lg-8 " aria-hidden="true"></i><span>only one of them won</span></span></div></div>
+
+
 
 <section class="hero" aria-label="Page one result">
   <div class="hero-top">

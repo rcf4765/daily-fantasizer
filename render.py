@@ -62,21 +62,20 @@ for u in UPS:
     if u["loser_optimal_would_win"]: salt.append(f'Best lineup ({u["l_optimal"]:.2f}) would have won')
     if u["l_benched_star"] and u["l_benched_star"][2] > 0: salt.append(f'Benched {u["l_benched_star"][0]}: {g(u["l_benched_star"][2])}')
     if u["l_streak"][0] == "L" and int(u["l_streak"][1:]) >= 2: salt.append(f'{u["l_streak"][1:]} straight losses')
-    ucards.append(f'''<article class="ups-card{" both" if u["upset"] and u["heartbreaker"] else " hb" if u["heartbreaker"] else ""}">
+    lead_u = not ucards  # the first game is the page-one banner: full width, giant headline and crests
+    cls = " both" if u["upset"] and u["heartbreaker"] else " hb" if u["heartbreaker"] else ""
+    cs = "lg-xl" if lead_u else "lg-lg"
+    hd = "h2" if lead_u else "h3"
+    ucards.append(f'''<article class="ups-card{cls}{" lead-up" if lead_u else ""}">
 <div class="ups-top"><span class="kicker">{esc(kick)}</span><span class="ups-stamps">{stamps}</span></div>
-<div class="ups-vs"><div class="ups-w">{lg(w, "lg-lg")}<span class="ups-n">{esc(SHORT[w])}</span><b class="num">{f2(u["ws"])}</b><small>now {esc(u["w_now"].replace("-", "–"))}</small></div>
+<{hd} class="ups-h">{esc(rc["headline"])}</{hd}>
+<div class="ups-vs"><div class="ups-w">{lg(w, cs)}<span class="ups-n">{esc(SHORT[w])}</span><b class="num">{f2(u["ws"])}</b><small>now {esc(u["w_now"].replace("-", "–"))}</small></div>
 <div class="ups-m"><b class="num">+{u["margin"]:.2f}</b><span>margin</span></div>
-<div class="ups-l">{lg(l, "lg-lg")}<span class="ups-n">{esc(SHORT[l])}</span><b class="num">{f2(u["ls"])}</b><small>now {esc(u["l_now"].replace("-", "–"))}</small></div></div>
-<h3>{esc(rc["headline"])}</h3>{f"<p>{fill(rc['text'])}</p>" if rc.get("text") else ""}
-<div class="ups-salt"><span class="kicker">Salt in the wound</span>{"".join(f"<span>{esc(s)}</span>" for s in salt)}</div></article>''')
-if not ucards:
-    cg = L["closest"]
-    txt = C.get("upsets_empty") or f"Every favorite held serve and nothing finished inside {LG.get('heartbreaker_margin', 2)} points. Closest call: {{S{cg['winner']}}} over {{S{cg['loser']}}} by {cg['margin']:.2f}."
-    ucards.append(f'<article class="ups-card empty"><div class="ups-top"><span class="kicker">No upsets · no heartbreakers</span><span class="ups-stamps"><span class="stamp chalk-st">Chalk</span></span></div>'
-                  f'<h3>Chalk Week</h3><p>{fill(txt)}</p></article>')
-upsets_html = (f'<section class="sec" id="upsets"><div class="sec-head"><h2>Upsets &amp; Heartbreakers</h2>'
-               f'<span class="kicker">Giant killings and games lost by less than {LG.get("heartbreaker_margin", 2)} points · records as of kickoff</span></div>'
-               f'<div class="ups">{"".join(ucards)}</div></section>')
+<div class="ups-l">{lg(l, cs)}<span class="ups-n">{esc(SHORT[l])}</span><b class="num">{f2(u["ls"])}</b><small>now {esc(u["l_now"].replace("-", "–"))}</small></div></div>
+{f"<p>{fill(rc['text'])}</p>" if rc.get("text") else ""}
+<div class="ups-salt">{"".join(f"<span>{esc(s)}</span>" for s in salt)}</div></article>''')
+# No qualifying games -> no section at all (the paper opens with the hero as before).
+upsets_html = (f'<section class="ups-news" id="upsets" aria-label="The biggest news of week {W}"><div class="ups">{"".join(ucards)}</div></section>') if ucards else ""
 
 # ---------- hero with lineup strips ----------
 h = C["hero"]; hw, hl = h["winner"], h["loser"]
