@@ -94,6 +94,11 @@ hero = f'''<section class="hero" aria-label="Page one result">
   </div>
   <div class="strips"><span class="kicker">Where the points came from · each block is one starter</span>{strip(hw)}{strip(hl)}</div>
 </section>'''
+# No duplicates (user, 2026-10-19): when the page-one game is already in the biggest-news section
+# under the stat tiles, that section is its page one, so the score box is left out.
+if {hw, hl} in [{u["winner"], u["loser"]} for u in UPS]:
+    print(f"NOTE: hero game {hw}-{hl} is already in the biggest-news section; hero box left out. The lead story must not repeat it.")
+    hero = ""
 ld = C["lead"]
 lead = (f'<article class="lead"><span class="kicker">{esc(ld["kicker"])}</span><h2>{esc(ld["headline"])}</h2>'
         f'<p class="deck">{esc(ld["deck"])}</p>' + "".join(f"<p>{fill(p)}</p>" for p in ld["paragraphs"]) + "</article>")
