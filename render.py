@@ -149,16 +149,7 @@ scoreboard = f'''<div class="chart" role="img" aria-label="Week {W} scores by te
 {"".join(rows)}
 <div class="legend"><span><i class="sw w"></i>Won</span><span><i class="sw l"></i>Lost</span><span><i class="sw gap"></i>Left on the bench</span><span><i class="sw avg"></i>League average</span></div></div>'''
 
-# ---------- boom / bust ----------
-bb = [(r[0], r[1], r[3], r[4], r[5]) for r in L["booms"][:5]] + [(r[0], r[1], r[3], r[4], r[5]) for r in L["worst_busts"][:5]]
-bmx = max(abs(r[4]) for r in bb)
-def bbrow(t, n, pr, act, d):
-    w = abs(d) / bmx * 100
-    bar = f'<span class="bb-bar {"up" if d > 0 else "dn"}" style="width:{w:.1f}%"></span>'
-    return (f'<div class="bb-row" title="{esc(n)}: projected {g(pr)}, scored {g(act)}"><span class="bb-name">{lg(t)}<span>{esc(n)}</span></span>'
-            f'<span class="bb-l">{bar if d < 0 else ""}</span><span class="bb-r">{bar if d > 0 else ""}</span><span class="bb-v num">{d:+.1f}<em>{g(pr)}→{g(act)}</em></span></div>')
-boombust = ('<div class="bb"><div class="bb-head"><span></span><span>Busts</span><span>Booms</span><span></span></div>'
-            + "".join(bbrow(*r) for r in sorted(bb, key=lambda r: -r[4])) + '</div>')
+# (Boom or Bust was removed at the user's request, 2026-10-19.)
 
 # ---------- positions ----------
 POS = ["QB", "RB", "WR", "TE", "FLEX", "D/ST", "K"]
@@ -524,7 +515,7 @@ out = open("template.html", encoding="utf-8").read()
 for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
              "<!--CRESTS-->": crests, "<!--UPSETS-->": upsets_html, "<!--ANNOUNCE-->": announce_html, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
              "<!--SIDEBAR-->": sidebar,
-             "<!--SCOREBOARD-->": scoreboard, "<!--BOOMBUST-->": boombust, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
+             "<!--SCOREBOARD-->": scoreboard, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
              "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--POWER-->": power_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--WIRE-->": wire_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
              "{{WEEK}}": str(W), "{{NEXTWEEK}}": str(W + 1), "{{SEASON}}": str(LG["season"]), "{{VOLUME}}": str(LG["volume"]), "{{LEAGUE_NAME}}": esc(LG["league_name"]),

@@ -146,21 +146,6 @@ p{margin:0} figure{margin:0}
 .sw.avg{height:0;border-top:2px dashed var(--red);border-radius:0}
 
 /* boom / bust */
-.bb{display:grid;gap:6px}
-.bb-row,.bb-head{display:grid;grid-template-columns:minmax(120px,170px) 1fr 1fr 96px;gap:0;align-items:center}
-.bb-head{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.bb-head span:nth-child(2){text-align:right;padding-right:8px;color:var(--red)}
-.bb-head span:nth-child(3){padding-left:8px;color:var(--blue)}
-.bb-name{display:flex;align-items:center;gap:7px;font-size:.86rem;font-weight:600;min-width:0;padding-right:8px}
-.bb-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bb-name .lg{width:22px;height:22px}
-.bb-l,.bb-r{height:18px;display:flex}
-.bb-l{justify-content:flex-end;border-right:2px solid var(--rule)}
-.bb-bar{display:block;height:100%}
-.bb-bar.up{background:var(--blue);border-radius:0 4px 4px 0}
-.bb-bar.dn{background:var(--red);border-radius:4px 0 0 4px}
-.bb-v{font-size:.82rem;text-align:right;display:grid;line-height:1.1}
-.bb-v em{font-style:normal;font-size:.66rem;color:var(--muted)}
 
 /* positions */
 .pos{display:grid;gap:6px}
@@ -612,9 +597,6 @@ footer b{color:var(--honolulu);font-weight:600}
   .axis .tick.near-m{visibility:hidden}
   .br-name{font-size:.78rem}
   .br-name .lg{width:20px;height:20px}
-  .bb-row,.bb-head{grid-template-columns:104px 1fr 1fr 58px}
-  .bb-name{font-size:.76rem}
-  .bb-v em{display:none}
   .hero{padding:16px 10px}
   .hero-top{grid-template-columns:1fr 1fr;gap:14px 8px}
   .hero .mid{grid-column:1/-1;grid-row:2}
@@ -849,10 +831,9 @@ footer b{color:var(--honolulu);font-weight:600}
   <aside class="side-col"><div class="box hi"><span class="kicker">Strange but true</span><h3>Best Game: Benched</h3><div class="minibars"><div><span>Maye (bench)</span><i class="b alt" style="width:100.0%"></i><span class="num">39.46</span></div><div><span>Gibbs</span><i class="b" style="width:95.5%"></i><span class="num">37.7</span></div><div><span>Nacua</span><i class="b" style="width:95.5%"></i><span class="num">37.7</span></div></div><p><span class="tm"><i class="lg lg-10 " aria-hidden="true"></i>Pink Pony</span> sat Drake Maye. He outscored every starter in the league. Pony won anyway.</p></div><div class="box"><span class="kicker">The record is lying</span><h3>Same Points, Two Wins Apart</h3><div class="minibars" aria-label="Actual wins versus all-play expected wins"><div class="mb-team"><span class="tm"><i class="lg lg-2 " aria-hidden="true"></i>Doughboys</span></div><div><span>Actual</span><i class="b" style="width:100.0%"></i><span class="num">4.00</span></div><div><span>Earned</span><i class="b alt" style="width:77.2%"></i><span class="num">3.09</span></div><div class="mb-team"><span class="tm"><i class="lg lg-11 " aria-hidden="true"></i>Kazakhstan</span></div><div><span>Actual</span><i class="b" style="width:50.0%"></i><span class="num">2.00</span></div><div><span>Earned</span><i class="b alt" style="width:81.8%"></i><span class="num">3.27</span></div></div><p><span class="tm"><i class="lg lg-2 " aria-hidden="true"></i>Doughboys</span>: 642.42 pts, 4–1. <span class="tm"><i class="lg lg-11 " aria-hidden="true"></i>Kazakhstan</span>: 641.08 pts, 2–3.</p></div></aside>
 </section>
 
-<section class="twocol">
-  <div class="sec" id="scoreboard">
-    <div class="sec-head"><h2>Week 5 at a Glance</h2><span class="kicker">Score + points left on the bench</span></div>
-    <div class="chart" role="img" aria-label="Week 5 scores by team, with points left on the bench" style="--grid:27.78%">
+<section class="sec" id="scoreboard">
+  <div class="sec-head"><h2>Week 5 at a Glance</h2><span class="kicker">Score + points left on the bench</span></div>
+  <div class="chart" role="img" aria-label="Week 5 scores by team, with points left on the bench" style="--grid:27.78%">
 <div class="br-grid"><span></span><span class="axis"><span class="tick" style="left:0.00%">0</span><span class="tick" style="left:27.78%">50</span><span class="tick near-m" style="left:55.56%">100</span><span class="tick near-m" style="left:83.33%">150</span><span class="avgline" style="left:68.00%"><b>avg 122.4</b></span></span><span></span></div>
 <div class="br" title="Big Beefy Boys: 164.20 scored, 164.20 possible">
 <span class="br-name"><i class="lg lg-8 " aria-hidden="true"></i><span>Beefy Boys</span></span>
@@ -892,11 +873,6 @@ footer b{color:var(--honolulu);font-weight:600}
 <span class="br-track"><span class="br-bar l" style="width:42.89%"></span><span class="br-gap" style="left:42.89%;width:9.22%"></span><span class="avg" style="left:68.00%"></span></span>
 <span class="br-val num">77.20 <em>+16.6</em></span></div>
 <div class="legend"><span><i class="sw w"></i>Won</span><span><i class="sw l"></i>Lost</span><span><i class="sw gap"></i>Left on the bench</span><span><i class="sw avg"></i>League average</span></div></div>
-  </div>
-  <div class="sec" id="boom-bust">
-    <div class="sec-head"><h2>Boom or Bust</h2><span class="kicker">Starters vs. projection</span></div>
-    <div class="bb"><div class="bb-head"><span></span><span>Busts</span><span>Booms</span><span></span></div><div class="bb-row" title="Isaiah Likely: projected 12.9, scored 32.4"><span class="bb-name"><i class="lg lg-1 " aria-hidden="true"></i><span>Isaiah Likely</span></span><span class="bb-l"></span><span class="bb-r"><span class="bb-bar up" style="width:100.0%"></span></span><span class="bb-v num">+19.5<em>12.9→32.4</em></span></div><div class="bb-row" title="Jaylen Warren: projected 17.6, scored 36.8"><span class="bb-name"><i class="lg lg-8 " aria-hidden="true"></i><span>Jaylen Warren</span></span><span class="bb-l"></span><span class="bb-r"><span class="bb-bar up" style="width:98.5%"></span></span><span class="bb-v num">+19.2<em>17.6→36.8</em></span></div><div class="bb-row" title="Christian Watson: projected 13.8, scored 32.3"><span class="bb-name"><i class="lg lg-9 " aria-hidden="true"></i><span>Christian Watson</span></span><span class="bb-l"></span><span class="bb-r"><span class="bb-bar up" style="width:94.9%"></span></span><span class="bb-v num">+18.5<em>13.8→32.3</em></span></div><div class="bb-row" title="Bucky Irving: projected 15.2, scored 31.5"><span class="bb-name"><i class="lg lg-12 " aria-hidden="true"></i><span>Bucky Irving</span></span><span class="bb-l"></span><span class="bb-r"><span class="bb-bar up" style="width:83.6%"></span></span><span class="bb-v num">+16.3<em>15.2→31.5</em></span></div><div class="bb-row" title="Parker Washington: projected 14.1, scored 30.4"><span class="bb-name"><i class="lg lg-1 " aria-hidden="true"></i><span>Parker Washington</span></span><span class="bb-l"></span><span class="bb-r"><span class="bb-bar up" style="width:83.6%"></span></span><span class="bb-v num">+16.3<em>14.1→30.4</em></span></div><div class="bb-row" title="RJ Harvey: projected 11.3, scored 0.7"><span class="bb-name"><i class="lg lg-9 " aria-hidden="true"></i><span>RJ Harvey</span></span><span class="bb-l"><span class="bb-bar dn" style="width:54.4%"></span></span><span class="bb-r"></span><span class="bb-v num">-10.6<em>11.3→0.7</em></span></div><div class="bb-row" title="Carnell Tate: projected 13.5, scored 1.6"><span class="bb-name"><i class="lg lg-3 " aria-hidden="true"></i><span>Carnell Tate</span></span><span class="bb-l"><span class="bb-bar dn" style="width:61.0%"></span></span><span class="bb-r"></span><span class="bb-v num">-11.9<em>13.5→1.6</em></span></div><div class="bb-row" title="Jeremiyah Love: projected 14.4, scored 2.2"><span class="bb-name"><i class="lg lg-2 " aria-hidden="true"></i><span>Jeremiyah Love</span></span><span class="bb-l"><span class="bb-bar dn" style="width:62.6%"></span></span><span class="bb-r"></span><span class="bb-v num">-12.2<em>14.4→2.2</em></span></div><div class="bb-row" title="CeeDee Lamb: projected 19.1, scored 2.9"><span class="bb-name"><i class="lg lg-5 " aria-hidden="true"></i><span>CeeDee Lamb</span></span><span class="bb-l"><span class="bb-bar dn" style="width:83.1%"></span></span><span class="bb-r"></span><span class="bb-v num">-16.2<em>19.1→2.9</em></span></div><div class="bb-row" title="Tyler Shough: projected 16.5, scored -0.16"><span class="bb-name"><i class="lg lg-5 " aria-hidden="true"></i><span>Tyler Shough</span></span><span class="bb-l"><span class="bb-bar dn" style="width:85.6%"></span></span><span class="bb-r"></span><span class="bb-v num">-16.7<em>16.5→-0.16</em></span></div></div>
-  </div>
 </section>
 
 <section class="sec" id="games">

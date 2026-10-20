@@ -135,21 +135,6 @@ p{margin:0} figure{margin:0}
 .sw.avg{height:0;border-top:2px dashed var(--red);border-radius:0}
 
 /* boom / bust */
-.bb{display:grid;gap:6px}
-.bb-row,.bb-head{display:grid;grid-template-columns:minmax(120px,170px) 1fr 1fr 96px;gap:0;align-items:center}
-.bb-head{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.bb-head span:nth-child(2){text-align:right;padding-right:8px;color:var(--red)}
-.bb-head span:nth-child(3){padding-left:8px;color:var(--blue)}
-.bb-name{display:flex;align-items:center;gap:7px;font-size:.86rem;font-weight:600;min-width:0;padding-right:8px}
-.bb-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bb-name .lg{width:22px;height:22px}
-.bb-l,.bb-r{height:18px;display:flex}
-.bb-l{justify-content:flex-end;border-right:2px solid var(--rule)}
-.bb-bar{display:block;height:100%}
-.bb-bar.up{background:var(--blue);border-radius:0 4px 4px 0}
-.bb-bar.dn{background:var(--red);border-radius:4px 0 0 4px}
-.bb-v{font-size:.82rem;text-align:right;display:grid;line-height:1.1}
-.bb-v em{font-style:normal;font-size:.66rem;color:var(--muted)}
 
 /* positions */
 .pos{display:grid;gap:6px}
@@ -601,9 +586,6 @@ footer b{color:var(--honolulu);font-weight:600}
   .axis .tick.near-m{visibility:hidden}
   .br-name{font-size:.78rem}
   .br-name .lg{width:20px;height:20px}
-  .bb-row,.bb-head{grid-template-columns:104px 1fr 1fr 58px}
-  .bb-name{font-size:.76rem}
-  .bb-v em{display:none}
   .hero{padding:16px 10px}
   .hero-top{grid-template-columns:1fr 1fr;gap:14px 8px}
   .hero .mid{grid-column:1/-1;grid-row:2}
@@ -831,15 +813,9 @@ footer b{color:var(--honolulu);font-weight:600}
   <aside class="side-col"><!--SIDEBAR--></aside>
 </section>
 
-<section class="twocol">
-  <div class="sec" id="scoreboard">
-    <div class="sec-head"><h2>Week {{WEEK}} at a Glance</h2><span class="kicker">Score + points left on the bench</span></div>
-    <!--SCOREBOARD-->
-  </div>
-  <div class="sec" id="boom-bust">
-    <div class="sec-head"><h2>Boom or Bust</h2><span class="kicker">Starters vs. projection</span></div>
-    <!--BOOMBUST-->
-  </div>
+<section class="sec" id="scoreboard">
+  <div class="sec-head"><h2>Week {{WEEK}} at a Glance</h2><span class="kicker">Score + points left on the bench</span></div>
+  <!--SCOREBOARD-->
 </section>
 
 <section class="sec" id="games">
