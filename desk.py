@@ -7,8 +7,7 @@
 - Defense Matchups (#ps-defense): PPR points each NFL defense has allowed per game to QBs, RBs, WRs and TEs
   (every fantasy-relevant player the fetch tracks, weeks 1..N), shaded against the league average, with
   who it faces next week.
-- Waiver Targets (#ps-waiver): free agents ranked by rest-of-season value, each tagged with the league teams
-  whose best starting lineup he'd improve and by how much (points per week).
+(Waiver Targets was added and then removed at the user's request, 2026-10-19.)
 
 Built inside the Player Stats pane (players.build), so the midweek refresh keeps them current.
 """
@@ -129,44 +128,6 @@ def defense(d, W):
     return sec("ps-defense", "Defense Matchups", f"Points allowed by position · weeks 1–{W} · week {nxt} opponents", body)
 
 
-# ------------------------------------------------------------------ waiver targets
-def waiver(d, W, short):
-    import strength as S
-    import teams as TM
-    S.ros_values(d)
-    own = [p for p in d.P if p.get("owner")]
-    roster = defaultdict(list)
-    for p in own:
-        roster[p["owner"]].append(p)
-    val = lambda p: p["ros"]
-    tot = lambda ps: sum(val(x) for _, x in TM._lineup(ps, val) if x)
-    base = {t: tot(ps) for t, ps in roster.items()}
-    fa = [p for p in d.P if not p.get("owner") and p.get("ros_rank") and p.get("inj") != "INJURY_RESERVE"]
-    fa.sort(key=lambda p: -p["ros"])
-    cards = []
-    for p in fa[:60]:
-        gains = sorted(((tot(roster[t] + [p]) - base[t], t) for t in roster), reverse=True)
-        gains = [(g, t) for g, t in gains if g >= 0.3]
-        if not gains:
-            continue
-        tags = "".join(f'<span class="wt-tag">{lg(t)}{esc(short[t])}<b class="num">+{g:.1f}</b></span>' for g, t in gains[:4])
-        more = f'<span class="wt-more">+{len(gains) - 4} more</span>' if len(gains) > 4 else ""
-        inj = p.get("inj", "ACTIVE")
-        injt = f'<span class="inj">{esc(inj.replace("_", " ").lower())}</span>' if inj not in ("ACTIVE", "NORMAL", None) else ""
-        cards.append(f'<article class="wt"><span class="kicker">{esc(p["pos"])}{p["ros_rank"]} rest of season · {esc(p["team"])}</span>'
-                     f'<h3>{esc(p["name"])}{injt}</h3>'
-                     f'<div class="wt-st"><span><b class="num">{p["ppg"]:.1f}</b>PPR/g</span><span><b class="num">{p.get("l3", 0):.1f}</b>last 3</span><span><b class="num">{p["ros"]:.1f}</b>ROS/g</span></div>'
-                     f'<span class="kicker">Upgrade for · pts per week</span><div class="wt-tags">{tags}{more}</div></article>')
-        if len(cards) == 8:
-            break
-    if not cards:
-        cards = ['<article class="wt empty"><h3>The wire is dry</h3><span class="kicker">No free agent beats a starter on any roster</span></article>']
-    body = (f'<div class="wt-grid">{"".join(cards)}</div>'
-            f'<p class="note-s">Free agents with a rest-of-season consensus ranking, best first, shown when they&#39;d improve at least one team&#39;s best starting lineup '
-            f'(QB, 2 RB, 2 WR, TE, FLEX). Tags show by how many rest-of-season points per week. Injured reserve left out.</p>')
-    return sec("ps-waiver", "Waiver Targets", "Free agents by team need", body)
-
-
 def sections(d, W, short_names):
     short = {int(k): v for k, v in short_names.items()}
     LG = json.load(open("league.json")) if os.path.exists("league.json") else {}
@@ -180,10 +141,6 @@ def sections(d, W, short_names):
         out["defense"] = defense(d, W)
     except Exception as e:
         print("defense matchups skipped:", e); out["defense"] = ""
-    try:
-        out["waiver"] = waiver(d, W, short)
-    except Exception as e:
-        print("waiver targets skipped:", e); out["waiver"] = ""
     return out
 
 
@@ -282,22 +239,9 @@ CSS = r"""
 .dv-c.s3{background:var(--red);color:#fff}
 .dv-o{font-family:var(--mono);font-size:.7rem;color:var(--muted);display:flex;align-items:center;padding-left:8px}
 .dv-h.dv-o{justify-content:flex-start}
-/* Waiver Targets */
-.wt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:14px}
-.wt{border:2px solid var(--rule);border-top:6px solid var(--hi);background:var(--sheet);padding:12px;display:grid;gap:6px;align-content:start}
-.wt.empty{border-top-color:var(--silver)}
-.wt h3{font-size:1.45rem;font-weight:900;text-transform:uppercase}
-.wt h3 .inj{margin-left:6px;font-family:var(--mono);font-size:.6rem;vertical-align:middle}
-.wt-st{display:flex;gap:14px;font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.wt-st span{display:grid}.wt-st b{font-size:1.05rem;color:var(--ink);letter-spacing:0}
-.wt-tags{display:flex;flex-wrap:wrap;gap:5px}
-.wt-tag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.68rem;border:1.5px solid var(--rule);padding:2px 6px 2px 3px;background:var(--paper)}
-.wt-tag b{color:var(--blue)}
-.wt-more{font-family:var(--mono);font-size:.66rem;color:var(--muted);align-self:center}
 @media (max-width:760px){
   .tl-tiles{grid-template-columns:1fr 1fr}.tl-tiles b{font-size:1.2rem}
   .tl-grid{font-size:.62rem}.tl-grid .tl-l,.tl-grid .tl-h{font-size:.52rem}
   .dv{grid-template-columns:40px repeat(4,minmax(0,1fr)) 62px;min-width:0}.dv-c{flex-direction:column;align-items:center;gap:0;padding:4px 1px}.dv-c b{font-size:.74rem}.dv-o{font-size:.58rem;padding-left:4px}.dv-t{font-size:.85rem}
-  .wt-grid{grid-template-columns:1fr 1fr!important;gap:8px}.wt{padding:9px}.wt h3{font-size:1.02rem;line-height:1}.wt-st{gap:8px}.wt-tag{font-size:.58rem}
 }
 """

@@ -177,7 +177,7 @@ def build(short_names, week=None):
     out.append(f'<section class="ps-hero" aria-label="Player stats"><span class="kicker">The PPR player desk</span><h2>Player <span>Stats</span></h2>'
                f'<div class="ps-sub"><span>Usage {esc(live_note)}</span><span>Week {d.next} rankings &amp; start/sit</span><span>Rest of season</span><span>Rankings vs. actuals</span></div>'
                f'<nav class="ps-jump" aria-label="Player stats sections">'
-               + "".join(f'<a href="#{a}">{t}</a>' for a, t in [("ps-current", "Current data"), ("ps-trend", "Trend lines"), ("ps-volume", "Volume vs. scoring"), ("ps-proj", "Projections"), ("ps-startsit", "Start/sit"), ("ps-defense", "Defense matchups"), ("ps-next", f"Week {d.next} ranks"), ("ps-ros", "Rest of season"), ("ps-waiver", "Waiver targets"), ("ps-variance", "Ranks vs. actuals")])
+               + "".join(f'<a href="#{a}">{t}</a>' for a, t in [("ps-current", "Current data"), ("ps-trend", "Trend lines"), ("ps-volume", "Volume vs. scoring"), ("ps-proj", "Projections"), ("ps-startsit", "Start/sit"), ("ps-defense", "Defense matchups"), ("ps-next", f"Week {d.next} ranks"), ("ps-ros", "Rest of season"), ("ps-variance", "Ranks vs. actuals")])
                + '</nav></section>')
 
     # ---------- 1. current data: usage board ----------
@@ -450,8 +450,7 @@ def build(short_names, week=None):
                        f'<div class="rum-stats rs5">{tiles}</div>{bv}{season}{every}'
                        f'<p class="note-s">Every week\'s consensus PPR ranks (top 60 WR, 48 RB, 24 QB, 24 TE) graded against where each player actually finished at his position. Variance = actual points minus projected points; rank arrows read ranked → finished. Underrated/overrated lists need 3+ graded weeks.</p>'))
 
-    # Trend Lines, Defense Matchups, Waiver Targets (desk.py, added 2026-10-19): slotted after Current Data,
-    # Start/Sit and Rest-of-Season Rankings
+    # Trend Lines and Defense Matchups (desk.py, added 2026-10-19): slotted after Current Data and Start/Sit
     import desk
     W_ = d.cap or (max(d.final) if d.final else (max(d.weeks_played) if d.weeks_played else 1))
     extra = desk.sections(d, W_, short_names)
@@ -462,7 +461,7 @@ def build(short_names, week=None):
             if h.startswith(f'<section class="sec" id="{id_}"'):
                 out.insert(i + 1, html_); return
         out.append(html_)
-    after("ps-current", extra.get("trend")); after("ps-startsit", extra.get("defense")); after("ps-ros", extra.get("waiver"))
+    after("ps-current", extra.get("trend")); after("ps-startsit", extra.get("defense"))
     out.append(SCRIPT)
     out.append(desk.SCRIPT)
     # the tab carries its own styles, so a midweek --patch also updates them

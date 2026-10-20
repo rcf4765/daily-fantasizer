@@ -13,10 +13,10 @@ League & Teams
              rest-of-season points per week received minus given
   Each part is graded against the other managers by rank: top fifth A, then B, C, D, bottom fifth F.
 - One-Man Show: share of each team's starting-lineup points from its top scorer, and from the next two.
-- Trade Matchmaker: every one-for-one swap of players at different positions between two teams where both
-  teams' best starting lineups (QB, 2 RB, 2 WR, TE, FLEX; rest-of-season points per week) gain at least
-  0.3 points a week and the two players' rest-of-season consensus overall ranks are close (within 12 spots or
-  25%). Best six by the smaller team's gain, each player and each pair of teams used once, no team more than twice. Suggestions only.
+- Trade Matchmaker: one-for-one swaps of players at different positions, judged by each team's best starting
+  lineup (QB, 2 RB, 2 WR, TE, FLEX; rest-of-season points per week). Every team gets at least one idea
+  (user, 2026-10-19). Tiers: win-win (both gain 0.3+, consensus ranks within 12 spots or 25%), small win-win
+  (both gain, ranks within 24 spots or 50%), even swap (one gains, the other gives up under a point a week). Suggestions only.
 """
 import html, json, os
 from collections import defaultdict
@@ -183,6 +183,7 @@ def matchmaker(short, W):
     tot = lambda ps: sum(val(x) for _, x in _lineup(ps, val) if x)
     base = {t: tot(roster[t]) for t in teams}
     ecr = lambda p: (d.ros_by.get(p["key"]) or {}).get("rank_ecr")
+    close = lambda e1, e2, k, f: abs(e1 - e2) <= max(k, f * min(e1, e2))
     deals = []
     for a in teams:
         for b in teams:
@@ -196,39 +197,71 @@ def matchmaker(short, W):
                     if x["pos"] == y["pos"]:
                         continue
                     ey = ecr(y)
-                    if not ey or abs(ex - ey) > max(12, 0.25 * min(ex, ey)):
+                    if not ey or not close(ex, ey, 24, 0.5):
                         continue
                     ga = tot([p for p in roster[a] if p is not x] + [y]) - base[a]
-                    if ga < 0.3:
-                        continue
                     gb = tot([p for p in roster[b] if p is not y] + [x]) - base[b]
-                    if gb < 0.3:
+                    if max(ga, gb) <= 0.05:
                         continue
-                    deals.append(dict(a=a, b=b, x=x, y=y, ga=ga, gb=gb, ex=ex, ey=ey))
-    deals.sort(key=lambda z: -min(z["ga"], z["gb"]))
+                    # tier 1: both gain 0.3+, ranks close; tier 2: both gain, ranks fairly close; tier 3: one side gains, the other gives up little
+                    if ga >= 0.3 and gb >= 0.3 and close(ex, ey, 12, 0.25):
+                        tier = 1
+                    elif ga > 0.05 and gb > 0.05:
+                        tier = 2
+                    elif min(ga, gb) >= -1.0:
+                        tier = 3
+                    else:
+                        continue
+                    deals.append(dict(a=a, b=b, x=x, y=y, ga=ga, gb=gb, ex=ex, ey=ey, tier=tier))
+    key = lambda z: (z["tier"], -min(z["ga"], z["gb"]) if z["tier"] < 3 else -max(z["ga"], z["gb"]))
+    deals.sort(key=key)
     used, pairs, top, seen = set(), set(), [], defaultdict(int)
-    for z in deals:
-        if z["x"]["key"] in used or z["y"]["key"] in used or (z["a"], z["b"]) in pairs or seen[z["a"]] >= 2 or seen[z["b"]] >= 2:
-            continue
-        used |= {z["x"]["key"], z["y"]["key"]}; pairs.add((z["a"], z["b"])); top.append(z)
+
+    def ok(z):
+        return z["x"]["key"] not in used and z["y"]["key"] not in used and (z["a"], z["b"]) not in pairs
+
+    def take(z):
+        used.update({z["x"]["key"], z["y"]["key"]}); pairs.add((z["a"], z["b"])); top.append(z)
         seen[z["a"]] += 1; seen[z["b"]] += 1
-        if len(top) == 6:
+    # every team gets at least one idea (user, 2026-10-19). Teams with the fewest options pick first; a tier-3 idea
+    # only counts for the team that gains from it.
+    def opts(t):
+        return [z for z in deals if ok(z) and ((z["a"] == t and (z["tier"] < 3 or z["ga"] > 0)) or (z["b"] == t and (z["tier"] < 3 or z["gb"] > 0)))]
+    for _ in range(len(teams)):
+        need = [t for t in teams if not seen[t] and opts(t)]
+        if not need:
             break
+        t = min(need, key=lambda t: (len(opts(t)), t))
+        o = opts(t)  # prefer a real gain (0.3+ pts/wk) for this team, then the better tier, then a partner not used yet
+        other = lambda z: z["b"] if z["a"] == t else z["a"]
+        mine = lambda z: z["ga"] if z["a"] == t else z["gb"]
+        take(min(o, key=lambda z: (mine(z) < 0.3, z["tier"], min(seen[other(z)], 2), key(z))))
+    for z in deals:  # then the best remaining win-wins, up to 12 ideas, no team more than twice
+        if len(top) >= 12:
+            break
+        if z["tier"] == 1 and ok(z) and seen[z["a"]] < 2 and seen[z["b"]] < 2:
+            take(z)
+    top.sort(key=key)
+    missing = [t for t in teams if not seen[t]]
     if not top:
         cards = '<article class="tm-card empty"><h3>No easy fits</h3><span class="kicker">No one-for-one swap helps both lineups this week</span></article>'
     else:
         side = lambda t, p, e: (f'<div class="tm-side">{lg(t, "lg-sm")}<span class="kicker">{esc(sh[t])} sends</span>'
                                 f'<b>{esc(p["name"])}</b><small class="num">{esc(p["pos"])} · {esc(p["team"])} · ROS #{e} overall</small></div>')
+        gain = lambda v: f'<b class="num{" neg" if v < 0 else ""}">{v:+.1f}</b>'
+        tag = {1: "Win-win", 2: "Small win-win", 3: "Even swap"}
         cards = "".join(
-            f'<article class="tm-card"><div class="tm-body">{side(z["a"], z["x"], z["ex"])}<span class="tm-arrow" aria-hidden="true">⇄</span>{side(z["b"], z["y"], z["ey"])}</div>'
-            f'<div class="tm-foot"><span>{esc(sh[z["a"]])} <b class="num">+{z["ga"]:.1f}</b></span><span>{esc(sh[z["b"]])} <b class="num">+{z["gb"]:.1f}</b></span></div></article>'
+            f'<article class="tm-card t{z["tier"]}"><span class="tm-tier">{tag[z["tier"]]}</span><div class="tm-body">{side(z["a"], z["x"], z["ex"])}<span class="tm-arrow" aria-hidden="true">⇄</span>{side(z["b"], z["y"], z["ey"])}</div>'
+            f'<div class="tm-foot"><span>{esc(sh[z["a"]])} {gain(z["ga"])}</span><span>{esc(sh[z["b"]])} {gain(z["gb"])}</span></div></article>'
             for z in top)
     return (f'<section class="sec" id="matchmaker"><div class="sec-head"><h2>Trade Matchmaker</h2>'
-            f'<span class="kicker">One-for-one swaps that help both lineups · suggestions, not rumors</span></div>'
+            f'<span class="kicker">One-for-one swaps for every team · suggestions, not rumors</span></div>'
             f'<div class="tm-grid">{cards}</div>'
-            f'<p class="note-s">Every one-for-one swap of players at different positions, kept only when both teams&#39; best starting lineups '
-            f'(QB, 2 RB, 2 WR, TE, FLEX) gain points per week for the rest of the season and the two players&#39; rest-of-season consensus ranks are close. '
-            f'Numbers = points per week each lineup gains. Each player and each pair of teams appears once, and no team more than twice.</p></section>')
+            f'<p class="note-s">One-for-one swaps of players at different positions, judged by how much each team&#39;s best starting lineup '
+            f'(QB, 2 RB, 2 WR, TE, FLEX) scores per week for the rest of the season. '
+            f'Numbers = points per week each lineup gains (or gives up). Every team gets at least one idea: win-wins first (both gain), then smaller win-wins with '
+            f'ranks a little further apart, then even swaps where one team gains and the other gives up less than a point a week. Each player and each pair of teams appears once'
+            f'{"; no fit found for " + ", ".join(esc(sh[t]) for t in missing) if missing else ""}.</p></section>')
 
 
 # ------------------------------------------------------------------ matchup of the week
