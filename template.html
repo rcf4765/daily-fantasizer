@@ -455,6 +455,23 @@ td.note{font-size:.82rem;color:var(--muted);max-width:24ch}
 
 /* forecast */
 .forecast{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+/* League & Teams tab: hero with section links (mirrors the Player Stats hero), and the paper's link card into it */
+.lg-hero{display:grid;gap:10px;padding:24px 22px 18px;background:radial-gradient(var(--dot) 1.4px,transparent 1.6px) 0 0/9px 9px,var(--paper);border:3px solid var(--rule);border-top:10px solid var(--honolulu)}
+.lg-hero h2{font-size:clamp(2.8rem,9vw,5.6rem);font-weight:900;text-transform:uppercase}
+.lg-hero h2 span{color:var(--blue)}
+.lg-hero .kicker{color:var(--ink)}
+.lg-hero p{font-size:1.02rem;max-width:60ch}
+.lg-jump{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.lg-jump a{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);text-decoration:none;border:1.5px solid var(--rule);padding:3px 8px;background:var(--sheet)}
+.lg-jump a:hover{background:var(--ink);color:var(--sheet)}
+.to-league{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 16px;padding:16px 20px;border:3px solid var(--rule);border-left:12px solid var(--blue);background:var(--sheet);color:var(--ink);text-decoration:none}
+.to-league .kicker{grid-column:1/-1}
+.to-league b{font-family:var(--display);font-weight:900;font-size:clamp(1.3rem,3vw,1.9rem);text-transform:uppercase;line-height:1}
+.to-league em{font-style:normal;font-family:var(--mono);font-size:.8rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;background:var(--blue);color:var(--blue-ink);padding:8px 12px;white-space:nowrap}
+.to-league:hover em{background:var(--ink);color:var(--sheet)}
+@media (max-width:760px){.lg-hero{padding:16px 14px 14px}.lg-jump{display:grid;grid-template-columns:1fr 1fr;gap:6px}.lg-jump a{text-align:center;padding:8px 4px;font-size:.62rem;white-space:nowrap}
+  .to-league{grid-template-columns:1fr;padding:12px 14px;border-left-width:8px}.to-league em{justify-self:start}
+  .tabs .tab{padding:8px 6px 7px}.tabs .tab-t{font-size:.8rem;letter-spacing:.02em}.tabs .tab-s{font-size:.48rem}}
 /* Roster Radar (strength.py): one radar per team, nine lineup slots, season / rest-of-season switch */
 .rd-bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
 .rd-tg{display:flex}
@@ -757,12 +774,13 @@ footer b{color:var(--honolulu);font-weight:600}
 
 <nav class="tabs" role="tablist" aria-label="Sections">
   <button class="tab" role="tab" id="tab-paper" aria-controls="paper" aria-selected="true"><span class="tab-t">This Week's Paper</span><span class="tab-s">Week {{WEEK}} edition</span></button>
+  <button class="tab" role="tab" id="tab-league" aria-controls="league" aria-selected="false" tabindex="-1"><span class="tab-t">League &amp; Teams</span><span class="tab-s">Season so far</span></button>
   <button class="tab" role="tab" id="tab-stats" aria-controls="player-stats" aria-selected="false" tabindex="-1"><span class="tab-t">Player Stats</span><span class="tab-s">PPR player desk</span></button>
 </nav>
 
 <div class="tab-pane" id="paper" role="tabpanel" aria-labelledby="tab-paper">
 
-<nav class="m-jump" style="display:none" aria-label="Jump to section"><span class="kicker">Jump to</span><a href="#games">Scoreboard</a><a href="#scoreboard">At a glance</a><a href="#positions">Positions</a><a href="#blotter">Blotter</a><a href="#heat">Heat map</a><a href="#floor-ceiling">Floor/ceiling</a><a href="#pecking-order">Pecking order</a><a href="#power">Power ranks</a><a href="#playoff-odds">Playoff odds</a><a href="#what-if">What if?</a><a href="#roster-radar">Radar</a><a href="#trading-block">Trade block</a><a href="#waiver-mvp">Waivers</a><a href="#wire">The wire</a><a href="#forecast">Wk {{NEXTWEEK}} forecast</a><a href="#player-stats-tab">Player stats →</a></nav>
+<nav class="m-jump" style="display:none" aria-label="Jump to section"><span class="kicker">Jump to</span><a href="#scoreboard">At a glance</a><a href="#games">Scoreboard</a><a href="#positions">Positions</a><a href="#blotter">Blotter</a><a href="#wire">The wire</a><a href="#forecast">Wk {{NEXTWEEK}} forecast</a><a href="#league" data-tab="league">League &amp; teams →</a><a href="#player-stats" data-tab="player-stats">Player stats →</a></nav>
 
 <div class="tiles" aria-label="Week {{WEEK}} by the numbers"><!--TILES--></div>
 
@@ -819,6 +837,36 @@ footer b{color:var(--honolulu);font-weight:600}
   </div>
 </section>
 
+
+
+<section class="sec" id="wire">
+  <div class="sec-head"><h2>The Wire</h2><span class="kicker">Adds, drops, and what the new guy scored</span></div>
+  <div class="wire"><!--WIRE--></div>
+</section>
+
+<!--FORECAST-->
+
+<a class="to-league" href="#league" data-tab="league"><span class="kicker">Season so far</span><b>Standings, playoff odds, team radars and trades</b><em>League &amp; Teams →</em></a>
+
+</div>
+
+<div class="tab-pane" id="league" role="tabpanel" aria-labelledby="tab-league" hidden>
+<section class="lg-hero" aria-label="League and teams"><span class="kicker">The league desk · weeks 1–{{WEEK}}</span><h2>League <span>&amp;</span> Teams</h2><p>Standings, playoff odds, season trends, rosters and trades.</p><nav class="lg-jump" aria-label="League sections"><a href="#pecking-order">Pecking order</a><a href="#playoff-odds">Playoff odds</a><a href="#power">Power ranks</a><a href="#heat">Heat map</a><a href="#luck">Good or lucky</a><a href="#floor-ceiling">Floor/ceiling</a><a href="#what-if">What if?</a><a href="#roster-radar">Roster radar</a><a href="#trades">Trades</a><a href="#trading-block">Trade block</a><a href="#waiver-mvp">Waivers</a></nav></section>
+
+<section class="sec" id="pecking-order">
+  <div class="sec-head"><h2>The Pecking Order</h2><span class="kicker">Ranked by all-play (your score vs. everyone, every week)</span></div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>#</th><th>Team</th><th class="n">Record</th><th>Form</th><th class="n">All-play</th><th class="n">Points for</th><th>Wk 1–{{WEEK}}</th><th>Luck</th><th>Notes</th></tr></thead>
+    <tbody><!--PECKING--></tbody>
+  </table>
+  </div>
+</section>
+
+<!--ODDS-->
+
+<!--POWER-->
+
 <section class="twocol">
   <div class="sec" id="heat">
     <div class="sec-head"><h2>Season Heat Map</h2><span class="kicker">Weekly scores, weeks 1–{{WEEK}}</span></div>
@@ -832,20 +880,6 @@ footer b{color:var(--honolulu);font-weight:600}
 
 <!--RANGEBENCH-->
 
-<section class="sec" id="pecking-order">
-  <div class="sec-head"><h2>The Pecking Order</h2><span class="kicker">Ranked by all-play (your score vs. everyone, every week)</span></div>
-  <div class="tbl-wrap">
-  <table>
-    <thead><tr><th>#</th><th>Team</th><th class="n">Record</th><th>Form</th><th class="n">All-play</th><th class="n">Points for</th><th>Wk 1–{{WEEK}}</th><th>Luck</th><th>Notes</th></tr></thead>
-    <tbody><!--PECKING--></tbody>
-  </table>
-  </div>
-</section>
-
-<!--POWER-->
-
-<!--ODDS-->
-
 <!--WHATIF-->
 
 <!--STRENGTH-->
@@ -853,16 +887,7 @@ footer b{color:var(--honolulu);font-weight:600}
 <!--RUMORS-->
 
 <!--WAIVERMVP-->
-
-<section class="sec" id="wire">
-  <div class="sec-head"><h2>The Wire</h2><span class="kicker">Adds, drops, and what the new guy scored</span></div>
-  <div class="wire"><!--WIRE--></div>
-</section>
-
-<!--FORECAST-->
-
 </div>
-
 <div class="tab-pane" id="player-stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
 <!--PLAYERSTATS-->
 </div>
@@ -906,7 +931,12 @@ footer b{color:var(--honolulu);font-weight:600}
     show(pane?pane.id:'paper');
     if(el&&pane&&el!==pane)el.scrollIntoView();
   }
+  document.querySelectorAll('a[data-tab]').forEach(function(a){a.addEventListener('click',function(e){
+    var b=document.querySelector('.tabs .tab[aria-controls="'+a.dataset.tab+'"]');if(!b)return;
+    e.preventDefault();b.click();var tb=document.querySelector('.tabs');if(tb)tb.scrollIntoView();
+  })});
   window.addEventListener('hashchange',fromHash);
+  document.querySelectorAll('.lg-jump a').forEach(function(a){if(!document.getElementById(a.getAttribute('href').slice(1)))a.remove()});
   fromHash();
 })();
 </script>
@@ -936,14 +966,10 @@ footer b{color:var(--honolulu);font-weight:600}
   var mq=window.matchMedia&&matchMedia('(max-width:760px), (pointer:coarse) and (max-width:1100px)'); if(!mq||!mq.matches)return;
   var top=document.querySelector('.m-top'); top.style.display='';
   document.querySelectorAll('.m-jump a').forEach(function(a){var h=a.getAttribute('href').slice(1);
-    if(h!=='player-stats-tab'&&!document.getElementById(h))a.remove();});
+    if(!a.dataset.tab&&!document.getElementById(h))a.remove();});
   addEventListener('scroll',function(){top.classList.toggle('show',scrollY>innerHeight*1.5)},{passive:true});
   top.addEventListener('click',function(){scrollTo({top:0,behavior:'smooth'})});
-  var st=document.getElementById('tab-stats');
-  document.querySelectorAll('.m-jump a').forEach(function(a){a.addEventListener('click',function(e){
-    if(a.getAttribute('href')==='#player-stats-tab'){e.preventDefault(); if(st){st.click(); scrollTo({top:0});}}
-  })});
-  if(st)st.addEventListener('click',function(){scrollTo({top:0})});
+  document.querySelectorAll('.tabs .tab').forEach(function(b){b.addEventListener('click',function(){scrollTo({top:0})})});
   document.querySelectorAll('#player-stats .pj').forEach(function(l){
     var rows=l.querySelectorAll('.pj-row'),n=rows.length; if(n<=12)return;
     function set(open){for(var i=10;i<n;i++)rows[i].style.display=open?'':'none';}
