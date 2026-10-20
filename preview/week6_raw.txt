@@ -1,0 +1,259 @@
+META|league=1196354715|season=2026|week=6|name=Men Fantasizing|latest=6|complete=0|regweeks=14|playoffteams=6
+SLOTS|QB:1,RB:2,WR:2,TE:1,D/ST:1,K:1,FLEX:1
+TEAMS
+1|Chimpanzini Bananini|FTP|Reza Jalali
+2|Detroit Doughboys|DDB|Ryan Schira
+3|8D|MIKe|Michael Demarco
+4|Big Boy Bruisers|BBb|Samuel Oster
+5|CeeDeez Nuts|TA|Tyler Adams
+6|I don’t know what I’m doing|IDK|Aaron Sluiter
+7|Michael's Magnificent Team|MMT|Michael Williams
+8|Big Beefy Boys|BBB|Nathan LaWarre
+9|Travis's Talented Team|TTT|Travis Mussell
+10|Pink Pony Football Club|PPC|Liz Piesz
+11|#1 Kazakhstan Fantasies Team|JST|John torry
+12|Big Bedazzled Balls|BBB|Aida Jalali
+SCHED
+1|11|139.36|3|98.6|HOME
+1|4|104.22|8|139.66|AWAY
+1|10|75.22|7|109.2|AWAY
+1|1|137.06|12|151.76|AWAY
+1|6|112.76|2|109.3|HOME
+1|5|111.24|9|155.96|AWAY
+2|3|94.6|8|115.12|AWAY
+2|7|133.08|11|94.62|HOME
+2|12|142.48|4|102.86|HOME
+2|2|124.28|10|68.22|HOME
+2|9|88.34|1|123.98|AWAY
+2|5|133.88|6|87.8|HOME
+3|7|123.06|3|89.8|HOME
+3|8|145.26|12|106.24|HOME
+3|11|117.88|2|161.28|AWAY
+3|4|124.52|9|102.38|HOME
+3|10|82.64|5|138.4|AWAY
+3|1|97.54|6|83.14|HOME
+4|3|63.9|12|145.9|AWAY
+4|2|148.42|7|79.98|HOME
+4|9|111.88|8|107.72|HOME
+4|5|137.14|11|161.28|AWAY
+4|6|132.88|4|90.72|HOME
+4|1|93.48|10|107.26|AWAY
+5|2|99.14|3|77.2|HOME
+5|12|124.7|9|111.86|HOME
+5|7|134.22|5|120.04|HOME
+5|8|164.2|6|104.6|HOME
+5|11|127.94|1|159.38|AWAY
+5|4|113.6|10|131.94|AWAY
+6|3|0|9|0|UNDECIDED
+6|5|0|2|0|UNDECIDED
+6|6|0|12|0|UNDECIDED
+6|1|0|7|0|UNDECIDED
+6|10|0|8|0|UNDECIDED
+6|4|0|11|0|UNDECIDED
+7|5|0|3|0|UNDECIDED
+7|9|0|6|0|UNDECIDED
+7|2|0|1|0|UNDECIDED
+7|12|0|10|0|UNDECIDED
+7|7|0|4|0|UNDECIDED
+7|8|0|11|0|UNDECIDED
+ROSTERS
+#3
+Ja'Marr Chase|WR|WR|0|0
+Trey McBride|TE|TE|12.3|17.1
+Josh Jacobs|RB|RB|0|0
+Cam Skattebo|RB|RB|0|9
+Terry McLaurin|WR|WR|3.7|12.3
+Carnell Tate|WR|FLEX|19|10.9
+Jaxson Dart|QB|QB|0|0
+Michael Wilson|WR|BE|7.2|14
+Bo Nix|QB|BE|4.48|12.9
+Jordan Addison|WR|BE|0|0
+Rachaad White|RB|BE|3.4|10.5
+Patriots D/ST|D/ST|D/ST|5|6.8
+Cam Little|K|K|10|7.4
+#9
+Justin Jefferson|WR|BE|0|0
+Rashee Rice|WR|BE|0|0
+Chris Olave|WR|FLEX|14.3|17.3
+Javonte Williams|RB|RB|13|16.9
+Jayden Daniels|QB|QB|6.72|19.9
+TreVeyon Henderson|RB|BE|3|8.7
+Christian Watson|WR|WR|9.4|16.3
+RJ Harvey|RB|RB|14.6|9.4
+Rams D/ST|D/ST|D/ST|2|7.3
+Khalil Shakir|WR|WR|13.4|11.5
+Jacory Croskey-Merritt|RB|BE|0|0
+Cairo Santos|K|K|8|8.2
+Dalton Schultz|TE|TE|7.3|7.5
+#5
+James Cook III|RB|RB|24.3|19.3
+CeeDee Lamb|WR|WR|16|18.6
+Breece Hall|RB|IR|0|0
+Emeka Egbuka|WR|BE|17.8|11
+D'Andre Swift|RB|RB|23|15
+Mike Evans|WR|FLEX|12.4|14.9
+Matthew Golden|WR|WR|22.4|15.7
+Jaguars D/ST|D/ST|D/ST|-2|5.6
+Juwan Johnson|TE|TE|0|10.8
+Tyler Shough|QB|QB|26.96|16.8
+Darren Waller|TE|BE|0|7
+Spencer Shrader|K|K|9|11
+Sam Darnold|QB|BE|11.02|13.8
+Devaughn Vele|WR|BE|7.2|11.2
+#2
+Christian McCaffrey|RB|RB|27.1|21.2
+Jeremiyah Love|RB|BE|0|0
+Garrett Wilson|WR|WR|8.4|14.8
+Tetairoa McMillan|WR|WR|14.6|15.9
+Tee Higgins|WR|BE|0|0
+Harold Fannin Jr.|TE|TE|1.9|10.3
+Trevor Lawrence|QB|BE|27.34|17.7
+Brock Purdy|QB|QB|16.32|21.4
+J.K. Dobbins|RB|BE|13.6|10.3
+Tyler Loop|K|K|3|9.1
+Dameon Pierce|RB|FLEX|15|12.3
+Buccaneers D/ST|D/ST|D/ST|7|5.8
+Tyler Allgeier|RB|RB|5.8|12.3
+#6
+Chase Brown|RB|BE|0|0
+A.J. Brown|WR|IR|5.7|12.7
+Lamar Jackson|QB|QB|0|0
+Travis Etienne Jr.|RB|BE|0|0
+Sam LaPorta|TE|BE|0|0
+Ka'imi Fairbairn|K|K|11|8.3
+Seahawks D/ST|D/ST|D/ST|6|6
+Wan'Dale Robinson|WR|FLEX|5.2|9.4
+Blake Corum|RB|RB|14|9
+Zach Charbonnet|RB|BE|0|0
+Romeo Doubs|WR|WR|11.2|9.3
+Tre Tucker|WR|WR|26.7|10.3
+Alvin Kamara|RB|RB|14.9|10.1
+Dallas Goedert|TE|TE|12.1|10.1
+#12
+Amon-Ra St. Brown|WR|BE|0|0
+Kenneth Walker III|RB|RB|27.9|23.3
+Kyren Williams|RB|RB|9.7|21
+Jameson Williams|WR|BE|0|0
+Bucky Irving|RB|FLEX|6.9|16.1
+Courtland Sutton|WR|WR|3.9|8.5
+Joe Burrow|QB|BE|0|0
+Tucker Kraft|TE|TE|8.7|12.1
+Kenny Gainwell|RB|BE|3.4|8.8
+Chiefs D/ST|D/ST|D/ST|14|7.3
+Harrison Butker|K|K|12|9.5
+Chris Godwin Jr.|WR|WR|7.7|6.6
+Patrick Mahomes|QB|QB|10.48|18.8
+#1
+Jonathan Taylor|RB|RB|21.1|19.6
+Omarion Hampton|RB|BE|7.9|9
+DeVonta Smith|WR|BE|20.5|13.5
+Zay Flowers|WR|WR|12.7|14.1
+Bhayshul Tuten|RB|RB|24.7|12.6
+DJ Moore|WR|IR|0|0
+Parker Washington|WR|WR|10.4|15.4
+Dalton Kincaid|TE|FLEX|10.8|8.6
+Isaiah Likely|TE|TE|23.9|14.7
+Kyler Murray|QB|BE|0|0
+Vikings D/ST|D/ST|BE|0|0
+Ollie Gordon II|RB|BE|0|0
+Jordan Love|QB|QB|20.24|20.9
+Jason Myers|K|K|7|6.8
+#7
+Jaxon Smith-Njigba|WR|WR|25.4|19.8
+Ashton Jeanty|RB|RB|15.8|19.2
+Matthew Stafford|QB|QB|16.88|19.6
+Ladd McConkey|WR|BE|2.7|10.4
+Tyler Warren|TE|BE|0|0
+Jaylen Waddle|WR|WR|6.4|9.5
+Rhamondre Stevenson|RB|RB|3.6|13.3
+Josh Downs|WR|BE|8.7|9.9
+49ers D/ST|D/ST|BE|10|4.9
+Xavier Worthy|WR|FLEX|14.3|11.1
+Hunter Henry|TE|TE|14.8|7.8
+Bills D/ST|D/ST|D/ST|0|4.2
+Matt Gay|K|K|12|10.7
+#10
+Drake London|WR|WR|12.2|15.8
+Malik Nabers|WR|WR|28.5|17.4
+Colston Loveland|TE|BE|18.5|8.6
+Drake Maye|QB|QB|23.8|20.3
+Jalen Coker|WR|FLEX|15.7|13.9
+Bryce Young|QB|BE|19.84|18.2
+Braelon Allen|RB|BE|12.4|14.5
+Jared Goff|QB|BE|0|0
+Emanuel Wilson|RB|RB|5.2|14.9
+Woody Marks|RB|RB|10.1|11.6
+Dominic Zvada|K|K|8|10.9
+Broncos D/ST|D/ST|D/ST|11|5.7
+Pat Freiermuth|TE|TE|3.1|11.1
+#8
+Jahmyr Gibbs|RB|BE|0|0
+George Pickens|WR|WR|13.3|13.6
+Josh Allen|QB|QB|18.3|25.1
+Luther Burden III|WR|WR|17.5|12.5
+David Montgomery|RB|BE|0|0
+Michael Pittman Jr.|WR|BE|0|0
+Jaylen Warren|RB|RB|9.8|15
+Mark Andrews|TE|TE|1.4|8.7
+Brandon Aubrey|K|K|1|10.2
+Kyle Monangai|RB|BE|0|0
+Deebo Samuel Sr.|WR|IR|0|0
+Stefon Diggs|WR|FLEX|6|10.6
+Ravens D/ST|D/ST|D/ST|10|7.1
+Tony Pollard|RB|RB|7.6|14.2
+#4
+Bijan Robinson|RB|RB|7.3|23
+Saquon Barkley|RB|RB|0|0
+Nico Collins|WR|WR|10.9|16.9
+Davante Adams|WR|WR|6.9|16
+Jalen Hurts|QB|BE|0|0
+Travis Kelce|TE|TE|9.3|11.4
+Dak Prescott|QB|QB|11.02|17.1
+Cameron Dicker|K|K|6|7.7
+Texans D/ST|D/ST|D/ST|-2|5.4
+Aaron Jones Sr.|RB|BE|0|0
+Kenyon Sadiq|TE|BE|2.2|6.3
+Quentin Johnston|WR|FLEX|6.7|7.2
+Malik Washington|WR|BE|0|0
+#11
+Puka Nacua|WR|WR|14|22.8
+Brock Bowers|TE|TE|11|19.8
+Derrick Henry|RB|RB|5|18.3
+Quinshon Judkins|RB|FLEX|0|0
+Rome Odunze|WR|BE|6.9|10.4
+DK Metcalf|WR|BE|20.3|11.6
+Caleb Williams|QB|QB|16.5|16.7
+Chuba Hubbard|RB|RB|19.1|14.8
+George Kittle|TE|BE|17.9|14.9
+Steelers D/ST|D/ST|D/ST|11|6.9
+Eddy Pineiro|K|K|5|9
+Denzel Boston|WR|WR|2.5|13.5
+C.J. Stroud|QB|BE|22.98|15.9
+TX
+F|1|ADD:Jordan Love,DROP:Jacoby Brissett
+F|1|ADD:Jason Myers,DROP:Will Reichard
+F|6|ADD:Alvin Kamara
+W|8|ADD:Tony Pollard
+W|8|ADD:Ravens D/ST,DROP:Falcons D/ST
+F|7|ADD:Matt Gay
+W|10|ADD:Woody Marks,DROP:Tony Pollard
+F|10|ADD:Broncos D/ST,DROP:Bengals D/ST
+F|2|ADD:Tyler Allgeier,DROP:MarShawn Lloyd
+F|2|ADD:Dameon Pierce,DROP:Jakobi Meyers
+F|10|ADD:Dominic Zvada,DROP:Evan McPherson
+F|10|ADD:Pat Freiermuth,DROP:Kalif Raymond
+F|6|ADD:Dallas Goedert
+F|2|ADD:Buccaneers D/ST,DROP:Bears D/ST
+LOGOURLS
+1|https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/9174d9c0-8307-11f1-b80e-15498269b8f1
+2|https://g.espncdn.com/lm-static/logo-packs/core/StadiumFoods-ESPN/stadium-foods_doughnut.svg
+3|https://g.espncdn.com/lm-static/ffl/images/default_logos/20.svg
+4|https://g.espncdn.com/lm-static/logo-packs/core/TeamMascots-RobbHarskamp/Team_Mascots-02.svg
+5|https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/af8dc780-b61c-11f1-8e61-15b947311ad1
+6|https://g.espncdn.com/lm-static/logo-packs/ffl/BoneHeads-ToddDetwiler/BoneHeads-03.svg
+7|https://g.espncdn.com/lm-static/ffl/images/default_logos/11.svg
+8|https://g.espncdn.com/lm-static/ffl/images/default_logos/16.svg
+9|https://g.espncdn.com/lm-static/ffl/images/default_logos/4.svg
+10|https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/09393c30-8dbc-11f1-ba11-258ab190f341
+11|https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/d14c0430-96ab-11f1-9a0d-c9e90462e077
+12|https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/dc5ba930-9fce-11f1-9ea5-d574bdafef15
