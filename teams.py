@@ -322,3 +322,63 @@ def matchup(short, W, F, records):
             f'<p class="note-s">Each team&#39;s best projected lineup for week {nxt}: QB through FLEX use the blended projection (consensus and ESPN); '
             f'kickers and defenses use ESPN&#39;s projection. Byes and players ruled out count zero.'
             f'{"" if has_kd else " ESPN projections for kickers and defenses were not available for this edition, so those slots show zero."}</p></section>')
+
+
+# ------------------------------------------------------------------ power rankings (animated)
+def race(short, W):
+    """Power Rankings (animated, user 2026-10-20): each team's crest slides up or down the all-play power ranking
+    week by week. All-play = your score against every other team's score that week, summed over the season
+    (same rule as the Pecking Order); points for breaks ties. The real record sits beside it so the order
+    isn't mistaken for the standings. Plays once when scrolled into view; Play replays, week buttons jump."""
+    sh = {int(k): v for k, v in short.items()}
+    aw = {t: 0 for t in sh}; al = {t: 0 for t in sh}; w = {t: 0 for t in sh}; l = {t: 0 for t in sh}; pf = {t: 0.0 for t in sh}; weeks = []
+    for k in range(1, W + 1):
+        f = f"data/week{k}_raw.txt"
+        if not os.path.exists(f):
+            return ""
+        sc = {}
+        for g in _load(f)[3]:
+            if g["wk"] == k and g["away"]:
+                h, a = g["home"], g["away"]; sc[h], sc[a] = g["hp"], g["ap"]
+                if g["hp"] > g["ap"]: w[h] += 1; l[a] += 1
+                elif g["ap"] > g["hp"]: w[a] += 1; l[h] += 1
+        for t in sh:
+            pf[t] += sc[t]
+            aw[t] += sum(sc[t] > sc[o] for o in sc if o != t); al[t] += sum(sc[t] < sc[o] for o in sc if o != t)
+        order = sorted(sh, key=lambda t: (-aw[t], -pf[t]))
+        weeks.append({str(t): [i + 1, aw[t], al[t], w[t], l[t]] for i, t in enumerate(order)})
+    n = len(sh); fin = weeks[-1]
+    rows = "".join(
+        f'<div class="sr-row" data-t="{t}" style="transform:translateY({(fin[str(t)][0] - 1) * 100}%)">'
+        f'<b class="sr-rk num">{fin[str(t)][0]}</b>{lg(t, "lg-md")}<span class="sr-nm"><b>{esc(sh[t])}</b><small class="sr-rec num">{fin[str(t)][3]}–{fin[str(t)][4]} record</small></span>'
+        f'<span class="sr-ap num">{fin[str(t)][1]}–{fin[str(t)][2]}</span>'
+        f'<em class="sr-mv"></em></div>' for t in sorted(sh))
+    btns = "".join(f'<button type="button" class="pt" data-w="{k}" aria-pressed="{str(k == W).lower()}">Wk {k}</button>' for k in range(1, W + 1))
+    data = json.dumps({"weeks": weeks, "n": n}, separators=(",", ":"))
+    return (f'<section class="sec" id="power"><div class="sec-head"><h2>Power Rankings</h2>'
+            f'<span class="kicker">Week by week · ranked by all-play, not record</span></div>'
+            f'<div class="sr-ctl"><button type="button" class="pt sr-play" aria-label="Play the season">▶ Play</button>'
+            f'<div class="sr-wks" role="group" aria-label="Week">{btns}</div><span class="sr-now kicker" aria-live="polite">After week {W}</span></div>'
+            f'<div class="sr-board" style="--n:{n}"><div class="sr-head"><span>#</span><span></span><span>Team · record</span><span>All-play</span><span>Move</span></div>'
+            f'<div class="sr-list" role="list">{rows}</div></div>'
+            f'<p class="note-s">All-play: each week every team&#39;s score is checked against all 11 others, so a team that would beat anyone ranks high even after an unlucky draw. '
+            f'Points for breaks ties. The record column is the real one. Plays once when you scroll here; press Play to watch again or pick a week. The arrow compares with the week before.</p>'
+            f'<script type="application/json" id="sr-data">{data}</script>'
+            '''<script>(function(){
+var s=document.getElementById('power'),src=document.getElementById('sr-data');if(!s||!src)return;
+var D=JSON.parse(src.textContent),W=D.weeks,rows=[].slice.call(s.querySelectorAll('.sr-row')),btns=[].slice.call(s.querySelectorAll('.sr-wks .pt')),now=s.querySelector('.sr-now'),play=s.querySelector('.sr-play'),timer=null;
+var still=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+function show(k){var d=W[k-1],p=k>1?W[k-2]:null;
+  rows.forEach(function(r){var v=d[r.dataset.t];r.style.transform='translateY('+((v[0]-1)*100)+'%)';
+    r.querySelector('.sr-rk').textContent=v[0];r.querySelector('.sr-ap').textContent=v[1]+'\\u2013'+v[2];r.querySelector('.sr-rec').textContent=v[3]+'\\u2013'+v[4]+' record';
+    var m=p?p[r.dataset.t][0]-v[0]:0,e=r.querySelector('.sr-mv');e.className='sr-mv '+(m>0?'up':m<0?'dn':'eq');e.textContent=m>0?'\\u25B2'+m:m<0?'\\u25BC'+(-m):'\\u2013';
+    r.classList.toggle('lead',v[0]===1)});
+  btns.forEach(function(b){b.setAttribute('aria-pressed',String(+b.dataset.w===k))});now.textContent='After week '+k;}
+function stop(){if(timer){clearInterval(timer);timer=null}play.textContent='\\u25B6 Play'}
+function run(){stop();if(still){show(W.length);return}var k=1;show(k);play.textContent='\\u25A0 Stop';
+  timer=setInterval(function(){k++;if(k>W.length){stop();return}show(k)},1500)}
+play.addEventListener('click',function(){timer?stop():run()});
+btns.forEach(function(b){b.addEventListener('click',function(){stop();show(+b.dataset.w)})});
+show(W.length);
+if('IntersectionObserver' in window&&!still){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){io.disconnect();setTimeout(run,300)}})},{threshold:.35});io.observe(s.querySelector('.sr-board'))}
+})();</script></section>''')

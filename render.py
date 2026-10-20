@@ -469,6 +469,7 @@ _recs = {t: rec_s(SEA[t]) for t in SEA}
 matchup_html = _teams.matchup(LG["short_names"], W, F, _recs) if os.path.exists("data/players/meta.json") else ""
 report_html = _teams.report_card(LG["short_names"], W) if os.path.exists("data/players/meta.json") else ""
 oneman_html = _teams.one_man(LG["short_names"], W)
+race_html = _teams.race(LG["short_names"], W)
 matchmaker_html = _teams.matchmaker(LG["short_names"], W) if os.path.exists("data/players/meta.json") else ""
 
 out = open("template.html", encoding="utf-8").read()
@@ -477,7 +478,7 @@ for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{ba
              "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
-             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
+             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--RACE-->": race_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
              "{{WEEK}}": str(W), "{{NEXTWEEK}}": str(W + 1), "{{SEASON}}": str(LG["season"]), "{{VOLUME}}": str(LG["volume"]), "{{LEAGUE_NAME}}": esc(LG["league_name"]),
              "{{LEAGUE_FORMAT}}": esc(LG["league_format"]), "{{PRICE}}": esc(LG["price"]), "{{NWEEKS}}": str(len(weeks))}.items():
     out = out.replace(k, v)
