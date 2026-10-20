@@ -404,21 +404,7 @@ missing = "".join(f'''<div class="poster"><div class="poster-top"><span class="k
 <span class="pa-l">Found</span><span class="pa-t"><span class="pa-b act" style="width:{max(a/mmx*100,0.6):.1f}%"></span></span><span class="num">{a:.1f}</span></div>
 <p>{fill(m["text"])}</p></div>''' for m, p, a in mp_rows)
 
-# ---------- transaction wire ----------
-def started(t, name):
-    for n, pos, sl, pts, pr in TF[t]["starters"]:
-        if n == name: return pts
-    return None
-wire = []
-for tx in F["transactions"]:
-    if not tx.get("verified", True): continue
-    t = tx["team"]
-    adds = [m[4:] for m in tx["moves"] if m.startswith("ADD:")]
-    drops = [m[5:] for m in tx["moves"] if m.startswith("DROP:")]
-    chips = "".join(f'<span class="chip in">＋ {esc(a)}{f" <b class=num>{g(started(t, a))}</b>" if started(t, a) is not None else " <b>bench</b>"}</span>' for a in adds)
-    chips += "".join(f'<span class="chip out">− {esc(d)}</span>' for d in drops)
-    wire.append(f'<div class="wire-row">{lg(t, "lg-sm")}<span class="wire-t">{esc(SHORT[t])}<em>{esc(tx["kind"])}</em></span><span class="chips">{chips}</span></div>')
-wire_html = "".join(wire)
+# (The Wire was removed at the user's request, 2026-10-20.)
 
 
 # ---------- completed trades + trading block (from the weekly fetch) ----------
@@ -517,7 +503,7 @@ for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{ba
              "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
-             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--POWER-->": power_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--WIRE-->": wire_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
+             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--POWER-->": power_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
              "{{WEEK}}": str(W), "{{NEXTWEEK}}": str(W + 1), "{{SEASON}}": str(LG["season"]), "{{VOLUME}}": str(LG["volume"]), "{{LEAGUE_NAME}}": esc(LG["league_name"]),
              "{{LEAGUE_FORMAT}}": esc(LG["league_format"]), "{{PRICE}}": esc(LG["price"]), "{{NWEEKS}}": str(len(weeks))}.items():
     out = out.replace(k, v)

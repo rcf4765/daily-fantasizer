@@ -427,16 +427,6 @@ td.note{font-size:.82rem;color:var(--muted);max-width:24ch}
 .luck-bar.dn{background:var(--blue-2)}
 .luck-n{font-size:.72rem;color:var(--muted)}
 
-/* wire */
-.wire{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:0 28px}
-.wire-row{display:grid;grid-template-columns:auto 110px minmax(0,1fr);gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
-.wire-t{font-weight:600;font-size:.88rem;display:grid;line-height:1.2}
-.wire-t em{font-style:normal;font-family:var(--mono);font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.chips{display:flex;flex-wrap:wrap;gap:5px}
-.chip{font-size:.78rem;padding:3px 8px;border-radius:999px;display:inline-flex;gap:6px;align-items:center}
-.chip.in{background:var(--blue);color:#fff}
-.chip.in b{font-family:var(--mono);font-size:.7rem;background:rgba(255,255,255,.22);padding:0 5px;border-radius:999px;font-weight:600}
-.chip.out{border:1px solid var(--line);color:var(--muted);text-decoration:line-through;text-decoration-color:var(--red)}
 
 /* forecast */
 .forecast{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
@@ -594,7 +584,6 @@ footer b{color:var(--honolulu);font-weight:600}
   .strip{grid-template-columns:86px minmax(0,1fr);gap:6px}
   .strip-n{font-size:.82rem}
   .seg{font-size:.56rem;padding-inline:3px}
-  .wire-row{grid-template-columns:auto 84px minmax(0,1fr)}
   .pw-wk,.pw-body{grid-template-columns:30px minmax(0,1fr) 116px;gap:6px}
   .pw-row{font-size:.76rem}.pw-row .lg{width:20px;height:20px}.pw-row em{display:none}
   .od-row{grid-template-columns:92px 34px minmax(0,1fr) 40px;gap:6px}
@@ -641,6 +630,8 @@ footer b{color:var(--honolulu);font-weight:600}
 
 /* phone: no sideways scrolling. Tables become stacked cards, heat map squeezes to fit. */
 @media (max-width:760px), (pointer:coarse) and (max-width:1100px){
+  /* The Pecking Order is desktop only (user, 2026-10-20) */
+  #pecking-order,.lg-jump a[href="#pecking-order"]{display:none!important}
   html,body{overflow-x:clip}
   .tbl-wrap{overflow:visible}
   #player-stats .tbl-wrap{overflow-x:hidden}
@@ -798,7 +789,7 @@ footer b{color:var(--honolulu);font-weight:600}
 
 <div class="tab-pane" id="paper" role="tabpanel" aria-labelledby="tab-paper">
 
-<nav class="m-jump" style="display:none" aria-label="Jump to section"><span class="kicker">Jump to</span><a href="#scoreboard">At a glance</a><a href="#games">Scoreboard</a><a href="#positions">Positions</a><a href="#blotter">Blotter</a><a href="#wire">The wire</a><a href="#forecast">Wk {{NEXTWEEK}} forecast</a><a href="#matchup">Matchup</a><a href="#league" data-tab="league">League &amp; teams →</a><a href="#player-stats" data-tab="player-stats">Player stats →</a></nav>
+<nav class="m-jump" style="display:none" aria-label="Jump to section"><span class="kicker">Jump to</span><a href="#scoreboard">At a glance</a><a href="#games">Scoreboard</a><a href="#positions">Positions</a><a href="#blotter">Blotter</a><a href="#forecast">Wk {{NEXTWEEK}} forecast</a><a href="#matchup">Matchup</a><a href="#league" data-tab="league">League &amp; teams →</a><a href="#player-stats" data-tab="player-stats">Player stats →</a></nav>
 
 <div class="tiles" aria-label="Week {{WEEK}} by the numbers"><!--TILES--></div>
 
@@ -848,12 +839,6 @@ footer b{color:var(--honolulu);font-weight:600}
     </div>
   </div>
 </section>
-
-<section class="sec" id="wire">
-  <div class="sec-head"><h2>The Wire</h2><span class="kicker">Adds, drops, and what the new guy scored</span></div>
-  <div class="wire"><!--WIRE--></div>
-</section>
-
 <!--FORECAST-->
 
 <!--MATCHUP-->
