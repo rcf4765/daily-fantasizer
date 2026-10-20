@@ -58,14 +58,13 @@ def _kdst(W):
     return {t: [(n, pos[n], val.get(n, 0.0)) for n in ns] for t, ns in owner.items()}
 
 
-def build(short, W):
-    if not os.path.exists("data/players/meta.json"):
-        return ""
-    d = _players.Data(short, W)
-    short = {int(k): v for k, v in short.items()}
-    P = [p for p in d.P if p.get("owner")]
+_CACHE = {}
 
-    # rest-of-season: consensus rank -> points via this season's scoring curve
+
+def ros_values(d):
+    """Sets p["ros"] on every player in players.Data d: rest-of-season points per game (see module doc)."""
+    if getattr(d, "_ros_done", False):
+        return
     curve = defaultdict(list)
     for p in d.P:
         if p["g"] >= 3:
@@ -82,22 +81,32 @@ def build(short, W):
     last = defaultdict(int)
     for k, r in rk.items():
         last[k.split("|")[1]] = max(last[k.split("|")[1]], r)
-
-    def v_season(p): return p["ppg"]
-
-    def v_ros(p):
+    for p in d.P:
         if p["key"] in rk:
-            return cv(p["pos"], rk[p["key"]])
-        xp = p.get("xp")
-        v = (0.5 * p["ppg"] + 0.5 * xp) if xp is not None else p["ppg"]
-        if p.get("inj") == "INJURY_RESERVE":
-            v *= 0.25
-        return min(v, cv(p["pos"], last[p["pos"]] + 1))
+            v = cv(p["pos"], rk[p["key"]])
+        else:
+            xp = p.get("xp")
+            v = (0.5 * p["ppg"] + 0.5 * xp) if xp is not None else p["ppg"]
+            if p.get("inj") == "INJURY_RESERVE":
+                v *= 0.25
+            v = min(v, cv(p["pos"], last[p["pos"]] + 1))
+        p["ros"] = v
+        p["ros_rank"] = rk.get(p["key"])
+    d._ros_done = True
 
+
+def compute(short, W):
+    """Shared by build() and teams.py: players.Data, lineup rows per mode/team, and 0-100 slot scores."""
+    if (W, tuple(sorted(short.items()))) in _CACHE:
+        return _CACHE[(W, tuple(sorted(short.items())))]
+    d = _players.Data(short, W)
+    ros_values(d)
+    shortI = {int(k): v for k, v in short.items()}
+    P = [p for p in d.P if p.get("owner")]
     KD = _kdst(W)
-    teams = sorted(short)
+    teams = sorted(shortI)
     res = {}  # mode -> team -> list of (slot, starter, sval, backup, bval, raw)
-    for mode, val in (("season", v_season), ("ros", v_ros)):
+    for mode, val in (("season", lambda p: p["ppg"]), ("ros", lambda p: p["ros"])):
         res[mode] = {}
         for t in teams:
             pool = [(p["name"], p["pos"], val(p)) for p in P if p["owner"] == t] + KD.get(t, [])
@@ -121,20 +130,43 @@ def build(short, W):
             a = sum(xs.values()) / len(xs); m = max(abs(x - a) for x in xs.values()) or 1
             for t in teams:
                 score[mode][t].append(round(50 + 50 * (xs[t] - a) / m))
+    out = dict(d=d, res=res, score=score, teams=teams, short=shortI, kd=KD)
+    _CACHE[(W, tuple(sorted(short.items())))] = out
+    return out
 
-    # ---- drawing ----
-    n = len(SLOTS); C, R = 120, 76
-    ang = [(-90 + i * 360 / n) * math.pi / 180 for i in range(n)]
-    def pt(v, i, r=R):
-        k = r * (6 + v * 0.94) / 100
-        return C + math.cos(ang[i]) * k, C + math.sin(ang[i]) * k
-    poly = lambda vs: " ".join(f"{x:.1f},{y:.1f}" for x, y in (pt(v, i) for i, v in enumerate(vs)))
-    frame = "".join(f'<polygon class="rd-ring{" avg" if r == 50 else ""}" points="{poly([r] * n)}"/>' for r in (25, 50, 75, 100))
-    frame += "".join(f'<line class="rd-ax" x1="{C}" y1="{C}" x2="{pt(100, i)[0]:.1f}" y2="{pt(100, i)[1]:.1f}"/>' for i in range(n))
+
+# ---- radar geometry (also used by teams.py for the Matchup of the Week overlay) ----
+N_ = len(SLOTS); C_, R_ = 120, 76
+ANG = [(-90 + i * 360 / N_) * math.pi / 180 for i in range(N_)]
+
+
+def pt(v, i, r=R_):
+    k = r * (6 + v * 0.94) / 100
+    return C_ + math.cos(ANG[i]) * k, C_ + math.sin(ANG[i]) * k
+
+
+def poly(vs):
+    return " ".join(f"{x:.1f},{y:.1f}" for x, y in (pt(v, i) for i, v in enumerate(vs)))
+
+
+def frame():
+    f = "".join(f'<polygon class="rd-ring{" avg" if r == 50 else ""}" points="{poly([r] * N_)}"/>' for r in (25, 50, 75, 100))
+    f += "".join(f'<line class="rd-ax" x1="{C_}" y1="{C_}" x2="{pt(100, i)[0]:.1f}" y2="{pt(100, i)[1]:.1f}"/>' for i in range(N_))
     for i, s in enumerate(SLOTS):
-        x, y = pt(100, i, R + 18)
-        a = "middle" if abs(x - C) < 4 else ("start" if x > C else "end")
-        frame += f'<text class="rd-lb" x="{x:.1f}" y="{y + 4:.1f}" text-anchor="{a}">{s}</text>'
+        x, y = pt(100, i, R_ + 18)
+        a = "middle" if abs(x - C_) < 4 else ("start" if x > C_ else "end")
+        f += f'<text class="rd-lb" x="{x:.1f}" y="{y + 4:.1f}" text-anchor="{a}">{s}</text>'
+    return f
+
+
+def build(short, W):
+    if not os.path.exists("data/players/meta.json"):
+        return ""
+    X = compute(short, W)
+    res, score, teams, short = X["res"], X["score"], X["teams"], X["short"]
+    # ---- drawing ----
+    n = N_
+    frame_ = frame()
     nm = lambda x: esc(x) if x else "—"
     order = sorted(teams, key=lambda t: -(sum(score["season"][t]) + sum(score["ros"][t])))
     cards = []
@@ -153,7 +185,7 @@ def build(short, W):
         aria = "; ".join(f"{lab.format(W=W)}: " + ", ".join(f"{s} {v}" for s, v in zip(SLOTS, score[mode][t])) for mode, lab in MODES)
         cards.append(f'<article class="rd-card"><div class="rd-h"><i class="lg lg-{t} lg-sm" aria-hidden="true"></i><h3>{esc(short[t])}</h3></div>'
                      f'<p class="rd-sum">{sums}</p>'
-                     f'<svg class="rd-svg" viewBox="0 0 240 240" role="img" aria-label="{esc(short[t])} lineup strength. {esc(aria)}">{frame}{shapes}</svg>'
+                     f'<svg class="rd-svg" viewBox="0 0 240 240" role="img" aria-label="{esc(short[t])} lineup strength. {esc(aria)}">{frame_}{shapes}</svg>'
                      f'<details class="rd-more"><summary>Lineup</summary>{lists}</details></article>')
     btns = "".join(f'<button type="button" class="pt" data-m="{m}" aria-pressed="{str(i == 0).lower()}">{esc(l.format(W=W))}</button>' for i, (m, l) in enumerate(MODES))
     return (f'<section class="sec rd" id="roster-radar" data-m="season"><div class="sec-head"><h2>Roster Radar</h2>'
@@ -175,3 +207,37 @@ if __name__ == "__main__":
     LG = json.load(open("league.json"))
     out = build(LG["short_names"], int(sys.argv[1]))
     print(len(out))
+
+
+# ---- weekly projections (shared by Matchup of the Week and the Player Stats trend lines) ----
+_RAWP = {}
+
+
+def raw_proj(W):
+    """name -> {week: ESPN projection at the time} for every player on a league roster, weeks 1..W (from the raw dumps)."""
+    if W in _RAWP:
+        return _RAWP[W]
+    out = defaultdict(dict)
+    for k in range(1, W + 1):
+        f = f"data/week{k}_raw.txt"
+        if os.path.exists(f):
+            for t, pl in _load(f)[4].items():
+                for p in pl:
+                    out[p["name"]][k] = p["proj"]
+    _RAWP[W] = out
+    return out
+
+
+def proj_for(d, p, w, rawp):
+    """Blended projection for week w: mean of the FantasyPros consensus projection and ESPN's (as the
+    Player Stats tab does). Past weeks use ESPN's projection from that week's dump when the player was rostered."""
+    vals = []
+    e = d.ecr.get(p["key"], {}).get(w)
+    if e and e.get("r2p_pts") not in (None, ""):
+        vals.append(float(e["r2p_pts"]))
+    espn = p["proj"].get(w)
+    if espn is None:
+        espn = rawp.get(p["name"], {}).get(w)
+    if espn is not None:
+        vals.append(float(espn))
+    return sum(vals) / len(vals) if vals else None

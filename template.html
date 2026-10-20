@@ -472,6 +472,67 @@ td.note{font-size:.82rem;color:var(--muted);max-width:24ch}
 @media (max-width:760px){.lg-hero{padding:16px 14px 14px}.lg-jump{display:grid;grid-template-columns:1fr 1fr;gap:6px}.lg-jump a{text-align:center;padding:8px 4px;font-size:.62rem;white-space:nowrap}
   .to-league{grid-template-columns:1fr;padding:12px 14px;border-left-width:8px}.to-league em{justify-self:start}
   .tabs .tab{padding:8px 6px 7px}.tabs .tab-t{font-size:.8rem;letter-spacing:.02em}.tabs .tab-s{font-size:.48rem}}
+/* Matchup of the Week, Manager Report Card, One-Man Show, Trade Matchmaker (teams.py) */
+.mw-head{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:14px;padding:14px 18px;border:3px solid var(--rule);background:radial-gradient(var(--dot) 1.2px,transparent 1.4px) 0 0/8px 8px,var(--sheet)}
+.mw-team{display:grid;justify-items:center;gap:4px;text-align:center;min-width:0}
+.mw-team b{font-family:var(--display);font-weight:900;font-size:clamp(1.3rem,3vw,2rem);text-transform:uppercase;line-height:1}
+.mw-team small{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.mw-ta .lg{box-shadow:0 0 0 3px var(--sheet),0 0 0 6px var(--blue)}
+.mw-tb .lg{box-shadow:0 0 0 3px var(--sheet),0 0 0 6px var(--ink)}
+.mw-mid{display:grid;justify-items:center;gap:2px}.mw-mid b{font-family:var(--display);font-weight:900;font-size:1.5rem;color:var(--red)}.mw-mid small{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+.mw-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr);gap:24px;align-items:start}
+.mw-fig{display:grid;gap:8px;margin:0}.mw-svg{max-width:340px;justify-self:center}
+.mw-pa{fill:var(--blue);fill-opacity:.2;stroke:var(--blue);stroke-width:2.2;stroke-linejoin:round}
+.mw-pb{fill:var(--ink);fill-opacity:.06;stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
+.mw-key{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--mono);font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);justify-content:center}
+.mw-key i{display:inline-block;width:18px;vertical-align:middle;margin-right:5px}.mw-ka{border-top:3px solid var(--blue)}.mw-kb{border-top:2px solid var(--ink)}
+.mw-list{display:grid;gap:4px}
+.mw-row{display:grid;grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr);align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--line)}
+.mw-a,.mw-b{display:grid;align-items:center;gap:6px;min-width:0}
+.mw-a{grid-template-columns:minmax(0,1fr) 30% 38px;text-align:right}.mw-b{grid-template-columns:38px 30% minmax(0,1fr)}
+.mw-a em,.mw-b em{font-style:normal;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.mw-a i,.mw-b i{display:block;height:10px;background:var(--silver)}.mw-a i{justify-self:end}
+.mw-a.win i{background:var(--blue)}.mw-b.win i{background:var(--ink)}.mw-a.win em,.mw-b.win em{color:var(--ink);font-weight:600}
+.mw-a b,.mw-b b{font-size:.92rem}
+.mw-s{font-family:var(--mono);font-size:.66rem;font-weight:600;text-align:center;color:var(--muted)}
+.mw-tot{border-bottom:0;border-top:3px solid var(--rule);padding-top:6px}.mw-tot .mw-a,.mw-tot .mw-b{display:block}.mw-tot b{font-family:var(--display);font-size:1.6rem;font-weight:900}
+.rc{display:grid;gap:6px}
+.rc-row{display:grid;grid-template-columns:56px minmax(150px,.8fr) minmax(0,3fr);gap:14px;align-items:center;padding:10px 14px;border:2px solid var(--rule);background:var(--sheet)}
+.rc-big{font-family:var(--display);font-weight:900;font-size:2.6rem;line-height:1;text-align:center;padding:4px 0}
+.rc-t{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:8px}.rc-t .lg{grid-row:span 2}.rc-t b{font-family:var(--display);font-weight:800;font-size:1.2rem;text-transform:uppercase;line-height:1}
+.rc-t small{font-family:var(--mono);font-size:.66rem;color:var(--muted)}
+.rc-parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.rc-p{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;font-size:.86rem}
+.rc-p em{display:block;font-style:normal;font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rc-p small{display:block;font-size:.74rem;color:var(--muted)}
+.rc-g{display:grid;place-items:center;width:30px;height:30px;font-family:var(--display);font-weight:900;font-size:1.15rem}
+.g-A{background:var(--blue);color:var(--blue-ink)}.g-B{background:var(--honolulu);color:#fff}.g-C{background:var(--heat0);color:var(--ink);outline:1.5px solid var(--line)}.g-D{background:var(--hi);color:var(--hi-ink)}.g-F{background:var(--red);color:#fff}
+.rc-big.g-C{outline-width:2px}
+.om-key{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.om-key i{display:inline-block;width:14px;height:12px;vertical-align:middle;margin-right:5px}.om-key .om-ev{width:0;height:14px;border-left:2px dashed var(--red)}
+.om{display:grid;gap:6px}
+.om-row{display:grid;grid-template-columns:170px minmax(0,1fr) 230px;gap:12px;align-items:center}
+.om-t{display:flex;align-items:center;gap:8px;min-width:0}.om-t b{font-family:var(--display);font-weight:800;font-size:1.05rem;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.om-bar{position:relative;display:flex;gap:2px;height:20px;background:var(--paper)}
+.om-1{display:block;background:var(--blue)}.om-2{display:block;background:var(--blue-2)}
+.om-even{position:absolute;top:-3px;bottom:-3px;border-left:2px dashed var(--red)}
+.om-v{font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.om-v b{margin-right:6px}.om-v small{display:block;font-family:var(--mono);font-size:.64rem;color:var(--muted)}
+.tm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px}
+.tm-card{border:2px solid var(--rule);border-top:6px solid var(--honolulu);background:var(--sheet);display:grid}
+.tm-card.empty{padding:14px;border-top-color:var(--silver)}
+.tm-body{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:start;padding:12px}
+.tm-side{display:grid;gap:3px;min-width:0}.tm-side b{font-family:var(--display);font-weight:900;font-size:1.3rem;text-transform:uppercase;line-height:1}.tm-side small{font-family:var(--mono);font-size:.64rem;color:var(--muted)}
+.tm-arrow{font-size:1.6rem;color:var(--honolulu);padding-top:22px}
+.tm-foot{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border-top:2px solid var(--rule);font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+.tm-foot b{color:var(--blue);font-size:.9rem}
+@media (max-width:760px){
+  .mw-head{padding:10px;gap:8px 6px;grid-template-columns:1fr 1fr;grid-template-areas:'a b' 'm m'}.mw-ta{grid-area:a}.mw-tb{grid-area:b}.mw-mid{grid-area:m}.mw-team b{font-size:1.05rem}.mw-head .lg-lg{width:44px;height:44px}.mw-mid b{font-size:1.1rem}
+  .mw-svg{padding:0 22px;box-sizing:border-box}.mw-svg .rd-lb{font-size:11px}
+  .mw-grid{grid-template-columns:1fr;gap:12px}.mw-a{grid-template-columns:minmax(0,1fr) 22% 34px}.mw-b{grid-template-columns:34px 22% minmax(0,1fr)}.mw-a em,.mw-b em{font-size:.72rem}.mw-row{grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr);gap:4px}
+  .rc-row{grid-template-columns:44px minmax(0,1fr);gap:8px 10px;padding:9px}.rc-big{font-size:2rem;grid-row:span 2}.rc-parts{grid-template-columns:1fr 1fr;gap:6px}.rc-p{font-size:.74rem;gap:6px}.rc-g{width:24px;height:24px;font-size:.95rem}
+  .om-row{grid-template-columns:96px minmax(0,1fr);gap:4px 8px}.om-t b{font-size:.8rem}.om-t .lg-sm{width:20px;height:20px}.om-v{grid-column:1/-1;font-size:.74rem;margin-top:-2px}
+  .tm-grid{grid-template-columns:1fr!important}.tm-side b{font-size:1.05rem}
+}
 /* Roster Radar (strength.py): one radar per team, nine lineup slots, season / rest-of-season switch */
 .rd-bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
 .rd-tg{display:flex}
@@ -665,7 +726,6 @@ footer b{color:var(--honolulu);font-weight:600}
   /* hero jump links as an even grid; graded tiles without the empty slot */
   #player-stats .ps-jump{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   #player-stats .ps-jump a{text-align:center;padding:8px 4px;font-size:.62rem;letter-spacing:.03em;white-space:nowrap}
-  #player-stats .ps-jump a:last-child{grid-column:1/-1}
   .rum-stats.rs5 .rs.hot{grid-column:1/-1}
 
   /* ---- less scrolling, fewer taps ---- */
@@ -780,7 +840,7 @@ footer b{color:var(--honolulu);font-weight:600}
 
 <div class="tab-pane" id="paper" role="tabpanel" aria-labelledby="tab-paper">
 
-<nav class="m-jump" style="display:none" aria-label="Jump to section"><span class="kicker">Jump to</span><a href="#scoreboard">At a glance</a><a href="#games">Scoreboard</a><a href="#positions">Positions</a><a href="#blotter">Blotter</a><a href="#wire">The wire</a><a href="#forecast">Wk {{NEXTWEEK}} forecast</a><a href="#league" data-tab="league">League &amp; teams →</a><a href="#player-stats" data-tab="player-stats">Player stats →</a></nav>
+<nav class="m-jump" style="display:none" aria-label="Jump to section"><span class="kicker">Jump to</span><a href="#scoreboard">At a glance</a><a href="#games">Scoreboard</a><a href="#positions">Positions</a><a href="#blotter">Blotter</a><a href="#wire">The wire</a><a href="#forecast">Wk {{NEXTWEEK}} forecast</a><a href="#matchup">Matchup</a><a href="#league" data-tab="league">League &amp; teams →</a><a href="#player-stats" data-tab="player-stats">Player stats →</a></nav>
 
 <div class="tiles" aria-label="Week {{WEEK}} by the numbers"><!--TILES--></div>
 
@@ -846,12 +906,14 @@ footer b{color:var(--honolulu);font-weight:600}
 
 <!--FORECAST-->
 
+<!--MATCHUP-->
+
 <a class="to-league" href="#league" data-tab="league"><span class="kicker">Season so far</span><b>Standings, playoff odds, team radars and trades</b><em>League &amp; Teams →</em></a>
 
 </div>
 
 <div class="tab-pane" id="league" role="tabpanel" aria-labelledby="tab-league" hidden>
-<section class="lg-hero" aria-label="League and teams"><span class="kicker">The league desk · weeks 1–{{WEEK}}</span><h2>League <span>&amp;</span> Teams</h2><p>Standings, playoff odds, season trends, rosters and trades.</p><nav class="lg-jump" aria-label="League sections"><a href="#pecking-order">Pecking order</a><a href="#playoff-odds">Playoff odds</a><a href="#power">Power ranks</a><a href="#heat">Heat map</a><a href="#luck">Good or lucky</a><a href="#floor-ceiling">Floor/ceiling</a><a href="#what-if">What if?</a><a href="#roster-radar">Roster radar</a><a href="#trades">Trades</a><a href="#trading-block">Trade block</a><a href="#waiver-mvp">Waivers</a></nav></section>
+<section class="lg-hero" aria-label="League and teams"><span class="kicker">The league desk · weeks 1–{{WEEK}}</span><h2>League <span>&amp;</span> Teams</h2><p>Standings, playoff odds, season trends, rosters and trades.</p><nav class="lg-jump" aria-label="League sections"><a href="#pecking-order">Pecking order</a><a href="#report-card">Report card</a><a href="#playoff-odds">Playoff odds</a><a href="#power">Power ranks</a><a href="#heat">Heat map</a><a href="#luck">Good or lucky</a><a href="#floor-ceiling">Floor/ceiling</a><a href="#one-man-show">One-man show</a><a href="#what-if">What if?</a><a href="#roster-radar">Roster radar</a><a href="#matchmaker">Matchmaker</a><a href="#trades">Trades</a><a href="#trading-block">Trade block</a><a href="#waiver-mvp">Waivers</a></nav></section>
 
 <section class="sec" id="pecking-order">
   <div class="sec-head"><h2>The Pecking Order</h2><span class="kicker">Ranked by all-play (your score vs. everyone, every week)</span></div>
@@ -862,6 +924,8 @@ footer b{color:var(--honolulu);font-weight:600}
   </table>
   </div>
 </section>
+
+<!--REPORTCARD-->
 
 <!--ODDS-->
 
@@ -880,9 +944,13 @@ footer b{color:var(--honolulu);font-weight:600}
 
 <!--RANGEBENCH-->
 
+<!--ONEMAN-->
+
 <!--WHATIF-->
 
 <!--STRENGTH-->
+
+<!--MATCHMAKER-->
 
 <!--RUMORS-->
 

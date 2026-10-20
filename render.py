@@ -564,13 +564,21 @@ ps_html = _players.build(LG["short_names"], W) if os.path.exists("data/players/m
 import strength as _strength
 strength_html = _strength.build(LG["short_names"], W)
 
+# Matchup of the Week (paper), Manager Report Card, One-Man Show, Trade Matchmaker (League & Teams): teams.py
+import teams as _teams
+_recs = {t: rec_s(SEA[t]) for t in SEA}
+matchup_html = _teams.matchup(LG["short_names"], W, F, _recs) if os.path.exists("data/players/meta.json") else ""
+report_html = _teams.report_card(LG["short_names"], W) if os.path.exists("data/players/meta.json") else ""
+oneman_html = _teams.one_man(LG["short_names"], W)
+matchmaker_html = _teams.matchmaker(LG["short_names"], W) if os.path.exists("data/players/meta.json") else ""
+
 out = open("template.html", encoding="utf-8").read()
 for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
              "<!--CRESTS-->": crests, "<!--UPSETS-->": upsets_html, "<!--ANNOUNCE-->": announce_html, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
              "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--BOOMBUST-->": boombust, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
-             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--WHATIF-->": whatif, "<!--STRENGTH-->": strength_html, "<!--POWER-->": power_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--WIRE-->": wire_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
+             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--WHATIF-->": whatif, "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--POWER-->": power_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--WIRE-->": wire_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
              "{{WEEK}}": str(W), "{{NEXTWEEK}}": str(W + 1), "{{SEASON}}": str(LG["season"]), "{{VOLUME}}": str(LG["volume"]), "{{LEAGUE_NAME}}": esc(LG["league_name"]),
              "{{LEAGUE_FORMAT}}": esc(LG["league_format"]), "{{PRICE}}": esc(LG["price"]), "{{NWEEKS}}": str(len(weeks))}.items():
     out = out.replace(k, v)
