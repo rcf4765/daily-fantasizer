@@ -224,61 +224,9 @@ scatter = f'''<div class="sc-wrap"><div class="sc" role="img" aria-label="Points
 <div class="sc-x"><span class="num">{x0:.0f}</span><span>Points scored →</span><span class="num">{x1:.0f}</span></div>
 <span class="sc-y">Points allowed →</span></div>'''
 
-# ---------- what if: everyone starts their best possible lineup every week ----------
-# Re-scores every played week from the saved data/weekK_raw.txt rosters (facts.optimal), then replays the
-# schedule with both teams at their optimal score. Standings = wins, then points for (ESPN's tiebreak).
+# (What If? was removed at the user's request, 2026-10-19.)
 import os as _os
 from facts import load as _load, optimal as _optimal
-WI_WEEKS = [k for k in range(1, W + 1) if _os.path.exists(f"data/week{k}_raw.txt")]
-whatif = ""
-if len(WI_WEEKS) == W:
-    WR = {t: dict(aw=0, al=0, at=0, ow=0, ol=0, ot=0, apf=0.0, opf=0.0, flips=[]) for t in teams}
-    for k in WI_WEEKS:
-        _m, _slots, _t, _sched, _ros, _tx, _lu = _load(f"data/week{k}_raw.txt")
-        opt = {t: _optimal(_ros[t], _slots)[0] for t in _ros}
-        for gm in _sched:
-            if gm["wk"] != k or not gm["away"]: continue
-            for t, u, tp, up in ((gm["home"], gm["away"], gm["hp"], gm["ap"]), (gm["away"], gm["home"], gm["ap"], gm["hp"])):
-                r = WR[t]; a_res = "W" if tp > up else "L" if tp < up else "T"; o_res = "W" if opt[t] > opt[u] else "L" if opt[t] < opt[u] else "T"
-                r["a" + a_res.lower()] += 1; r["o" + o_res.lower()] += 1; r["apf"] += tp; r["opf"] += opt[t]
-                if a_res != o_res: r["flips"].append((k, u, a_res, o_res, opt[t], opt[u]))
-    rank_a = sorted(teams, key=lambda t: (-WR[t]["aw"], -WR[t]["apf"]))
-    rank_o = sorted(teams, key=lambda t: (-WR[t]["ow"], -WR[t]["opf"]))
-    PO = int(F["meta"].get("playoffteams", 6)); RH = 38; H = RH * NT
-    def rec(t, p): r = WR[t]; return f'{r[p+"w"]}–{r[p+"l"]}' + (f'–{r[p+"t"]}' if r[p + "t"] else "")
-    def col(order, side):
-        return "".join(f'<div class="sl-row {side}{" po" if i < PO else ""}"><b class="num">{i+1}</b>{lg(t)}<span>{esc(SHORT[t])}</span><em class="num">{rec(t, "a" if side == "l" else "o")}</em></div>' for i, t in enumerate(order))
-    lines = []
-    for t in teams:
-        y1 = rank_a.index(t) * RH + RH / 2; y2 = rank_o.index(t) * RH + RH / 2
-        cls = "up" if y2 < y1 else "dn" if y2 > y1 else "eq"
-        lines.append(f'<line x1="0" y1="{y1:.0f}" x2="100" y2="{y2:.0f}" class="sl-{cls}"/>')
-    pol = PO * RH
-    slope = (f'<div class="slope" style="--rh:{RH}px" role="img" aria-label="Actual standings rank versus what-if rank">'
-             f'<div class="sl-head"><span>Actual</span><span></span><span>What if</span></div>'
-             f'<div class="sl-body"><div class="sl-col">{col(rank_a, "l")}</div>'
-             f'<svg viewBox="0 0 100 {H}" preserveAspectRatio="none" height="{H}" aria-hidden="true">'
-             f'<line x1="0" x2="100" y1="{pol}" y2="{pol}" class="sl-po"/>{"".join(sorted(lines, key=lambda s: "sl-eq" not in s))}</svg>'
-             f'<div class="sl-col">{col(rank_o, "r")}</div><span class="sl-po-lab" style="top:{pol}px">Playoff line</span></div></div>')
-    wrows = []
-    for i, t in enumerate(rank_o, 1):
-        r = WR[t]; mv = rank_a.index(t) + 1 - i
-        badge = f'<span class="mv {"up" if mv > 0 else "dn" if mv < 0 else "eq"}">{"▲" + str(mv) if mv > 0 else "▼" + str(-mv) if mv < 0 else "–"}</span>'
-        flips = "".join(f'<span class="flip {"w" if o == "W" else "l"}">Wk {k} vs {esc(SHORT[u])} {a}→{o}</span>' for k, u, a, o, x, y in r["flips"]) or '<span class="flip none">No change</span>'
-        wrows.append(f'<tr><td class="rk">{i}</td><td><span class="po-team">{lg(t, "lg-md")}<span><b>{esc(SHORT[t])}</b><small>actual rank {rank_a.index(t)+1}</small></span></span></td>'
-                     f'<td>{badge}</td><td class="n">{rec(t, "a")} <span class="arr">→</span> <b>{rec(t, "o")}</b></td>'
-                     f'<td class="n">{r["apf"]:.2f} <span class="arr">→</span> <b>{r["opf"]:.2f}</b><small class="gain">+{r["opf"]-r["apf"]:.2f}</small></td><td><span class="flips">{flips}</span></td></tr>')
-    nflip = sum(len(WR[t]["flips"]) for t in teams) // 2
-    po_in = [t for t in rank_o[:PO] if t not in rank_a[:PO]]; po_out = [t for t in rank_a[:PO] if t not in rank_o[:PO]]
-    big = max(teams, key=lambda t: rank_a.index(t) - rank_o.index(t))
-    stats = (f'<div class="rum-stats"><div class="rs"><b class="num">{nflip}</b><span>Games flipped</span></div>'
-             f'<div class="rs"><b class="num">{sum(WR[t]["opf"]-WR[t]["apf"] for t in teams):.1f}</b><span>Bench points, wks {WI_WEEKS[0]}–{W}</span></div>'
-             f'<div class="rs">{lg(big, "lg-sm")}<span>Biggest climber</span><small>{esc(SHORT[big])}: {rank_a.index(big)+1} → {rank_o.index(big)+1}</small></div>'
-             f'<div class="rs hot"><span>Playoff picture</span><small>' + (f'In: {", ".join(esc(SHORT[t]) for t in po_in)} · Out: {", ".join(esc(SHORT[t]) for t in po_out)}' if po_in else "Same six teams") + '</small></div></div>')
-    whatif = (f'<section class="sec" id="what-if"><div class="sec-head"><h2>What If?</h2><span class="kicker">Standings if every team started its best possible lineup, weeks {WI_WEEKS[0]}–{W}</span></div>'
-              f'{stats}<div class="wi-grid">{slope}<div class="tbl-wrap"><table class="wi"><thead><tr><th>#</th><th>Team</th><th>Move</th><th class="n">Record</th><th class="n">Points for</th><th>Games that flip</th></tr></thead>'
-              f'<tbody>{"".join(wrows)}</tbody></table></div></div>'
-              f'<p class="note-s">Both teams in every game get their best lineup from that week\'s roster. Ranked by wins, then points for. Top {PO} make the playoffs.</p></section>')
 
 # ---------- season sections: power rankings over time, playoff odds, floor/ceiling, bench hall of shame, waiver MVP ----------
 # All built from data/week1_raw.txt .. data/weekN_raw.txt (and data/schedule.json for playoff odds). Skipped if a week is missing.
@@ -578,7 +526,7 @@ for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{ba
              "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--BOOMBUST-->": boombust, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
-             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--WHATIF-->": whatif, "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--POWER-->": power_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--WIRE-->": wire_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
+             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--POWER-->": power_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--WIRE-->": wire_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
              "{{WEEK}}": str(W), "{{NEXTWEEK}}": str(W + 1), "{{SEASON}}": str(LG["season"]), "{{VOLUME}}": str(LG["volume"]), "{{LEAGUE_NAME}}": esc(LG["league_name"]),
              "{{LEAGUE_FORMAT}}": esc(LG["league_format"]), "{{PRICE}}": esc(LG["price"]), "{{NWEEKS}}": str(len(weeks))}.items():
     out = out.replace(k, v)

@@ -177,7 +177,7 @@ def build(short_names, week=None):
     out.append(f'<section class="ps-hero" aria-label="Player stats"><span class="kicker">The PPR player desk</span><h2>Player <span>Stats</span></h2>'
                f'<div class="ps-sub"><span>Usage {esc(live_note)}</span><span>Week {d.next} rankings &amp; start/sit</span><span>Rest of season</span><span>Rankings vs. actuals</span></div>'
                f'<nav class="ps-jump" aria-label="Player stats sections">'
-               + "".join(f'<a href="#{a}">{t}</a>' for a, t in [("ps-current", "Current data"), ("ps-risers", "Risers & fallers"), ("ps-trend", "Trend lines"), ("ps-volume", "Volume vs. scoring"), ("ps-steady", "Steady or streaky"), ("ps-proj", "Projections"), ("ps-startsit", "Start/sit"), ("ps-faceoff", "Face-off"), ("ps-defense", "Defense matchups"), ("ps-next", f"Week {d.next} ranks"), ("ps-ros", "Rest of season"), ("ps-variance", "Ranks vs. actuals")])
+               + "".join(f'<a href="#{a}">{t}</a>' for a, t in [("ps-current", "Current data"), ("ps-volume", "Volume vs. scoring"), ("ps-steady", "Steady or streaky"), ("ps-trend", "Trend lines"), ("ps-next", f"Week {d.next} ranks"), ("ps-proj", "Projections"), ("ps-defense", "Defense matchups"), ("ps-startsit", "Start/sit"), ("ps-faceoff", "Face-off"), ("ps-ros", "Rest of season"), ("ps-variance", "Ranks vs. actuals")])
                + '</nav></section>')
 
     # ---------- 1. current data: usage board ----------
@@ -462,11 +462,19 @@ def build(short_names, week=None):
                 out.insert(i + 1, html_); return
         out.append(html_)
     extra.update(desk.sections2(d, W_, short_names, int(d.meta.get("owner_team") or (json.load(open("league.json")).get("owner_team") if os.path.exists("league.json") else 1) or 1)))
-    # order (user, 2026-10-19): Current Data, Risers & Fallers, Trend Lines, Volume vs. Scoring, Steady or Streaky,
-    # Projections, Start/Sit, Player Face-Off, Defense Matchups, rankings
-    after("ps-current", extra.get("trend")); after("ps-current", extra.get("risers"))
-    after("ps-volume", extra.get("steady"))
+    after("ps-current", extra.get("trend")); after("ps-volume", extra.get("steady"))
     after("ps-startsit", extra.get("defense")); after("ps-startsit", extra.get("faceoff"))
+    # Reading order (user, 2026-10-19: "order the pages so the data makes sense as you scroll"):
+    # season so far -> next week -> rest of season -> how the rankings did
+    ORDER = ["ps-current", "ps-volume", "ps-steady", "ps-trend",
+             "ps-next", "ps-proj", "ps-defense", "ps-startsit", "ps-faceoff",
+             "ps-ros", "ps-variance"]
+    secs = {}
+    for h in list(out):
+        for id_ in ORDER:
+            if h.startswith(f'<section class="sec" id="{id_}"'):
+                secs[id_] = h; out.remove(h); break
+    out.extend(secs[i] for i in ORDER if i in secs)
     out.append(SCRIPT)
     out.append(desk.SCRIPT)
     # the tab carries its own styles, so a midweek --patch also updates them

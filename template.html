@@ -748,21 +748,6 @@ footer b{color:var(--honolulu);font-weight:600}
   .fs-stat span{font-size:.5rem!important;letter-spacing:.02em!important}
   .fs-stat b{font-size:.86rem!important}
   /* What If: one line per team */
-  #what-if table.mcards tr{grid-template-columns:30px minmax(0,1fr) auto auto!important;column-gap:10px!important;row-gap:3px!important;padding:8px 0!important;align-items:center}
-  #what-if td.c-rk{grid-row:1/span 2!important;align-self:center!important;font-size:1.3rem!important}
-  #what-if td.c-name{grid-column:2/3!important;grid-row:1!important}
-  #what-if td.c-name .lg-md{width:26px!important;height:26px!important}
-  #what-if .po-team b{font-size:.92rem!important}
-  #what-if .po-team small{font-size:.66rem}
-  #what-if td[data-label="Record"]{grid-column:3!important;grid-row:1!important;background:none!important;padding:0!important;font-size:.9rem!important;text-align:right}
-  #what-if td[data-label="Record"]::before,#what-if td[data-label="Points for"]::before{display:none!important}
-  #what-if td[data-label="Points for"]{grid-column:3!important;grid-row:2!important;background:none!important;padding:0!important;border:0!important;text-align:right;font-size:0!important;line-height:1}
-  #what-if td[data-label="Points for"] .gain{display:inline!important;font-size:.7rem!important;margin:0!important}
-  #what-if td[data-label="Points for"] .gain::before{content:"PF "}
-  #what-if td[data-label="Move"]{grid-column:4!important;grid-row:1/span 2!important;align-self:center!important}
-  #what-if td.c-wide{grid-column:2/-1!important;grid-row:3!important}
-  #what-if td.c-wide:has(.flip.none){display:none!important}
-  #what-if .flip{font-size:.62rem}
   /* graded lists: one line per player */
   #player-stats table.mcards.pst.sm tr,#player-stats table.mcards.pst.gr-all tr{grid-template-columns:minmax(0,1fr) auto auto auto!important;column-gap:10px!important;row-gap:2px!important;padding:8px 0!important;align-items:end}
   #player-stats table.mcards.pst.sm td.c-name,#player-stats table.mcards.pst.gr-all td.c-name{grid-column:1!important;grid-row:1!important;margin:0!important}
@@ -782,21 +767,20 @@ footer b{color:var(--honolulu);font-weight:600}
   #player-stats table.mcards.pst.sm .pn b,#player-stats table.mcards.pst.gr-all .pn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
   .m-top{width:40px!important;height:40px!important;opacity:.88;font-size:.56rem!important}
   /* Pecking Order: team header, form under the name, stat strip, note */
-  #pecking-order table.mcards tr,#what-if table.mcards tr{column-gap:0;row-gap:8px;padding:14px 0 16px}
+  #pecking-order table.mcards tr{column-gap:0;row-gap:8px;padding:14px 0 16px}
   #pecking-order table.mcards tr{grid-template-columns:36px repeat(3,minmax(0,1fr))}
-  #pecking-order td.c-rk,#what-if td.c-rk{grid-column:1;grid-row:1/span 2;align-self:start;font-size:1.75rem;line-height:.9;color:var(--muted)}
-  #pecking-order tr:nth-child(-n+3) td.c-rk,#what-if tr:nth-child(-n+3) td.c-rk{color:var(--blue)}
-  #pecking-order td.c-name,#what-if td.c-name{grid-row:1}
+  #pecking-order td.c-rk{grid-column:1;grid-row:1/span 2;align-self:start;font-size:1.75rem;line-height:.9;color:var(--muted)}
+  #pecking-order tr:nth-child(-n+3) td.c-rk{color:var(--blue)}
+  #pecking-order td.c-name{grid-row:1}
   #pecking-order td.c-name{grid-column:2/4}
-  #pecking-order .po-team,#what-if .po-team{gap:9px}
-  #pecking-order td.c-name .lg-md,#what-if td.c-name .lg-md{width:34px;height:34px}
-  #pecking-order .po-team b,#what-if .po-team b{font-size:1rem;line-height:1.15}
+  #pecking-order .po-team{gap:9px}
+  #pecking-order td.c-name .lg-md{width:34px;height:34px}
+  #pecking-order .po-team b{font-size:1rem;line-height:1.15}
   #pecking-order td[data-label="Record"]{grid-column:4;grid-row:1;justify-self:end;align-self:start;font-family:var(--display);font-weight:900;font-size:1.7rem;line-height:.9}
   #pecking-order td[data-label="Form"]{grid-column:2/-1;grid-row:2;padding-left:43px}
   #pecking-order td[data-label="Form"]::before,#pecking-order td[data-label="Record"]::before,#pecking-order td.note::before{display:none!important}
   #pecking-order td .fm{width:17px;height:17px;font-size:.58rem}
   #pecking-order td[data-label="All-play"],#pecking-order td[data-label="Points for"],#pecking-order td[data-label="Luck"],
-  #what-if td[data-label="Record"],#what-if td[data-label="Points for"]{grid-row:3;background:var(--paper);padding:7px 10px 8px;align-self:stretch;font-size:.95rem}
   #pecking-order td[data-label="All-play"]{grid-column:2;border-radius:3px 0 0 3px}
   #pecking-order td[data-label="Points for"]{grid-column:3;border-left:1px solid var(--line)}
   #pecking-order td[data-label="Luck"]{grid-column:4;border-left:1px solid var(--line);border-radius:0 3px 3px 0}
@@ -807,16 +791,6 @@ footer b{color:var(--honolulu);font-weight:600}
   #pecking-order .luck-n{font-size:.95rem;color:var(--ink)}
   #pecking-order td.note{grid-column:2/-1!important;grid-row:4;font-style:italic;font-size:.84rem;color:var(--muted)}
   /* What If: same header, then actual -> best-lineup strip and flipped games */
-  #what-if table.mcards tr{grid-template-columns:36px minmax(0,.85fr) minmax(0,1.3fr) auto}
-  #what-if td.c-name{grid-column:2/4}
-  #what-if td[data-label="Move"]{grid-column:4;grid-row:1;justify-self:end;align-self:start}
-  #what-if td[data-label="Move"]::before,#what-if td.c-wide::before{display:none!important}
-  #what-if td[data-label="Record"]{grid-column:2;border-radius:3px 0 0 3px}
-  #what-if td[data-label="Points for"]{grid-column:3/5;border-left:1px solid var(--line);border-radius:0 3px 3px 0}
-  #what-if td[data-label="Points for"],#what-if td[data-label="Record"]{white-space:nowrap}
-  #what-if td[data-label="Points for"] .gain{display:block;margin:2px 0 0;font-size:.74rem}
-  #what-if td.c-wide{grid-column:2/-1!important;grid-row:4}
-  #what-if tr:has(.flip) td.c-name b::after{content:"";}
 }
 </style>
 
@@ -873,8 +847,6 @@ footer b{color:var(--honolulu);font-weight:600}
   <div class="games"><!--GAMES--></div>
 </section>
 
-<!--HONOR-->
-
 <section class="twocol">
   <div class="sec" id="positions">
     <div class="sec-head"><h2>Points by Position</h2><span class="kicker">Starters only</span></div>
@@ -885,6 +857,8 @@ footer b{color:var(--honolulu);font-weight:600}
     <div class="pk-grid"><!--POSKINGS--></div>
   </div>
 </section>
+
+<!--HONOR-->
 
 <section class="crime" id="blotter">
   <div class="sec">
@@ -898,8 +872,6 @@ footer b{color:var(--honolulu);font-weight:600}
     </div>
   </div>
 </section>
-
-
 
 <section class="sec" id="wire">
   <div class="sec-head"><h2>The Wire</h2><span class="kicker">Adds, drops, and what the new guy scored</span></div>
@@ -915,7 +887,7 @@ footer b{color:var(--honolulu);font-weight:600}
 </div>
 
 <div class="tab-pane" id="league" role="tabpanel" aria-labelledby="tab-league" hidden>
-<section class="lg-hero" aria-label="League and teams"><span class="kicker">The league desk · weeks 1–{{WEEK}}</span><h2>League <span>&amp;</span> Teams</h2><p>Standings, playoff odds, season trends, rosters and trades.</p><nav class="lg-jump" aria-label="League sections"><a href="#pecking-order">Pecking order</a><a href="#report-card">Report card</a><a href="#playoff-odds">Playoff odds</a><a href="#power">Power ranks</a><a href="#heat">Heat map</a><a href="#luck">Good or lucky</a><a href="#floor-ceiling">Floor/ceiling</a><a href="#one-man-show">One-man show</a><a href="#what-if">What if?</a><a href="#roster-radar">Roster radar</a><a href="#matchmaker">Matchmaker</a><a href="#trades">Trades</a><a href="#trading-block">Trade block</a><a href="#waiver-mvp">Waivers</a></nav></section>
+<section class="lg-hero" aria-label="League and teams"><span class="kicker">The league desk · weeks 1–{{WEEK}}</span><h2>League <span>&amp;</span> Teams</h2><p>Standings, playoff odds, season trends, rosters and trades.</p><nav class="lg-jump" aria-label="League sections"><a href="#pecking-order">Pecking order</a><a href="#power">Power ranks</a><a href="#playoff-odds">Playoff odds</a><a href="#heat">Heat map</a><a href="#luck">Good or lucky</a><a href="#floor-ceiling">Floor/ceiling</a><a href="#report-card">Report card</a><a href="#roster-radar">Roster radar</a><a href="#one-man-show">One-man show</a><a href="#waiver-mvp">Waivers</a><a href="#trades">Trades</a><a href="#trading-block">Trade block</a><a href="#matchmaker">Matchmaker</a></nav></section>
 
 <section class="sec" id="pecking-order">
   <div class="sec-head"><h2>The Pecking Order</h2><span class="kicker">Ranked by all-play (your score vs. everyone, every week)</span></div>
@@ -927,11 +899,9 @@ footer b{color:var(--honolulu);font-weight:600}
   </div>
 </section>
 
-<!--REPORTCARD-->
+<!--POWER-->
 
 <!--ODDS-->
-
-<!--POWER-->
 
 <section class="twocol">
   <div class="sec" id="heat">
@@ -946,17 +916,17 @@ footer b{color:var(--honolulu);font-weight:600}
 
 <!--RANGEBENCH-->
 
-<!--ONEMAN-->
-
-<!--WHATIF-->
+<!--REPORTCARD-->
 
 <!--STRENGTH-->
 
-<!--MATCHMAKER-->
+<!--ONEMAN-->
+
+<!--WAIVERMVP-->
 
 <!--RUMORS-->
 
-<!--WAIVERMVP-->
+<!--MATCHMAKER-->
 
 <a class="to-league" href="#player-stats" data-tab="player-stats"><span class="kicker">The PPR player desk</span><b>Trend lines, start/sit, defense matchups and rankings</b><em>Player Stats →</em></a>
 </div>

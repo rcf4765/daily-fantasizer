@@ -248,63 +248,13 @@ CSS = r"""
 
 
 # ====================================================================== added 2026-10-19 (second batch)
-# Risers & Fallers, Player Face-Off, Steady or Streaky. (Margin Map was previewed and turned down.)
+# Player Face-Off, Steady or Streaky. (Margin Map was turned down; Risers & Fallers was added and then removed, 2026-10-19.)
 import statistics as _st
 
 
 def _relevant(p):
     rr = p.get("ros_rank")
     return bool(p.get("owner")) or (rr and rr <= {"QB": 32, "RB": 60, "WR": 72, "TE": 32}[p["pos"]]) or p["ppg"] >= 6
-
-
-def risers(d, W, short):
-    """Week W target share and snap share vs. the player's average over the previous three weeks
-    (needs 2+ of them). RB/WR/TE still on an NFL team who matter (rostered, ranked or 6+ PPR/g, or a role
-    of 35%+ snaps). Six biggest moves each way."""
-    if W < 3:
-        return ""
-    rows = []
-    prev_w = [w for w in (W - 3, W - 2, W - 1) if w >= 1]
-    for p in d.P:
-        if p["pos"] not in ("RB", "WR", "TE") or p["team"] in ("FA", "", None):
-            continue
-        g = set(d.games(p)); u = d.use.get(p["key"], {})
-        if W not in g:
-            continue
-        prev = [w for w in prev_w if w in g]
-        if len(prev) < 2:
-            continue
-        m = lambda k, ws: (lambda v: sum(v) / len(v) if v else None)([u[w][k] for w in ws if w in u and u[w].get(k) is not None])
-        ts1, ts0, sn1, sn0 = m("ts", [W]), m("ts", prev), m("snap", [W]), m("snap", prev)
-        if None in (ts1, ts0, sn1, sn0):
-            continue
-        if not (_relevant(p) or max(sn0, sn1) >= 0.35):
-            continue
-        rows.append(dict(p=p, ts1=round(ts1 * 100), ts0=round(ts0 * 100), sn1=round(sn1 * 100), sn0=round(sn0 * 100), pts=p["act"][W]["pts"]))
-    if not rows:
-        return ""
-
-    def panel(title, k, up, mx):
-        rs = sorted(rows, key=lambda r: (r[k + "1"] - r[k + "0"]) * (1 if up else -1), reverse=True)[:6]
-        body = ""
-        for r in rs:
-            p = r["p"]; a, b = r[k + "0"], r[k + "1"]
-            x = lambda v: min(100, v / mx * 100)
-            inj = p.get("inj", "ACTIVE")
-            injt = f'<span class="inj">{esc(inj[0] if inj in ("QUESTIONABLE", "DOUBTFUL", "OUT") else "IR" if inj == "INJURY_RESERVE" else inj[:1])}</span>' if inj not in ("ACTIVE", "NORMAL", None) else ""
-            own = f'{lg(p["owner"])}<em>{esc(short[p["owner"]])}</em>' if p.get("owner") else '<span class="own fa">FA</span>'
-            body += (f'<div class="rf-row"><span class="rf-n"><b>{esc(p["name"])}{injt}</b><small>{esc(p["pos"])} · {esc(p["team"])} · {r["pts"]:.1f} pts wk {W}</small></span>'
-                     f'<span class="rf-own">{own}</span>'
-                     f'<span class="rf-t"><i class="rf-ln" style="left:{x(min(a, b)):.1f}%;width:{abs(x(b) - x(a)):.1f}%"></i>'
-                     f'<i class="rf-was" style="left:{x(a):.1f}%" title="Weeks {prev_w[0]}–{prev_w[-1]}: {a}%"></i><i class="rf-now" style="left:{x(b):.1f}%" title="Week {W}: {b}%"></i></span>'
-                     f'<b class="rf-v num">{a}→{b}%</b></div>')
-        return f'<div class="rf-p {"rf-up" if up else "rf-dn"}"><h3>{title}</h3>{body}</div>'
-    body = (f'<div class="rf-key"><span><i class="k-was"></i>Weeks {prev_w[0]}–{prev_w[-1]} average</span><span><i class="k-up"></i><i class="k-dn"></i>Week {W}</span></div>'
-            f'<div class="rf-grid">{panel("Target share: risers", "ts", True, 45)}{panel("Target share: fallers", "ts", False, 45)}'
-            f'{panel("Snap share: risers", "sn", True, 100)}{panel("Snap share: fallers", "sn", False, 100)}</div>'
-            f'<p class="note-s">Week {W} share of his team&#39;s targets and offensive snaps against his average over weeks {prev_w[0]}–{prev_w[-1]} (2+ games needed). '
-            f'RBs, WRs and TEs who are rostered, ranked or playing real snaps. A sudden drop can mean he left the game hurt; check the tag.</p>')
-    return sec("ps-risers", "Risers &amp; Fallers", f"Role changes · week {W} vs. weeks {prev_w[0]}–{prev_w[-1]}", body)
 
 
 def faceoff(d, W, short, own_team):
@@ -401,7 +351,7 @@ def steady(d, W, short):
 def sections2(d, W, short_names, own_team):
     short = {int(k): v for k, v in short_names.items()}
     out = {}
-    for k, f, a in (("risers", risers, (d, W, short)), ("faceoff", faceoff, (d, W, short, own_team)), ("steady", steady, (d, W, short))):
+    for k, f, a in (("faceoff", faceoff, (d, W, short, own_team)), ("steady", steady, (d, W, short))):
         try:
             out[k] = f(*a)
         except Exception as e:
@@ -500,25 +450,6 @@ SCRIPT += r"""<script>
 </script>"""
 
 CSS += r"""
-/* Risers & Fallers */
-.rf-key{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.rf-key i{display:inline-block;vertical-align:middle;margin-right:4px;width:11px;height:11px;border-radius:50%;box-sizing:border-box}
-.rf-key .k-was{background:var(--sheet);border:2px solid var(--muted)}.rf-key .k-up{background:var(--blue);margin-right:2px}.rf-key .k-dn{background:var(--red)}
-.rf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:18px 28px}
-.rf-p h3{font-size:1.35rem;font-weight:900;text-transform:uppercase;margin-bottom:6px}
-.rf-p.rf-up h3{color:var(--blue)}.rf-p.rf-dn h3{color:var(--red)}
-.rf-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.8fr) minmax(0,1fr) 74px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
-.rf-n{display:grid;min-width:0}.rf-n b{font-size:.92rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rf-n b .inj{margin-left:5px}
-.rf-n small{font-family:var(--mono);font-size:.62rem;color:var(--muted)}
-.rf-own{display:flex;align-items:center;gap:5px;font-size:.74rem;min-width:0;color:var(--ink)}.rf-own em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rf-t{position:relative;height:16px;border-bottom:1px solid var(--line)}
-.rf-t i{position:absolute;top:2px;width:12px;height:12px;border-radius:50%;transform:translateX(-50%);box-sizing:border-box}
-.rf-t .rf-ln{top:7px;height:2px;border-radius:0;transform:none;opacity:.5}
-.rf-up .rf-ln{background:var(--blue)}.rf-dn .rf-ln{background:var(--red)}
-.rf-was{background:var(--sheet);border:2px solid var(--muted)}
-.rf-up .rf-now{background:var(--blue)}.rf-dn .rf-now{background:var(--red)}
-.rf-up .rf-v{color:var(--blue)}.rf-dn .rf-v{color:var(--red)}
-.rf-v{font-size:.82rem;text-align:right}
 /* Player Face-Off */
 .fo{display:grid;gap:12px}
 .fo-pick{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:end}
@@ -559,8 +490,6 @@ CSS += r"""
 .st-bars{display:flex;align-items:flex-end;gap:3px;height:34px;border-bottom:1px solid var(--line)}
 .st-bars i{display:block;flex:1;background:var(--blue);min-height:2px}
 @media (max-width:760px){
-  .rf-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 8px}.rf-own{grid-row:2;font-size:.66rem}.rf-t{grid-row:2}.rf-v{grid-column:2;grid-row:1;font-size:.74rem}
-  .rf-n b{font-size:.82rem}
   .fo-r{grid-template-columns:minmax(0,1fr) 92px minmax(0,1fr);gap:6px}.fo-m{font-size:.54rem;letter-spacing:.02em}.fo-a b,.fo-b b{font-size:.78rem;min-width:40px}
   .fo-head{padding:9px}.fo-own{font-size:.68rem}.fo-pick{gap:6px}.fo-pick select{font-size:.8rem;padding:6px}
   .st{aspect-ratio:1.05}.st .q{font-size:.52rem}
