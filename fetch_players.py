@@ -10,6 +10,8 @@ Writes compact JSON into data/players/:
   fp_lean.json        players one tracked analyst (Joel Smyth) ranks well above/below consensus
   espn_kdst.json      kickers and D/STs: ESPN weekly projections (current and next week, plus every past week
                       ESPN returns), actual points, league owner (added 2026-10-19 for Matchup of the Week)
+  waivers.json        ESPN waiver settings (acquisitionSettings) and each team's current waiver rank, saved every
+                      run with a history so order changes can be compared week to week (added 2026-10-20)
   nfl_schedule.json   NFL regular-season schedule (nflverse games.csv): team -> week -> opponent, plus bye weeks
                       (for trend-line projections, byes and defense matchups; added 2026-10-19)
   meta.json           which weeks are complete, the upcoming week, fetch time
@@ -201,6 +203,24 @@ def fantasypros(cur, final):
     return upcoming
 
 
+def espn_waivers():
+    """League waiver settings plus each team's waiver rank right now. Keeps a history list so we can see when
+    the order changes (user, 2026-10-20: "check to see if waiver priorities reset each week")."""
+    st = E.get(BASE, params={"view": ["mSettings", "mTeam"]}, timeout=30)
+    if st.status_code != 200:
+        print("waivers: ESPN", st.status_code); return
+    j = st.json()
+    acq = (j.get("settings") or {}).get("acquisitionSettings") or {}
+    order = {str(t["id"]): t.get("waiverRank") for t in j.get("teams", [])}
+    path = os.path.join(OUT, "waivers.json")
+    old = json.load(open(path)) if os.path.exists(path) else {}
+    hist = old.get("history", [])
+    snap = {"fetched": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%MZ"), "scoringPeriod": j.get("scoringPeriodId"), "order": order}
+    if not hist or hist[-1].get("order") != order:
+        hist.append(snap)
+    save("waivers.json", {"settings": acq, "current": snap, "history": hist[-40:]})
+
+
 KDST = {5: "K", 16: "D/ST"}
 
 
@@ -265,6 +285,10 @@ def nfl_schedule():
 
 def main():
     cur, final = espn()
+    try:
+        espn_waivers()
+    except Exception as e:
+        print("waivers failed:", e)
     try:
         espn_kdst(cur)
     except Exception as e:  # nice-to-have: Matchup of the Week falls back to season averages
