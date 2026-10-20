@@ -430,6 +430,29 @@ td.note{font-size:.82rem;color:var(--muted);max-width:24ch}
 @media (max-width:760px){.lg-hero{padding:16px 14px 14px}.lg-jump{display:grid;grid-template-columns:1fr 1fr;gap:6px}.lg-jump a{text-align:center;padding:8px 4px;font-size:.62rem;white-space:nowrap}
   .to-league{grid-template-columns:1fr;padding:12px 14px;border-left-width:8px}.to-league em{justify-self:start}
   .tabs .tab{padding:8px 6px 7px}.tabs .tab-t{font-size:.8rem;letter-spacing:.02em}.tabs .tab-s{font-size:.48rem}}
+/* The Standings Race (teams.race): crests slide through the standings week by week */
+.sr-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.sr-wks{display:flex;flex-wrap:wrap}
+.sr-wks .pt+.pt{border-left:0}
+#standings-race .pt{appearance:none;font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:6px 10px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer}
+#standings-race .pt[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+#standings-race .sr-play{background:var(--blue);border-color:var(--blue);color:var(--blue-ink);min-width:84px}
+.sr-board{border:3px solid var(--rule);background:var(--sheet)}
+.sr-head,.sr-row{display:grid;grid-template-columns:46px 46px minmax(0,1fr) 64px 76px 54px;align-items:center;gap:0 10px;padding:0 14px}
+.sr-head{font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);height:30px;border-bottom:2px solid var(--rule)}
+.sr-list{position:relative;height:calc(var(--n) * 52px)}
+.sr-row{position:absolute;left:0;right:0;top:0;height:52px;border-bottom:1px solid var(--line);background:var(--sheet);transition:transform 1s cubic-bezier(.4,.1,.2,1)}
+.sr-row.lead{background:color-mix(in srgb,var(--hi) 22%,var(--sheet))}
+.sr-rk{font-family:var(--display);font-weight:900;font-size:1.6rem;text-align:center;color:var(--muted)}
+.sr-row.lead .sr-rk{color:var(--blue)}
+.sr-nm{font-family:var(--display);font-weight:800;font-size:1.15rem;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-rec{font-family:var(--display);font-weight:900;font-size:1.25rem}
+.sr-pf{font-size:.82rem;color:var(--muted)}
+.sr-mv{font-style:normal;font-family:var(--mono);font-size:.74rem;font-weight:600;text-align:center;padding:2px 0}
+.sr-mv.up{background:var(--blue);color:var(--blue-ink)}.sr-mv.dn{background:var(--red);color:#fff}.sr-mv.eq{color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.sr-row{transition:none}}
+@media (max-width:760px){.sr-head,.sr-row{grid-template-columns:30px 34px minmax(0,1fr) 44px 40px;gap:0 6px;padding:0 8px}.sr-head span:nth-child(5),.sr-pf{display:none}
+  .sr-row .lg-md{width:30px;height:30px}.sr-rk{font-size:1.2rem}.sr-nm{font-size:.92rem}.sr-rec{font-size:1rem}.sr-mv{font-size:.64rem}#standings-race .pt{padding:6px 7px;font-size:.62rem}}
 /* Matchup of the Week, Manager Report Card, One-Man Show, Trade Matchmaker (teams.py) */
 .mw-head{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:14px;padding:14px 18px;border:3px solid var(--rule);background:radial-gradient(var(--dot) 1.2px,transparent 1.4px) 0 0/8px 8px,var(--sheet)}
 .mw-team{display:grid;justify-items:center;gap:4px;text-align:center;min-width:0}
@@ -829,7 +852,7 @@ footer b{color:var(--honolulu);font-weight:600}
 </div>
 
 <div class="tab-pane" id="league" role="tabpanel" aria-labelledby="tab-league" hidden>
-<section class="lg-hero" aria-label="League and teams"><span class="kicker">The league desk · weeks 1–{{WEEK}}</span><h2>League <span>&amp;</span> Teams</h2><p>Standings, playoff odds, season trends, rosters and trades.</p><nav class="lg-jump" aria-label="League sections"><a href="#pecking-order">Pecking order</a><a href="#playoff-odds">Playoff odds</a><a href="#heat">Heat map</a><a href="#luck">Good or lucky</a><a href="#floor-ceiling">Floor/ceiling</a><a href="#report-card">Report card</a><a href="#roster-radar">Roster radar</a><a href="#one-man-show">One-man show</a><a href="#waiver-mvp">Waivers</a><a href="#trades">Trades</a><a href="#trading-block">Trade block</a><a href="#matchmaker">Matchmaker</a></nav></section>
+<section class="lg-hero" aria-label="League and teams"><span class="kicker">The league desk · weeks 1–{{WEEK}}</span><h2>League <span>&amp;</span> Teams</h2><p>Standings, playoff odds, season trends, rosters and trades.</p><nav class="lg-jump" aria-label="League sections"><a href="#pecking-order">Pecking order</a><a href="#standings-race">Standings race</a><a href="#playoff-odds">Playoff odds</a><a href="#heat">Heat map</a><a href="#luck">Good or lucky</a><a href="#floor-ceiling">Floor/ceiling</a><a href="#report-card">Report card</a><a href="#roster-radar">Roster radar</a><a href="#one-man-show">One-man show</a><a href="#waiver-mvp">Waivers</a><a href="#trades">Trades</a><a href="#trading-block">Trade block</a><a href="#matchmaker">Matchmaker</a></nav></section>
 
 <section class="sec" id="pecking-order">
   <div class="sec-head"><h2>The Pecking Order</h2><span class="kicker">Ranked by all-play (your score vs. everyone, every week)</span></div>
@@ -840,6 +863,8 @@ footer b{color:var(--honolulu);font-weight:600}
   </table>
   </div>
 </section>
+
+<!--RACE-->
 
 <!--ODDS-->
 
