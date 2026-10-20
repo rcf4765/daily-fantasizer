@@ -245,3 +245,324 @@ CSS = r"""
   .dv{grid-template-columns:40px repeat(4,minmax(0,1fr)) 62px;min-width:0}.dv-c{flex-direction:column;align-items:center;gap:0;padding:4px 1px}.dv-c b{font-size:.74rem}.dv-o{font-size:.58rem;padding-left:4px}.dv-t{font-size:.85rem}
 }
 """
+
+
+# ====================================================================== added 2026-10-19 (second batch)
+# Risers & Fallers, Player Face-Off, Steady or Streaky. (Margin Map was previewed and turned down.)
+import statistics as _st
+
+
+def _relevant(p):
+    rr = p.get("ros_rank")
+    return bool(p.get("owner")) or (rr and rr <= {"QB": 32, "RB": 60, "WR": 72, "TE": 32}[p["pos"]]) or p["ppg"] >= 6
+
+
+def risers(d, W, short):
+    """Week W target share and snap share vs. the player's average over the previous three weeks
+    (needs 2+ of them). RB/WR/TE still on an NFL team who matter (rostered, ranked or 6+ PPR/g, or a role
+    of 35%+ snaps). Six biggest moves each way."""
+    if W < 3:
+        return ""
+    rows = []
+    prev_w = [w for w in (W - 3, W - 2, W - 1) if w >= 1]
+    for p in d.P:
+        if p["pos"] not in ("RB", "WR", "TE") or p["team"] in ("FA", "", None):
+            continue
+        g = set(d.games(p)); u = d.use.get(p["key"], {})
+        if W not in g:
+            continue
+        prev = [w for w in prev_w if w in g]
+        if len(prev) < 2:
+            continue
+        m = lambda k, ws: (lambda v: sum(v) / len(v) if v else None)([u[w][k] for w in ws if w in u and u[w].get(k) is not None])
+        ts1, ts0, sn1, sn0 = m("ts", [W]), m("ts", prev), m("snap", [W]), m("snap", prev)
+        if None in (ts1, ts0, sn1, sn0):
+            continue
+        if not (_relevant(p) or max(sn0, sn1) >= 0.35):
+            continue
+        rows.append(dict(p=p, ts1=round(ts1 * 100), ts0=round(ts0 * 100), sn1=round(sn1 * 100), sn0=round(sn0 * 100), pts=p["act"][W]["pts"]))
+    if not rows:
+        return ""
+
+    def panel(title, k, up, mx):
+        rs = sorted(rows, key=lambda r: (r[k + "1"] - r[k + "0"]) * (1 if up else -1), reverse=True)[:6]
+        body = ""
+        for r in rs:
+            p = r["p"]; a, b = r[k + "0"], r[k + "1"]
+            x = lambda v: min(100, v / mx * 100)
+            inj = p.get("inj", "ACTIVE")
+            injt = f'<span class="inj">{esc(inj[0] if inj in ("QUESTIONABLE", "DOUBTFUL", "OUT") else "IR" if inj == "INJURY_RESERVE" else inj[:1])}</span>' if inj not in ("ACTIVE", "NORMAL", None) else ""
+            own = f'{lg(p["owner"])}<em>{esc(short[p["owner"]])}</em>' if p.get("owner") else '<span class="own fa">FA</span>'
+            body += (f'<div class="rf-row"><span class="rf-n"><b>{esc(p["name"])}{injt}</b><small>{esc(p["pos"])} · {esc(p["team"])} · {r["pts"]:.1f} pts wk {W}</small></span>'
+                     f'<span class="rf-own">{own}</span>'
+                     f'<span class="rf-t"><i class="rf-ln" style="left:{x(min(a, b)):.1f}%;width:{abs(x(b) - x(a)):.1f}%"></i>'
+                     f'<i class="rf-was" style="left:{x(a):.1f}%" title="Weeks {prev_w[0]}–{prev_w[-1]}: {a}%"></i><i class="rf-now" style="left:{x(b):.1f}%" title="Week {W}: {b}%"></i></span>'
+                     f'<b class="rf-v num">{a}→{b}%</b></div>')
+        return f'<div class="rf-p {"rf-up" if up else "rf-dn"}"><h3>{title}</h3>{body}</div>'
+    body = (f'<div class="rf-key"><span><i class="k-was"></i>Weeks {prev_w[0]}–{prev_w[-1]} average</span><span><i class="k-up"></i><i class="k-dn"></i>Week {W}</span></div>'
+            f'<div class="rf-grid">{panel("Target share: risers", "ts", True, 45)}{panel("Target share: fallers", "ts", False, 45)}'
+            f'{panel("Snap share: risers", "sn", True, 100)}{panel("Snap share: fallers", "sn", False, 100)}</div>'
+            f'<p class="note-s">Week {W} share of his team&#39;s targets and offensive snaps against his average over weeks {prev_w[0]}–{prev_w[-1]} (2+ games needed). '
+            f'RBs, WRs and TEs who are rostered, ranked or playing real snaps. A sudden drop can mean he left the game hurt; check the tag.</p>')
+    return sec("ps-risers", "Risers &amp; Fallers", f"Role changes · week {W} vs. weeks {prev_w[0]}–{prev_w[-1]}", body)
+
+
+def faceoff(d, W, short, own_team):
+    import strength as S
+    S.ros_values(d)
+    rawp = S.raw_proj(W)
+    sch = _sched(); byes = (sch or {}).get("byes", {})
+    nxt = W + 1
+    rows = []
+    for p in d.P:
+        if p["g"] < 1 or not _relevant(p):
+            continue
+        pj = S.proj_for(d, p, nxt, rawp)
+        if nxt in byes.get(p["team"], []) or p.get("inj") in ("OUT", "INJURY_RESERVE"):
+            pj = 0.0
+        g = [w for w in d.games(p) if w <= W]
+        pts = [p["act"][w]["pts"] for w in g]
+        rows.append([p["name"], p["pos"], p["team"], p.get("owner") or 0, round(p["ppg"], 1), round(p["l3"], 1),
+                     None if pj is None else round(pj, 1), round(p["ros"], 1), p.get("ros_rank") or 0,
+                     round(p["tgt_g"], 1), round(p["tch_g"], 1), None if p["ts"] is None else round(p["ts"] * 100),
+                     None if p["snap"] is None else round(p["snap"] * 100), round(max(pts), 1) if pts else 0, round(min(pts), 1) if pts else 0,
+                     p.get("inj", "ACTIVE")])
+    if len(rows) < 2:
+        return ""
+    rows.sort(key=lambda r: (r[3] == 0, r[3], -r[7]))
+    mine = sorted([r for r in rows if r[3] == own_team and r[1] in ("RB", "WR", "TE")], key=lambda r: -r[7])
+    # default: the owner team's two closest RB/WR/TE by rest-of-season value outside its top three (a real FLEX-type call)
+    pair = None
+    if len(mine) >= 2:
+        playing = [r for r in mine if r[6]]  # skip byes and players ruled out for next week
+        mine = playing if len(playing) >= 2 else mine
+        cands = mine[2:] if len(mine) >= 4 else mine
+        pair = min(((a, b) for i, a in enumerate(cands) for b in cands[i + 1:]), key=lambda ab: abs(ab[0][7] - ab[1][7]), default=None)
+    data = {"teams": {str(k): v for k, v in short.items()}, "p": rows, "nxt": nxt,
+            "def": [pair[0][0], pair[1][0]] if pair else [rows[0][0], rows[1][0]]}
+    body = (f'<div class="fo"><div class="fo-pick"><label><span class="kicker">Player A</span><select id="fo-a"></select></label><span class="fo-vs">vs.</span>'
+            f'<label><span class="kicker">Player B</span><select id="fo-b"></select></label></div>'
+            f'<div class="fo-head" id="fo-head"></div><div class="fo-rows" id="fo-rows"></div><div class="fo-sum" id="fo-sum"></div></div>'
+            f'<script type="application/json" id="fo-data">{json.dumps(data, separators=(",", ":")).replace("</", "<\\/")}</script>'
+            f'<p class="note-s">Any two players who matter: rostered, ranked or scoring 6+ PPR per game. Week {nxt} projection is the blended number (zero on a bye or ruled out). '
+            f'Rest of season = his consensus ranking turned into points per game. Floor and ceiling = his worst and best game so far.</p>')
+    return sec("ps-faceoff", "Player Face-Off", "Any two players, stat by stat", body)
+
+
+def steady(d, W, short):
+    rows = []
+    for p in d.P:
+        g = [w for w in d.games(p) if w <= W]
+        if len(g) < 3 or p["ppg"] < 6:
+            continue
+        pts = [p["act"][w]["pts"] for w in g]
+        o = p.get("owner") or 0
+        rows.append({"n": p["name"], "pos": p["pos"], "tm": p["team"], "o": o, "on": short.get(o, "Free agent") if o else "Free agent",
+                     "g": len(g), "ppg": round(_st.mean(pts), 1), "sd": round(_st.pstdev(pts), 1), "lo": round(min(pts), 1),
+                     "md": round(_st.median(pts), 1), "hi": round(max(pts), 1), "l3": round(p["l3"], 1),
+                     "wk": [round(x, 1) for x in pts], "inj": p.get("inj", "ACTIVE"), "k": p["key"]})
+    if len(rows) < 5:
+        return ""
+    import math as _m
+    xs = [r["ppg"] for r in rows]; ys = [r["sd"] for r in rows]
+    xh = _m.ceil(max(xs) / 5) * 5; yh = _m.ceil(max(ys) / 5) * 5
+    xl = 5
+    X = lambda v: (v - xl) / (xh - xl) * 100; Y = lambda v: 100 - v / yh * 100
+    sk = [r for r in rows if r["pos"] != "QB"]
+    mx = _st.median([r["ppg"] for r in sk]); my = _st.median([r["sd"] for r in sk])
+    top = sorted(sk, key=lambda r: -r["ppg"])[:40]
+    lab = {r["k"] for r in sorted(top, key=lambda r: r["sd"])[:3] + sorted(top, key=lambda r: -r["sd"])[:3]}
+    dots = "".join(f'<button type="button" class="vd p-{r["pos"]}{" lab" if r["k"] in lab else ""}{" fa" if not r["o"] else ""}{" off" if r["pos"] == "QB" else ""}" data-i="{i}" '
+                   f'style="left:{X(r["ppg"]):.1f}%;top:{Y(r["sd"]):.1f}%" aria-label="{esc(r["n"])}, {r["ppg"]} PPR per game, swing {r["sd"]}">'
+                   + (f'<em>{esc(r["n"].split(" ")[-1] if r["n"].split(" ")[-1] not in ("Jr.", "Sr.", "II", "III") else r["n"].split(" ")[-2])}</em>' if r["k"] in lab else "")
+                   + '</button>' for i, r in enumerate(rows))
+    xt = "".join(f'<span style="left:{X(v):.0f}%">{v}</span>' for v in range(xl, xh + 1, 5))
+    yt = "".join(f'<span style="top:{Y(v):.0f}%">{v}</span>' for v in range(0, yh + 1, 5))
+    names = "".join(f'<option value="{esc(r["n"])}">' for r in sorted(rows, key=lambda r: r["n"]))
+    controls = ('<div class="vs-ctl"><label class="vs-find"><span class="kicker">Find a player</span>'
+                '<input type="search" id="st-q" list="st-names" placeholder="Type a name…" autocomplete="off"></label>'
+                f'<datalist id="st-names">{names}</datalist><div class="vs-f st-f" role="group" aria-label="Positions">'
+                + "".join(f'<button type="button" class="pt" data-f="{x}" aria-pressed="{"false" if x == "QB" else "true"}"><i class="sw p-{x}"></i>{x}</button>' for x in ("RB", "WR", "TE", "QB"))
+                + '<button type="button" class="pt" data-f="FA" aria-pressed="false">Free agents only</button></div></div>')
+    chart = (f'<div class="vs-wrap st-wrap"><span class="sc-y">Week-to-week swing</span><div class="vs st" id="st-plot">'
+             f'<span class="st-mx" style="left:{X(mx):.1f}%"></span><span class="st-my" style="top:{Y(my):.1f}%"></span>'
+             f'<span class="q st-q1">Boom or bust</span><span class="q st-q2">Steady studs</span><span class="q st-q3">Lottery tickets</span><span class="q st-q4">Steady, low ceiling</span>'
+             f'{dots}<div class="vs-tip" id="st-tip" role="status" hidden></div><div class="st-y">{yt}</div></div>'
+             f'<div class="vs-x">{xt}</div><span class="sc-x"><span>PPR points per game</span></span></div>'
+             '<div class="legend"><span><i class="sw p-RB"></i>RB</span><span><i class="sw p-WR"></i>WR</span><span><i class="sw p-TE"></i>TE</span><span><i class="sw p-QB"></i>QB</span>'
+             '<span><i class="st-sw"></i>median of RB/WR/TE</span></div>'
+             f'<script type="application/json" id="st-data">{json.dumps(rows, separators=(",", ":")).replace("</", "<\\/")}</script>')
+    body = (f'{controls}{chart}<p class="note-s">Each dot is a player with 3+ games and 6+ PPR per game, weeks 1–{W}. Across: points per game. Up: how much his weekly '
+            f'score swings (standard deviation). Bottom right = high scoring and reliable; top right = big weeks and duds. Hover or tap a dot for the player; search to find anyone. '
+            f'QBs score on a different scale, so they start hidden. With few games the swing is noisy and settles as the season goes on.</p>')
+    return sec("ps-steady", "Steady or Streaky", f"Points per game vs. week-to-week swing · weeks 1–{W}", body)
+
+
+def sections2(d, W, short_names, own_team):
+    short = {int(k): v for k, v in short_names.items()}
+    out = {}
+    for k, f, a in (("risers", risers, (d, W, short)), ("faceoff", faceoff, (d, W, short, own_team)), ("steady", steady, (d, W, short))):
+        try:
+            out[k] = f(*a)
+        except Exception as e:
+            print(k, "skipped:", e); out[k] = ""
+    return out
+
+
+SCRIPT += r"""<script>
+(function(){
+  /* Player Face-Off */
+  var el=document.getElementById('fo-data'); if(!el)return;
+  var D=JSON.parse(el.textContent),P=D.p,T=D.teams,by={};P.forEach(function(r){by[r[0]]=r});
+  var A=document.getElementById('fo-a'),B=document.getElementById('fo-b'),H=document.getElementById('fo-head'),R=document.getElementById('fo-rows'),S=document.getElementById('fo-sum');
+  [A,B].forEach(function(sel){var groups={};P.forEach(function(r){var g=r[3]?T[r[3]]:'Free agents';(groups[g]=groups[g]||[]).push(r)});
+    Object.keys(groups).forEach(function(g){var og=document.createElement('optgroup');og.label=g;
+      groups[g].forEach(function(r){var o=document.createElement('option');o.value=r[0];o.textContent=r[0]+' ('+r[1]+', '+r[2]+')';og.appendChild(o)});sel.appendChild(og)})});
+  A.value=D.def[0];B.value=D.def[1];
+  function e(s){return String(s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
+  // [label, index, higher is better?, format]
+  var M=[['PPR per game',4,1,'f'],['Last 3 games',5,1,'f'],['Week '+D.nxt+' projection',6,1,'p'],['Rest of season, pts/g',7,1,'f'],['ROS position rank',8,-1,'r'],
+         ['Ceiling (best game)',13,1,'f'],['Floor (worst game)',14,1,'f'],['Targets per game',9,1,'f'],['Touches per game',10,1,'f'],['Target share',11,1,'%'],['Snap share',12,1,'%']];
+  function fmt(v,f){if(v==null)return '–';if(f==='r')return v?'#'+v:'–';if(f==='%')return v+'%';if(f==='p'&&v===0)return 'no game';return v.toFixed(1)}
+  function side(r){var inj=(r[15]&&r[15]!=='ACTIVE'&&r[15]!=='NORMAL')?' <span class="inj">'+e(r[15].replace('_',' ').toLowerCase())+'</span>':'';
+    return '<span class="kicker">'+e(r[1])+' · '+e(r[2])+'</span><b>'+e(r[0])+inj+'</b><span class="fo-own">'+(r[3]?'<i class="lg lg-'+r[3]+' lg-sm"></i>'+e(T[r[3]]):'<span class="own fa">FA</span>')+'</span>'}
+  function draw(){var a=by[A.value],b=by[B.value];if(!a||!b)return;
+    H.innerHTML='<div class="fo-ha">'+side(a)+'</div><span class="fo-hv">vs.</span><div class="fo-hb">'+side(b)+'</div>';
+    var h='',wa=0,wb=0;
+    M.forEach(function(m){var va=a[m[1]],vb=b[m[1]],f=m[3];
+      var ca=(f==='r')?(va||999):(va==null?-1:va),cb=(f==='r')?(vb||999):(vb==null?-1:vb);
+      var aw=a[0]!==b[0]&&(m[2]>0?ca>cb:ca<cb),bw=a[0]!==b[0]&&(m[2]>0?cb>ca:cb<ca);if(aw)wa++;if(bw)wb++;
+      var mx=Math.max(ca,cb,0.1),la=f==='r'?(va?Math.max(6,100-va*1.6):0):Math.max(0,ca)/mx*100,lb=f==='r'?(vb?Math.max(6,100-vb*1.6):0):Math.max(0,cb)/mx*100;
+      h+='<div class="fo-r"><span class="fo-a'+(aw?' win':'')+'"><b class="num">'+fmt(va,f)+'</b><i style="width:'+la.toFixed(1)+'%"></i></span><span class="fo-m">'+m[0]+'</span>'+
+         '<span class="fo-b'+(bw?' win':'')+'"><i style="width:'+lb.toFixed(1)+'%"></i><b class="num">'+fmt(vb,f)+'</b></span></div>'});
+    R.innerHTML=h;
+    S.innerHTML='<span class="'+(wa>wb?'win':'')+'"><b class="num">'+wa+'</b>categories won</span><span class="fo-sv">'+(wa===wb?'Dead even':(wa>wb?e(a[0]):e(b[0]))+' takes it')+'</span><span class="'+(wb>wa?'win':'')+'"><b class="num">'+wb+'</b>categories won</span>';}
+  A.addEventListener('change',draw);B.addEventListener('change',draw);draw();
+})();
+(function(){
+  /* Steady or Streaky: same hover/tap card behaviour as Volume vs. Scoring */
+  var plot=document.getElementById('st-plot'),src=document.getElementById('st-data');if(!plot||!src)return;
+  var info=JSON.parse(src.textContent),tip=document.getElementById('st-tip'),q=document.getElementById('st-q');
+  var dots=[].slice.call(plot.querySelectorAll('.vd')),pinned=null,show={RB:1,WR:1,TE:1,QB:0},faOnly=false;
+  function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
+  function html(p){
+    var own=p.o?'<i class="lg lg-'+p.o+'"></i>'+e(p.on):'<span class="own fa">FA</span>';
+    var inj=(p.inj&&p.inj!=='ACTIVE'&&p.inj!=='NORMAL')?' <span class="inj">'+e(p.inj.replace('_',' ').toLowerCase())+'</span>':'';
+    var mx=Math.max.apply(null,p.wk.concat([1]));
+    var bars='<span class="st-bars">'+p.wk.map(function(v){return '<i style="height:'+Math.max(4,v/mx*100).toFixed(0)+'%" title="'+v+'"></i>'}).join('')+'</span>';
+    return '<span class="kicker">'+e(p.pos)+' · '+e(p.tm)+' · '+p.g+' games</span><b class="nm">'+e(p.n)+'</b>'+inj+
+      '<span class="tt-own">'+own+'</span>'+
+      '<span>'+p.ppg.toFixed(1)+' PPR/g · swing ±'+p.sd.toFixed(1)+'</span>'+bars+
+      '<span class="tt-g"><span><em>Floor</em><b>'+p.lo.toFixed(1)+'</b></span><span><em>Median</em><b>'+p.md.toFixed(1)+'</b></span><span><em>Ceiling</em><b>'+p.hi.toFixed(1)+'</b></span>'+
+      '<span><em>Last 3</em><b>'+p.l3.toFixed(1)+'</b></span></span>';
+  }
+  function place(d){
+    var p=info[+d.dataset.i];tip.innerHTML=html(p);tip.hidden=false;
+    var x=parseFloat(d.style.left),y=parseFloat(d.style.top);
+    tip.style.left=tip.style.right=tip.style.top=tip.style.bottom='';
+    if(x>55)tip.style.right=(100-x+2)+'%';else tip.style.left=(x+2)+'%';
+    if(y>55)tip.style.bottom=(100-y+2)+'%';else tip.style.top=(y+2)+'%';
+  }
+  function hide(){if(pinned){place(pinned)}else{tip.hidden=true}}
+  function pin(d){dots.forEach(function(x){x.classList.toggle('on',x===d)});pinned=d;if(d){place(d)}else{tip.hidden=true}}
+  function filter(){
+    var t=(q.value||'').trim().toLowerCase(),hits=[];
+    dots.forEach(function(d){
+      var p=info[+d.dataset.i],vis=show[p.pos]&&(!faOnly||!p.o);
+      if(t&&p.n.toLowerCase().indexOf(t)>=0&&!show[p.pos])vis=!faOnly||!p.o;  // searching finds hidden positions too
+      d.classList.toggle('off',!vis);
+      var m=t&&vis&&p.n.toLowerCase().indexOf(t)>=0;if(m)hits.push(d);
+      d.classList.toggle('hit',!!m);d.classList.toggle('dim',!!t&&!m);
+    });
+    plot.classList.toggle('searching',!!t);
+    if(pinned&&pinned.classList.contains('off'))pin(null);
+    if(t&&hits.length===1)pin(hits[0]);else if(t&&pinned&&hits.indexOf(pinned)<0)pin(null);
+  }
+  function near(ev,max){
+    var best=null,bd=max*max;
+    dots.forEach(function(d){if(d.classList.contains('off'))return;
+      var r=d.getBoundingClientRect(),dx=r.left+r.width/2-ev.clientX,dy=r.top+r.height/2-ev.clientY,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;best=d}});
+    return best;
+  }
+  var hov=null;
+  plot.addEventListener('pointermove',function(ev){if(ev.pointerType!=='mouse')return;var d=near(ev,22);if(d===hov)return;hov=d;
+    dots.forEach(function(x){x.classList.toggle('hov',x===d)});if(d)place(d);else hide()});
+  plot.addEventListener('pointerleave',function(){hov=null;dots.forEach(function(x){x.classList.remove('hov')});hide()});
+  dots.forEach(function(d){d.addEventListener('focus',function(){place(d)});d.addEventListener('blur',hide)});
+  document.addEventListener('click',function(ev){if(pinned&&!plot.contains(ev.target)&&!ev.target.closest('.st-f,#st-q'))pin(null)});
+  plot.addEventListener('click',function(ev){var d=ev.detail===0&&ev.target.classList.contains('vd')?ev.target:near(ev,30);pin(d&&pinned!==d?d:null)});
+  q.addEventListener('input',filter);
+  document.querySelectorAll('.st-f .pt').forEach(function(b){b.addEventListener('click',function(){
+    var on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on?'true':'false');
+    if(b.dataset.f==='FA')faOnly=on;else show[b.dataset.f]=on?1:0;filter()})});
+  filter();
+})();
+</script>"""
+
+CSS += r"""
+/* Risers & Fallers */
+.rf-key{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rf-key i{display:inline-block;vertical-align:middle;margin-right:4px;width:11px;height:11px;border-radius:50%;box-sizing:border-box}
+.rf-key .k-was{background:var(--sheet);border:2px solid var(--muted)}.rf-key .k-up{background:var(--blue);margin-right:2px}.rf-key .k-dn{background:var(--red)}
+.rf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:18px 28px}
+.rf-p h3{font-size:1.35rem;font-weight:900;text-transform:uppercase;margin-bottom:6px}
+.rf-p.rf-up h3{color:var(--blue)}.rf-p.rf-dn h3{color:var(--red)}
+.rf-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.8fr) minmax(0,1fr) 74px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.rf-n{display:grid;min-width:0}.rf-n b{font-size:.92rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rf-n b .inj{margin-left:5px}
+.rf-n small{font-family:var(--mono);font-size:.62rem;color:var(--muted)}
+.rf-own{display:flex;align-items:center;gap:5px;font-size:.74rem;min-width:0;color:var(--ink)}.rf-own em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-t{position:relative;height:16px;border-bottom:1px solid var(--line)}
+.rf-t i{position:absolute;top:2px;width:12px;height:12px;border-radius:50%;transform:translateX(-50%);box-sizing:border-box}
+.rf-t .rf-ln{top:7px;height:2px;border-radius:0;transform:none;opacity:.5}
+.rf-up .rf-ln{background:var(--blue)}.rf-dn .rf-ln{background:var(--red)}
+.rf-was{background:var(--sheet);border:2px solid var(--muted)}
+.rf-up .rf-now{background:var(--blue)}.rf-dn .rf-now{background:var(--red)}
+.rf-up .rf-v{color:var(--blue)}.rf-dn .rf-v{color:var(--red)}
+.rf-v{font-size:.82rem;text-align:right}
+/* Player Face-Off */
+.fo{display:grid;gap:12px}
+.fo-pick{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:end}
+.fo-pick label{display:grid;gap:4px;min-width:0}
+.fo-pick select{font:inherit;font-size:.95rem;padding:7px 10px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);width:100%}
+.fo-vs,.fo-hv{font-family:var(--display);font-weight:900;font-size:1.3rem;color:var(--muted);padding-bottom:6px;text-align:center}
+.fo-head{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;padding:12px 14px;border:3px solid var(--rule);background:radial-gradient(var(--dot) 1.2px,transparent 1.4px) 0 0/8px 8px,var(--sheet)}
+.fo-ha,.fo-hb{display:grid;gap:3px;min-width:0}.fo-ha{text-align:right;justify-items:end}
+.fo-head b{font-family:var(--display);font-weight:900;font-size:clamp(1.2rem,3vw,1.9rem);text-transform:uppercase;line-height:1}
+.fo-head b .inj{font-family:var(--mono);font-size:.6rem;vertical-align:middle;margin-left:4px}
+.fo-own{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+.fo-rows{display:grid}
+.fo-r{display:grid;grid-template-columns:minmax(0,1fr) 150px minmax(0,1fr);gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line)}
+.fo-m{font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
+.fo-a,.fo-b{display:flex;align-items:center;gap:8px}.fo-a{flex-direction:row-reverse}
+.fo-a i,.fo-b i{display:block;height:12px;max-width:70%;background:var(--silver)}
+.fo-a.win i{background:var(--blue)}.fo-b.win i{background:var(--ink)}
+.fo-a b,.fo-b b{font-size:.9rem;font-weight:400;min-width:56px}.fo-a b{text-align:left}.fo-b b{text-align:right}
+.fo-a.win b,.fo-b.win b{font-weight:700}
+.fo-sum{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;border-top:3px solid var(--rule);padding-top:8px}
+.fo-sum span{display:grid;font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.fo-sum span:first-child{text-align:right}
+.fo-sum b{font-family:var(--display);font-size:2rem;font-weight:900;color:var(--ink);letter-spacing:0}
+.fo-sum .win b{color:var(--blue)}
+.fo-sum .fo-sv{font-family:var(--display);font-weight:900;font-size:1.05rem;color:var(--ink);text-align:center;letter-spacing:.02em}
+/* Steady or Streaky (reuses the Volume vs. Scoring plot styles) */
+.p-QB{background:var(--silver)}
+.sw.p-QB{width:10px;height:10px;border-radius:50%}
+.st{aspect-ratio:1.6}
+.st-mx{position:absolute;top:0;bottom:0;border-left:1.5px dashed var(--red);pointer-events:none}
+.st-my{position:absolute;left:0;right:0;border-top:1.5px dashed var(--red);pointer-events:none}
+.st .q{position:absolute;font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);pointer-events:none}
+.st-q1{right:8px;top:6px}.st-q2{right:8px;bottom:6px}.st-q3{left:8px;top:6px}.st-q4{left:8px;bottom:6px}
+.st-y{position:absolute;left:-30px;top:0;bottom:0;width:24px;font-family:var(--mono);font-size:.64rem;color:var(--muted);pointer-events:none}
+.st-y span{position:absolute;right:0;transform:translateY(-50%)}
+.st-wrap{grid-template-columns:34px minmax(0,1fr)}
+.st-sw{display:inline-block;width:16px;border-top:1.5px dashed var(--red);vertical-align:middle}
+.st-bars{display:flex;align-items:flex-end;gap:3px;height:34px;border-bottom:1px solid var(--line)}
+.st-bars i{display:block;flex:1;background:var(--blue);min-height:2px}
+@media (max-width:760px){
+  .rf-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 8px}.rf-own{grid-row:2;font-size:.66rem}.rf-t{grid-row:2}.rf-v{grid-column:2;grid-row:1;font-size:.74rem}
+  .rf-n b{font-size:.82rem}
+  .fo-r{grid-template-columns:minmax(0,1fr) 92px minmax(0,1fr);gap:6px}.fo-m{font-size:.54rem;letter-spacing:.02em}.fo-a b,.fo-b b{font-size:.78rem;min-width:40px}
+  .fo-head{padding:9px}.fo-own{font-size:.68rem}.fo-pick{gap:6px}.fo-pick select{font-size:.8rem;padding:6px}
+  .st{aspect-ratio:1.05}.st .q{font-size:.52rem}
+}
+"""
