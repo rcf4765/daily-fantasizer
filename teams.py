@@ -311,7 +311,7 @@ def matchup(short, W, F, records):
            f'{S.frame()}<polygon class="mw-pa" points="{S.poly(sa)}"/><polygon class="mw-pb" points="{S.poly(sb)}"/></svg>')
     rec = lambda t: records.get(t, "")
     head = (f'<div class="mw-head"><div class="mw-team mw-ta">{lg(a, "lg-lg")}<b>{esc(sh[a])}</b><small class="num">{rec(a)}</small></div>'
-            f'<div class="mw-mid"><span class="kicker">Spread</span><b class="num">{esc(sh[a])} −{g["spread"]:g}</b><small class="num">O/U {g["ou"]:g}</small></div>'
+            f'<div class="mw-mid"><span class="kicker">Spread</span><b class="num">{(esc(sh[a]) + " −" + format(g["spread"], "g")) if g["spread"] else "Pick&#39;em"}</b><small class="num">O/U {g["ou"]:g}</small></div>'
             f'<div class="mw-team mw-tb">{lg(b, "lg-lg")}<b>{esc(sh[b])}</b><small class="num">{rec(b)}</small></div></div>')
     return (f'<section class="sec" id="matchup"><div class="sec-head"><h2>Matchup of the Week</h2>'
             f'<span class="kicker">Week {nxt} · the closest spread on the board</span></div>{head}'

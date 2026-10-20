@@ -1,11 +1,11 @@
-# sha256 of the approved pipeline files (graphics-first design, approved 2026-10-13 with the week 5 edition; Upsets & Heartbreakers Roster Radar and the League & Teams tab added 2026-10-19).
+# sha256 of the approved pipeline files (graphics-first design, approved 2026-10-13 with the week 5 edition; Upsets & Heartbreakers Roster Radar, League & Teams tab and the final 2026-10-19 sections).
 # league.json changes when lore is added; data/trades.json, trade_block.json and schedule.json change weekly. Regenerate after intentional changes.
 8fb57787be9543a8d399bf78792595cdc9f0708806daba875ca4e19b2c2cf50f  extract.js
 2978def423d24bed739a9bda1c23ad5de5790b4d3e6fab9283f26d943f255cc8  extract_logos.js
 70246794ffa422345406d3d7f7d8e73a9539faee7a88dc4d205c2835f7d8cbed  facts.py
 ec21c758e22c23efac308400ea52fb113ef3c52e754193bd5c8de76e7fabebc7  fetch_espn.py
 26449dadb66522511b0c739ce06a565b291b168ac007fe2992f990e3287d99c3  fetch_trades.py
-0b345457805fa7f5c2b2f8c8368c04a3cf2ef33cf3ddeca36bdb79f37ec68404  render.py
+1c3540a45a706d19191479b6c5c604f72e024501df23ecbb9faba350d47280e1  render.py
 da73d52e627d789e304cdaec80e31d965c395e493b57146d0db2d78daf35d5c0  template.html
 db4170974816f8f2dcf5d1f4a354602bb220c669710ac2b2f2202a21cc34b603  league.json
 102653f27a3f0ee62271c5cfa767a14e5fc70997149052458736738fb3ab7905  logos.txt
@@ -21,5 +21,5 @@ f712758e068887c44d90d453c8cfd9fdb2d85d851a20426ebd04c9d385fe0187  players.py
 6ed441870356b52e062dba410e8953c7a8cd139dbd7c19593f409625f4dac913  fetch_players.py
 a96acf219d99d096854becaeaed991f7275031cce12c52309180adffa12dd3f2  mobile.py
 dc9354609e29195cfc4cc0ac91288a2b757cc5f6ca3bfa9e6c6652ae3aba1efd  strength.py
-8cde394a9d00b0cbc8cba5ab641e6745ee669f8e25bb396ca8fb7b95bb555b4d  teams.py
+57dae997320a0e1b76e82d51ad15891fe43e8c71c03d73f2b7c94106dcaf0224  teams.py
 aaeb1e5e790c7f56275ebec1c628dc2b6393a9f8f3ac348eb2da696518dbadf7  desk.py

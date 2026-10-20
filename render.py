@@ -488,7 +488,7 @@ fc = []
 for n in F["next_week"]:
     fav, dog = n["fav"], n["dog"]
     pf = SEA[fav]["avg"] / (SEA[fav]["avg"] + SEA[dog]["avg"]) * 100
-    fc.append(f'''<div class="fc"><div class="fc-vs"><span>{lg(fav, "lg-md")}<b>{esc(SHORT[fav])}</b></span><em class="num">−{g(n["spread"])}</em><span class="dog"><b>{esc(SHORT[dog])}</b>{lg(dog, "lg-md")}</span></div>
+    fc.append(f'''<div class="fc"><div class="fc-vs"><span>{lg(fav, "lg-md")}<b>{esc(SHORT[fav])}</b></span><em class="num">{("−" + g(n["spread"])) if n["spread"] else "Pick&#39;em"}</em><span class="dog"><b>{esc(SHORT[dog])}</b>{lg(dog, "lg-md")}</span></div>
 <div class="fc-split"><span style="width:{pf:.1f}%"><i class="num">{SEA[fav]["avg"]:.1f}</i></span><span><i class="num">{SEA[dog]["avg"]:.1f}</i></span></div>
 <div class="odds num"><span>O/U {g(n["ou"])}</span><span>season avg per week</span></div>
 <p>{fill(key(n["home"], n["away"], C.get("forecast_blurbs", {})) or "")}</p></div>''')
