@@ -219,10 +219,10 @@ scatter = f'''<div class="sc-wrap"><div class="sc" role="img" aria-label="Points
 import os as _os
 from facts import load as _load, optimal as _optimal
 
-# ---------- season sections: power rankings over time, playoff odds, floor/ceiling, bench hall of shame, waiver MVP ----------
+# ---------- season sections: playoff odds, floor/ceiling, bench hall of shame, waiver MVP ----------
 # All built from data/week1_raw.txt .. data/weekN_raw.txt (and data/schedule.json for playoff odds). Skipped if a week is missing.
 import random as _random, statistics as _st
-power_html = odds_html = rangebench_html = waiver_html = ""
+odds_html = rangebench_html = waiver_html = ""
 if all(_os.path.exists(f"data/week{k}_raw.txt") for k in range(1, W + 1)):
     SD = {}  # week -> dict(score, opt, opp, starters, tx)
     for k in range(1, W + 1):
@@ -234,33 +234,7 @@ if all(_os.path.exists(f"data/week{k}_raw.txt") for k in range(1, W + 1)):
         SD[k] = dict(score=sc, opp=opp, opt={t: _optimal(_ros[t], _slots)[0] for t in _ros}, ros=_ros, tx=_tx)
     WEEKS = list(range(1, W + 1))
 
-    # --- power rankings over time: cumulative all-play wins, then points for (same rule as the Pecking Order) ---
-    ranks = {}
-    cap, cpf = {t: 0 for t in teams}, {t: 0.0 for t in teams}
-    for k in WEEKS:
-        s = SD[k]["score"]
-        for t in teams:
-            cap[t] += sum(s[t] > s[o] for o in s if o != t); cpf[t] += s[t]
-        ranks[k] = {t: i + 1 for i, t in enumerate(sorted(teams, key=lambda t: (-cap[t], -cpf[t])))}
-    PR_RH = 34; PR_H = PR_RH * NT; XW = 100
-    last, prev = ranks[W], ranks[W - 1] if W > 1 else ranks[W]
-    def pr_y(r): return (r - 1) * PR_RH + PR_RH / 2
-    plines = []
-    for t in teams:
-        pts = " ".join(f"{(k - 1) * XW:.0f},{pr_y(ranks[k][t]):.0f}" for k in WEEKS)
-        mv = prev[t] - last[t]
-        plines.append((mv != 0, f'<polyline points="{pts}" class="pw-{"up" if mv > 0 else "dn" if mv < 0 else "eq"}"><title>{esc(teams[t]["name"])}: ' + " → ".join(str(ranks[k][t]) for k in WEEKS) + '</title></polyline>'))
-    pr_right = "".join(
-        f'<div class="pw-row"><b class="num">{r}</b>{lg(t)}<span>{esc(SHORT[t])}</span><em class="mv {"up" if prev[t] > r else "dn" if prev[t] < r else "eq"}">'
-        + ("▲" + str(prev[t] - r) if prev[t] > r else "▼" + str(r - prev[t]) if prev[t] < r else "–") + '</em></div>'
-        for t, r in sorted(last.items(), key=lambda x: x[1]))
-    pr_left = "".join(f'<div class="pw-row l">{lg(t)}</div>' for t, r in sorted(ranks[1].items(), key=lambda x: x[1]))
-    power_html = (f'<section class="sec" id="power"><div class="sec-head"><h2>Power Rankings Over Time</h2><span class="kicker">All-play rank after every week · color = this week\'s move</span></div>'
-                  f'<div class="pw"><div class="pw-wk"><span></span><span class="pw-ticks">' + "".join(f'<span>Wk {k}</span>' for k in WEEKS) + '</span><span></span></div>'
-                  f'<div class="pw-body"><div class="pw-col">{pr_left}</div>'
-                  f'<svg viewBox="0 0 {max((W - 1) * XW, 1)} {PR_H}" preserveAspectRatio="none" height="{PR_H}" aria-hidden="true">'
-                  + "".join(f'<line x1="0" x2="{(W - 1) * XW}" y1="{i * PR_RH}" y2="{i * PR_RH}" class="pw-grid"/>' for i in range(1, NT))
-                  + "".join(l for _, l in sorted(plines, key=lambda x: x[0])) + f'</svg><div class="pw-col">{pr_right}</div></div></div></section>')
+    # (Power Rankings Over Time was removed at the user's request, 2026-10-20.)
 
     # --- playoff odds: Monte Carlo over the remaining schedule ---
     if _os.path.exists("data/schedule.json"):
@@ -503,7 +477,7 @@ for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{ba
              "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
-             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--POWER-->": power_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
+             "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
              "{{WEEK}}": str(W), "{{NEXTWEEK}}": str(W + 1), "{{SEASON}}": str(LG["season"]), "{{VOLUME}}": str(LG["volume"]), "{{LEAGUE_NAME}}": esc(LG["league_name"]),
              "{{LEAGUE_FORMAT}}": esc(LG["league_format"]), "{{PRICE}}": esc(LG["price"]), "{{NWEEKS}}": str(len(weeks))}.items():
     out = out.replace(k, v)
