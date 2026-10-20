@@ -1,0 +1,191 @@
+{
+ "week": 6,
+ "hero": {
+  "winner": 11,
+  "loser": 4,
+  "big": "140.22",
+  "label": "combined points, season's lowest game"
+ },
+ "lead": {
+  "kicker": "Page one",
+  "headline": "Ugly Counts the Same",
+  "deck": "Kazakhstan posted a season-low 84.1 with 42.18 on the bench and still won by 27.98.",
+  "paragraphs": [
+   "{T11} sat C.J. Stroud 22.98, DK Metcalf 20.3 and George Kittle 17.9, and started Quinshon Judkins, projected for zero. Best lineup: 126.28.",
+   "The best lineup {S4} could have played was the one it played: 56.12, the season's second-lowest score."
+  ]
+ },
+ "sidebar": [
+  {
+   "style": "hi",
+   "kicker": "Strange but true",
+   "title": "The Whole League Bricked",
+   "viz": {
+    "type": "bars",
+    "rows": [
+     {
+      "label": "Wk 1",
+      "value": 120.36
+     },
+     {
+      "label": "Wk 2",
+      "value": 109.11
+     },
+     {
+      "label": "Wk 3",
+      "value": 114.34
+     },
+     {
+      "label": "Wk 4",
+      "value": 115.05
+     },
+     {
+      "label": "Wk 5",
+      "value": 122.4
+     },
+     {
+      "label": "Wk 6",
+      "value": 98.69,
+      "alt": true
+     }
+    ]
+   },
+   "text": "League average 98.69, lowest of the season by 10.42. Five teams posted season lows."
+  },
+  {
+   "style": "plain",
+   "kicker": "The record is lying",
+   "title": "0.40 Points, Two Wins",
+   "viz": {
+    "type": "wins",
+    "teams": [
+     5,
+     12
+    ]
+   },
+   "text": "{S5}: 772.76 pts, 3–3. {S12}: 772.36 pts, 5–1."
+  }
+ ],
+ "recaps": {
+  "12-6": {
+   "headline": "Walker Carries the Low Week",
+   "text": "Kenneth Walker III 27.9. Tre Tucker's 26.7 on a 10.3 projection fell just short."
+  },
+  "1-7": {
+   "headline": "Tuten and Likely Do It",
+   "text": "Bhayshul Tuten 24.7, Isaiah Likely 23.9. Smith-Njigba's 25.4 came in a loss."
+  },
+  "10-8": {
+   "headline": "Maye Started This Time",
+   "text": "Malik Nabers 28.5, Drake Maye 23.8. Beefy's Brandon Aubrey kicked for 1.0."
+  },
+  "11-4": {
+   "headline": "See Page One",
+   "text": "Chuba Hubbard 19.1, Steelers D/ST 11.0. Bruisers' top scorer: Dak Prescott, 11.02."
+  },
+  "5-2": {
+   "headline": "Shough: −0.16 Then, 26.96 Now",
+   "text": "James Cook 24.3, D'Andre Swift 23.0. McCaffrey's 30.7, the week's best, came in a loss."
+  },
+  "9-3": {
+   "headline": "Daniels Does Enough",
+   "text": "Jayden Daniels 21.0, RJ Harvey 14.6. Carnell Tate's 19.0 was 8D's only fight."
+  }
+ },
+ "honor": {
+  "team": 9,
+  "big": "0.00",
+  "big_label": "pts left on bench",
+  "kicker": "Manager of the week",
+  "title": "Travis's Talented Team",
+  "text": "Travis started the best nine he had and left nothing on the bench. Of the week's perfect lineups, his 103.0 scored the most."
+ },
+ "blotter": [
+  {
+   "team": 10,
+   "title": "Benched the hot tight end",
+   "text": "Colston Loveland 18.5 sat. Pat Freiermuth started: 3.1. Won, so no charges."
+  },
+  {
+   "team": 1,
+   "title": "Played without a defense",
+   "text": "No D/ST started. DeVonta Smith 20.5 sat for Parker Washington 10.4."
+  },
+  {
+   "team": 5,
+   "title": "Wrong receiver, negative defense",
+   "text": "Emeka Egbuka 17.8 sat behind Mike Evans 12.4. Jaguars D/ST: −2.0."
+  },
+  {
+   "team": 7,
+   "title": "Picked the wrong defense",
+   "text": "Bills D/ST 0.0 started. 49ers D/ST 5.0 sat on the bench."
+  }
+ ],
+ "missing": [
+  {
+   "team": 4,
+   "player": "Bijan Robinson",
+   "text": "Projected 23.0. Found 7.3."
+  },
+  {
+   "team": 11,
+   "player": "Derrick Henry",
+   "text": "Last seen at 5.0."
+  },
+  {
+   "team": 12,
+   "player": "Kyren Williams",
+   "text": "Projected 21.0. Turned up 9.7."
+  },
+  {
+   "team": 11,
+   "player": "Denzel Boston",
+   "text": "2.5 on a 13.5 projection."
+  }
+ ],
+ "pecking_notes": {
+  "5": "Unluckiest team in the league.",
+  "12": "Alone in first at 5–1.",
+  "8": "Lost two of the last three.",
+  "2": "Fewest points allowed in the league.",
+  "1": "Back-to-back 130-plus weeks.",
+  "11": "Most points allowed: 745.6.",
+  "7": "Part of a four-way tie at 4–2.",
+  "9": "Hasn't won two straight yet.",
+  "4": "Three straight losses, 1–5.",
+  "6": "Hasn't won since week 4.",
+  "10": "Luckiest team in the league.",
+  "3": "All-play 6–60."
+ },
+ "forecast_blurbs": {
+  "5-3": "Biggest spread of the week: 50.",
+  "9-6": "Travis favored by 8.5.",
+  "2-1": "Half a point. Game of the week.",
+  "12-10": "Two three-game win streaks; one ends.",
+  "7-4": "Bruisers trying to stop the slide at three.",
+  "8-11": "Highest projected total of the week."
+ },
+ "upsets": {
+  "10-8": {
+   "headline": "From 0–3 to Kingslayers",
+   "text": "{S10} was 0–3. Three straight wins later, No. 1 is the latest scalp. {S8} went from a 164.2 season high to its season low, perfect lineup and all."
+  },
+  "5-2": {
+   "headline": "Wrong QB, No. 3 Falls",
+   "text": "{S5} posted the week's high and went 11–0 in all-play. {S2} watched a four-game win streak die with the better quarterback on its bench."
+  },
+  "1-7": {
+   "headline": "Chimpanzini Takes Down No. 4",
+   "text": "{S1} hung the week's second-best score, all-play 10–1, and dragged the No. 4 team down from 4–1. {S7}'s perfect lineup would have lost too, by 14.36."
+  },
+  "12-6": {
+   "headline": "Zero at QB, Lost by Inches",
+   "text": "{S6} started Lamar Jackson, projected for zero, and got exactly that. Second straight loss, now 2–4. {S12} escaped with its season low."
+  },
+  "9-3": {
+   "headline": "Four Zeros and an 0–6",
+   "text": "{S3} started four players who scored zero and posted the season's lowest score. Six games, six losses, zero excuses. {S9} never had to break a sweat."
+  }
+ }
+}
