@@ -8,6 +8,8 @@ Writes compact JSON into data/players/:
                       (past weeks are fetched once; the upcoming week is refreshed every run)
   fp_ros.json         FantasyPros rest-of-season PPR consensus
   fp_lean.json        players one tracked analyst (Joel Smyth) ranks well above/below consensus
+  nfl_schedule.json   NFL regular-season schedule (nflverse games.csv): team -> week -> opponent, plus bye weeks
+                      (for trend-line projections, byes and defense matchups; added 2026-10-19)
   meta.json           which weeks are complete, the upcoming week, fetch time
 
 Env: ESPN_S2, ESPN_SWID (same secrets as fetch_espn.py).
@@ -197,9 +199,39 @@ def fantasypros(cur, final):
     return upcoming
 
 
+NFLFIX = {"LA": "LAR", "WAS": "WSH", "JAC": "JAX", "LVR": "LV", "OAK": "LV", "SD": "LAC", "STL": "LAR"}
+
+
+def nfl_schedule():
+    """team -> {week: "OPP" (away) or "vs OPP"... kept simple: {"opp": OPP, "home": bool}} for every REG week; byes = weeks missing."""
+    urls = ["https://github.com/nflverse/nfldata/raw/master/data/games.csv",
+            "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"]
+    for u in urls:
+        try:
+            r = S.get(u, timeout=90)
+            if r.status_code != 200:
+                continue
+            rows = [x for x in csv.DictReader(io.StringIO(r.text)) if x.get("season") == str(SEASON) and x.get("game_type") == "REG"]
+            if not rows:
+                continue
+            sched = {}
+            for x in rows:
+                w = int(x["week"]); h = NFLFIX.get(x["home_team"], x["home_team"]); a = NFLFIX.get(x["away_team"], x["away_team"])
+                sched.setdefault(h, {})[w] = {"opp": a, "home": True}
+                sched.setdefault(a, {})[w] = {"opp": h, "home": False}
+            weeks = sorted({int(x["week"]) for x in rows})
+            byes = {t: [w for w in weeks if w not in g] for t, g in sched.items()}
+            save("nfl_schedule.json", {"season": SEASON, "weeks": weeks, "teams": sched, "byes": byes})
+            return
+        except Exception as e:
+            print("schedule failed:", u, e)
+    print("schedule unavailable; keeping the previous file if any")
+
+
 def main():
     cur, final = espn()
     nflverse()
+    nfl_schedule()
     upcoming = fantasypros(cur, final)
     save("meta.json", {"season": SEASON, "espn_week": cur, "final_weeks": final, "upcoming": upcoming,
                        "fetched": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%MZ")})
