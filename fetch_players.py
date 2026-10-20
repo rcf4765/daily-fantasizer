@@ -8,6 +8,8 @@ Writes compact JSON into data/players/:
                       (past weeks are fetched once; the upcoming week is refreshed every run)
   fp_ros.json         FantasyPros rest-of-season PPR consensus
   fp_lean.json        players one tracked analyst (Joel Smyth) ranks well above/below consensus
+  espn_kdst.json      kickers and D/STs: ESPN weekly projections (current and next week, plus every past week
+                      ESPN returns), actual points, league owner (added 2026-10-19 for Matchup of the Week)
   nfl_schedule.json   NFL regular-season schedule (nflverse games.csv): team -> week -> opponent, plus bye weeks
                       (for trend-line projections, byes and defense matchups; added 2026-10-19)
   meta.json           which weeks are complete, the upcoming week, fetch time
@@ -199,6 +201,39 @@ def fantasypros(cur, final):
     return upcoming
 
 
+KDST = {5: "K", 16: "D/ST"}
+
+
+def espn_kdst(cur):
+    """Kickers and D/STs (lineup slots 17 = K, 16 = D/ST): ESPN projection for the current and next scoring
+    period (ESPN only returns a weekly projection for the period asked for) plus actual points."""
+    flt = {"players": {"filterSlotIds": {"value": [16, 17]}, "limit": 120,
+                       "sortPercOwned": {"sortPriority": 1, "sortAsc": False}}}
+    out = {}
+    for wk in (cur, cur + 1):
+        r = E.get(BASE, params={"view": "kona_player_info", "scoringPeriodId": wk},
+                  headers={"X-Fantasy-Filter": json.dumps(flt)}, timeout=90)
+        if not r.ok:
+            print("K/DST fetch failed for week", wk, r.status_code); continue
+        for p in r.json().get("players", []):
+            pl = p["player"]
+            if pl.get("defaultPositionId") not in KDST:
+                continue
+            d = out.setdefault(pl["id"], {"id": pl["id"], "name": pl["fullName"], "pos": KDST[pl["defaultPositionId"]],
+                                          "team": TEAM.get(pl.get("proTeamId"), "FA"), "owner": p.get("onTeamId", 0),
+                                          "proj": {}, "act": {}})
+            for st_ in pl.get("stats", []):
+                if st_.get("seasonId") != SEASON or st_.get("statSplitTypeId") != 1:
+                    continue
+                w = st_["scoringPeriodId"]
+                if st_["statSourceId"] == 1:
+                    d["proj"][w] = round(st_.get("appliedTotal", 0), 2)
+                elif st_["statSourceId"] == 0:
+                    d["act"][w] = round(st_.get("appliedTotal", 0), 2)
+    if out:
+        save("espn_kdst.json", list(out.values()))
+
+
 NFLFIX = {"LA": "LAR", "WAS": "WSH", "JAC": "JAX", "LVR": "LV", "OAK": "LV", "SD": "LAC", "STL": "LAR"}
 
 
@@ -230,6 +265,10 @@ def nfl_schedule():
 
 def main():
     cur, final = espn()
+    try:
+        espn_kdst(cur)
+    except Exception as e:  # nice-to-have: Matchup of the Week falls back to season averages
+        print("K/DST failed:", e)
     nflverse()
     nfl_schedule()
     upcoming = fantasypros(cur, final)
