@@ -287,10 +287,19 @@ def matchup(short, W, F, records):
     for t in (a, b):
         ps = [p for p in d.P if p.get("owner") == t]
         lines[t] = [(s, x, pj(x) if x else 0.0) for s, x in _lineup(ps, pj)]
+    # kickers and defenses: ESPN's projection for that week (data/players/espn_kdst.json); the best one each team rosters
+    kf = "data/players/espn_kdst.json"
+    KD = json.load(open(kf)) if os.path.exists(kf) else []
+    for t in (a, b):
+        for pos in ("D/ST", "K"):
+            c = [x for x in KD if x.get("owner") == t and x["pos"] == pos and x.get("proj", {}).get(str(nxt)) is not None]
+            best = max(c, key=lambda x: x["proj"][str(nxt)], default=None)
+            lines[t].append((pos, {"name": best["name"]} if best else None, float(best["proj"][str(nxt)]) if best else 0.0))
+    has_kd = all(lines[t][-1][1] and lines[t][-2][1] for t in (a, b))
     tot = {t: sum(v for _, _, v in lines[t]) for t in (a, b)}
     mx = max(v for t in (a, b) for _, _, v in lines[t]) or 1
     rows = ""
-    labels = ["QB", "RB1", "RB2", "WR1", "WR2", "TE", "FLEX"]
+    labels = ["QB", "RB1", "RB2", "WR1", "WR2", "TE", "FLEX", "D/ST", "K"]
     for i, lab in enumerate(labels):
         (_, xa, va), (_, xb, vb) = lines[a][i], lines[b][i]
         wa = va >= vb
@@ -310,5 +319,6 @@ def matchup(short, W, F, records):
             f'<span>Roster Radar, rest of season · dashed ring = league average</span></figcaption></figure>'
             f'<div class="mw-list"><span class="kicker">Week {nxt} projected points, slot by slot</span>{rows}'
             f'<div class="mw-row mw-tot"><span class="mw-a"><b class="num">{tot[a]:.1f}</b></span><span class="mw-s">Total</span><span class="mw-b"><b class="num">{tot[b]:.1f}</b></span></div></div></div>'
-            f'<p class="note-s">Each team&#39;s best projected lineup for week {nxt} (blended projections; byes and players ruled out count zero). '
-            f'Kickers and defenses have no weekly projections, so the totals cover the seven QB, RB, WR, TE and FLEX slots.</p></section>')
+            f'<p class="note-s">Each team&#39;s best projected lineup for week {nxt}: QB through FLEX use the blended projection (consensus and ESPN); '
+            f'kickers and defenses use ESPN&#39;s projection. Byes and players ruled out count zero.'
+            f'{"" if has_kd else " ESPN projections for kickers and defenses were not available for this edition, so those slots show zero."}</p></section>')

@@ -9,12 +9,12 @@ Player value (points per game):
   scoring curve (the rank-k player at a position is worth what the k-th best scorer at that
   position has averaged, 3+ games). Players the consensus doesn't rank: half PPR/g, half
   volume-expected PPR/g, capped below the last ranked player; injured reserve counts a quarter.
-- K and D/ST (both views, no projections exist for them): season points per game from the
-  weekly ESPN dumps, pulled toward the league average by two games of prior so a single big
-  week doesn't dominate.
+- K and D/ST: season view = season points per game from the weekly ESPN dumps, pulled toward the
+  league average by two games of prior so a single big week doesn't dominate. Rest-of-season view =
+  ESPN's weekly projections for the coming weeks (falls back to the season number without them).
 
 Lineup: each team's best player fills QB, RB1, RB2, WR1, WR2, TE, then FLEX (best RB/WR/TE left),
-using current rosters (QB-TE from the player data, K and D/ST from week N's roster).
+using current rosters (QB-TE from the player data, K and D/ST from espn_kdst.json or week N's roster).
 Slot strength = 75% the starter + 25% the first backup at that position (user: depth counts, but
 less than quality). Scaled per slot so 50 = league average and 0/100 = the furthest team below/above.
 """
@@ -32,7 +32,11 @@ esc = lambda s: html.escape(str(s))
 
 
 def _kdst(W):
-    """name -> (pos, points, games) for kickers and D/STs over weeks 1..W; current owner from week W."""
+    """team -> [(name, pos, season value, rest-of-season value)] for kickers and D/STs.
+    Season: points per game over weeks 1..W from the raw dumps, with two games of league-average prior.
+    Rest of season: ESPN's weekly projections for the coming weeks (data/players/espn_kdst.json, user 2026-10-19:
+    "default to ESPN projections"); falls back to the season value when ESPN has none.
+    Owners come from espn_kdst.json when present (current rosters, like QB-TE), else from week W's dump."""
     tot = defaultdict(lambda: [0.0, 0]); pos = {}; owner = defaultdict(list)
     for k in range(1, W + 1):
         f = f"data/week{k}_raw.txt"
@@ -48,14 +52,24 @@ def _kdst(W):
                     tot[p["name"]][0] += p["pts"]; tot[p["name"]][1] += 1
                 if k == W and p["slot"] != "IR":
                     owner[t].append(p["name"])
-    val = {}
+    mu = {}
     for ps in ("K", "D/ST"):
         names = [n for n in tot if pos[n] == ps]
-        mu = sum(tot[n][0] for n in names) / max(1, sum(tot[n][1] for n in names))
-        for n in names:
-            s, g = tot[n]
-            val[n] = (s + 2 * mu) / (g + 2)
-    return {t: [(n, pos[n], val.get(n, 0.0)) for n in ns] for t, ns in owner.items()}
+        mu[ps] = sum(tot[n][0] for n in names) / max(1, sum(tot[n][1] for n in names))
+    season = lambda n, ps: (tot[n][0] + 2 * mu[ps]) / (tot[n][1] + 2) if n in tot else mu[ps]
+    rosv = {}
+    kf = "data/players/espn_kdst.json"
+    if os.path.exists(kf):
+        KD = json.load(open(kf))
+        owner = defaultdict(list)
+        for x in KD:
+            pos[x["name"]] = x["pos"]
+            if x.get("owner"):
+                owner[x["owner"]].append(x["name"])
+            fut = [v for w, v in x.get("proj", {}).items() if int(w) > W and v > 0]
+            if fut:
+                rosv[x["name"]] = sum(fut) / len(fut)
+    return {t: [(n, pos[n], season(n, pos[n]), rosv.get(n, season(n, pos[n]))) for n in ns] for t, ns in owner.items()}
 
 
 _CACHE = {}
@@ -109,7 +123,7 @@ def compute(short, W):
     for mode, val in (("season", lambda p: p["ppg"]), ("ros", lambda p: p["ros"])):
         res[mode] = {}
         for t in teams:
-            pool = [(p["name"], p["pos"], val(p)) for p in P if p["owner"] == t] + KD.get(t, [])
+            pool = [(p["name"], p["pos"], val(p)) for p in P if p["owner"] == t] + [(n, ps, sv if mode == "season" else rv) for n, ps, sv, rv in KD.get(t, [])]
             pool.sort(key=lambda x: -x[2])
             used, start = set(), {}
             for s in SLOTS:
@@ -196,7 +210,7 @@ def build(short, W):
             f'<p class="note-s"><span class="m-season">Weeks 1–{W}: current rosters, scored on PPR points per game so far (a player&#39;s full season counts, wherever he played it). </span>'
             f'<span class="m-ros">Rest of season: consensus rankings turned into points per game using this season&#39;s scoring at each rank. </span>'
             f'Best player fills each slot, FLEX takes the best RB/WR/TE left. Each slot is 75% the starter and 25% his first backup. '
-            f'Kickers and defenses use season points per game in both views. Hover a dot or open Lineup for the players.</p>'
+            f'Kickers and defenses: season points per game in the weeks 1–{W} view, ESPN&#39;s projections for the coming weeks in the rest-of-season view. Hover a dot or open Lineup for the players.</p>'
             '<script>(function(){var s=document.getElementById("roster-radar");if(!s)return;var b=s.querySelectorAll(".rd-tg .pt");'
             'b.forEach(function(x){x.addEventListener("click",function(){s.dataset.m=x.dataset.m;'
             'b.forEach(function(y){y.setAttribute("aria-pressed",y===x?"true":"false")})})})})();</script></section>')
