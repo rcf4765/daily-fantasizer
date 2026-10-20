@@ -1,12 +1,12 @@
-# sha256 of the approved pipeline files (graphics-first design, approved 2026-10-13 with the week 5 edition; Upsets & Heartbreakers added 2026-10-19).
+# sha256 of the approved pipeline files (graphics-first design, approved 2026-10-13 with the week 5 edition; Upsets & Heartbreakers and Roster Radar added 2026-10-19).
 # league.json changes when lore is added; data/trades.json, trade_block.json and schedule.json change weekly. Regenerate after intentional changes.
 8fb57787be9543a8d399bf78792595cdc9f0708806daba875ca4e19b2c2cf50f  extract.js
 2978def423d24bed739a9bda1c23ad5de5790b4d3e6fab9283f26d943f255cc8  extract_logos.js
 70246794ffa422345406d3d7f7d8e73a9539faee7a88dc4d205c2835f7d8cbed  facts.py
 ec21c758e22c23efac308400ea52fb113ef3c52e754193bd5c8de76e7fabebc7  fetch_espn.py
 26449dadb66522511b0c739ce06a565b291b168ac007fe2992f990e3287d99c3  fetch_trades.py
-4cbecc19786d089fe1aad02e88c3ea7fc63ee339315ccd81e16df0331058e7a9  render.py
-019a1d58b0b75b91cd9b07c1fac7f5887b15555d4e4a40cd6d72515dc2f31078  template.html
+d580fb8cea98e4450d6c76fe94f541347e2b8a54913583aa4c9788234b28d5b7  render.py
+aa398b2e5e64040d4eb227472e8dc967334dfe7b91e9b258ad3da68d0e412a32  template.html
 db4170974816f8f2dcf5d1f4a354602bb220c669710ac2b2f2202a21cc34b603  league.json
 102653f27a3f0ee62271c5cfa767a14e5fc70997149052458736738fb3ab7905  logos.txt
 0e11d8c0c5d48552114a4c144b35aeb52521ad6d16795357e422b7613f859f79  logo_urls.txt
@@ -15,8 +15,9 @@ db4170974816f8f2dcf5d1f4a354602bb220c669710ac2b2f2202a21cc34b603  league.json
 7867b10b1851fd981c1d9d60cc495369922a867959741785f51cfbf311de6db1  trades.json
 f07141f588160bee547bff5eff6ee3ac0b188d91087ad73cf77d0f40d50d4dda  trade_block.json
 121c7ce6d6f717c0fc0139d3d90e4fddea01b7b2a15f47bbfe8d8471a6dc3034  schedule.json
-307b0e1defe13f5e7318b639b1a92eec37ec654cd162b8db4b49de3954b74993  daily-fantasizer-week5.html
+c9b1baf8060b72578577b0e62306318fd4875bd21241ece32d41e08623c1005b  daily-fantasizer-week5.html
 525e8537b57834451513e9176e29867e7c7c99d056d9cfbd3a08bd6ac621add4  publish_site.py
 76a5dc748ed7e1ae1b6859c7db402ca67b53fdd3829eed90d940acec159fdc06  players.py
 40234c8734026f7b3b44c36659de2d55b8a211a56e42ed0e249384d0eb50511c  fetch_players.py
 a96acf219d99d096854becaeaed991f7275031cce12c52309180adffa12dd3f2  mobile.py
+ad5e6eef1a17fe2b7017734ba2e60b2a1ddd13cb451449f9ad274f7747041ff5  strength.py
