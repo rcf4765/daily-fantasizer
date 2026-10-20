@@ -324,16 +324,20 @@ def steady(d, W, short):
     lab = {r["k"] for r in sorted(top, key=lambda r: r["sd"])[:3] + sorted(top, key=lambda r: -r["sd"])[:3]}
     dots = "".join(f'<button type="button" class="vd p-{r["pos"]}{" lab" if r["k"] in lab else ""}{" fa" if not r["o"] else ""}{" off" if r["pos"] == "QB" else ""}" data-i="{i}" '
                    f'style="left:{X(r["ppg"]):.1f}%;top:{Y(r["sd"]):.1f}%" aria-label="{esc(r["n"])}, {r["ppg"]} PPR per game, swing {r["sd"]}">'
-                   + (f'<em>{esc(r["n"].split(" ")[-1] if r["n"].split(" ")[-1] not in ("Jr.", "Sr.", "II", "III") else r["n"].split(" ")[-2])}</em>' if r["k"] in lab else "")
+                   + f'<em>{esc(r["n"].split(" ")[-1] if r["n"].split(" ")[-1] not in ("Jr.", "Sr.", "II", "III") else r["n"].split(" ")[-2])}</em>'
                    + '</button>' for i, r in enumerate(rows))
     xt = "".join(f'<span style="left:{X(v):.0f}%">{v}</span>' for v in range(xl, xh + 1, 5))
     yt = "".join(f'<span style="top:{Y(v):.0f}%">{v}</span>' for v in range(0, yh + 1, 5))
-    names = "".join(f'<option value="{esc(r["n"])}">' for r in sorted(rows, key=lambda r: r["n"]))
-    controls = ('<div class="vs-ctl"><label class="vs-find"><span class="kicker">Find a player</span>'
-                '<input type="search" id="st-q" list="st-names" placeholder="Type a name…" autocomplete="off"></label>'
-                f'<datalist id="st-names">{names}</datalist><div class="vs-f st-f" role="group" aria-label="Positions">'
+    tms = sorted({r["o"] for r in rows if r["o"]}, key=lambda t: short.get(t, ""))
+    opts = ('<option value="0">All teams</option>' + "".join(f'<option value="{t}">{esc(short[t])}</option>' for t in tms)
+            + '<option value="-1">Free agents</option>')
+    # own classes (st-pos), not .vs-f: the Volume vs. Scoring script listens to every .vs-f button,
+    # which made these toggle twice and cancel out (fixed 2026-10-19)
+    controls = ('<div class="vs-ctl st-ctl"><label class="st-team"><span class="kicker">Team</span>'
+                f'<select id="st-team">{opts}</select></label>'
+                '<div class="st-pos" role="group" aria-label="Positions">'
                 + "".join(f'<button type="button" class="pt" data-f="{x}" aria-pressed="{"false" if x == "QB" else "true"}"><i class="sw p-{x}"></i>{x}</button>' for x in ("RB", "WR", "TE", "QB"))
-                + '<button type="button" class="pt" data-f="FA" aria-pressed="false">Free agents only</button></div></div>')
+                + '</div></div>')
     chart = (f'<div class="vs-wrap st-wrap"><span class="sc-y">Week-to-week swing</span><div class="vs st" id="st-plot">'
              f'<span class="st-mx" style="left:{X(mx):.1f}%"></span><span class="st-my" style="top:{Y(my):.1f}%"></span>'
              f'<span class="q st-q1">Boom or bust</span><span class="q st-q2">Steady studs</span><span class="q st-q3">Lottery tickets</span><span class="q st-q4">Steady, low ceiling</span>'
@@ -343,7 +347,7 @@ def steady(d, W, short):
              '<span><i class="st-sw"></i>median of RB/WR/TE</span></div>'
              f'<script type="application/json" id="st-data">{json.dumps(rows, separators=(",", ":")).replace("</", "<\\/")}</script>')
     body = (f'{controls}{chart}<p class="note-s">Each dot is a player with 3+ games and 6+ PPR per game, weeks 1–{W}. Across: points per game. Up: how much his weekly '
-            f'score swings (standard deviation). Bottom right = high scoring and reliable; top right = big weeks and duds. Hover or tap a dot for the player; search to find anyone. '
+            f'score swings (standard deviation). Bottom right = high scoring and reliable; top right = big weeks and duds. Hover or tap a dot for the player; pick a team to spotlight its players; tap a position to show or hide it. '
             f'QBs score on a different scale, so they start hidden. With few games the swing is noisy and settles as the season goes on.</p>')
     return sec("ps-steady", "Steady or Streaky", f"Points per game vs. week-to-week swing · weeks 1–{W}", body)
 
@@ -392,8 +396,8 @@ SCRIPT += r"""<script>
 (function(){
   /* Steady or Streaky: same hover/tap card behaviour as Volume vs. Scoring */
   var plot=document.getElementById('st-plot'),src=document.getElementById('st-data');if(!plot||!src)return;
-  var info=JSON.parse(src.textContent),tip=document.getElementById('st-tip'),q=document.getElementById('st-q');
-  var dots=[].slice.call(plot.querySelectorAll('.vd')),pinned=null,show={RB:1,WR:1,TE:1,QB:0},faOnly=false;
+  var info=JSON.parse(src.textContent),tip=document.getElementById('st-tip'),tm=document.getElementById('st-team');
+  var dots=[].slice.call(plot.querySelectorAll('.vd')),pinned=null,show={RB:1,WR:1,TE:1,QB:0};
   function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
   function html(p){
     var own=p.o?'<i class="lg lg-'+p.o+'"></i>'+e(p.on):'<span class="own fa">FA</span>';
@@ -416,17 +420,14 @@ SCRIPT += r"""<script>
   function hide(){if(pinned){place(pinned)}else{tip.hidden=true}}
   function pin(d){dots.forEach(function(x){x.classList.toggle('on',x===d)});pinned=d;if(d){place(d)}else{tip.hidden=true}}
   function filter(){
-    var t=(q.value||'').trim().toLowerCase(),hits=[];
+    var team=+tm.value,on=team!==0;
     dots.forEach(function(d){
-      var p=info[+d.dataset.i],vis=show[p.pos]&&(!faOnly||!p.o);
-      if(t&&p.n.toLowerCase().indexOf(t)>=0&&!show[p.pos])vis=!faOnly||!p.o;  // searching finds hidden positions too
-      d.classList.toggle('off',!vis);
-      var m=t&&vis&&p.n.toLowerCase().indexOf(t)>=0;if(m)hits.push(d);
-      d.classList.toggle('hit',!!m);d.classList.toggle('dim',!!t&&!m);
+      var p=info[+d.dataset.i],mine=team===-1?!p.o:p.o===team;
+      d.classList.toggle('off',!show[p.pos]);
+      d.classList.toggle('hit',on&&mine);d.classList.toggle('dim',on&&!mine);
     });
-    plot.classList.toggle('searching',!!t);
-    if(pinned&&pinned.classList.contains('off'))pin(null);
-    if(t&&hits.length===1)pin(hits[0]);else if(t&&pinned&&hits.indexOf(pinned)<0)pin(null);
+    plot.classList.toggle('searching',on);
+    if(pinned&&(pinned.classList.contains('off')||pinned.classList.contains('dim')))pin(null);
   }
   function near(ev,max){
     var best=null,bd=max*max;
@@ -439,12 +440,12 @@ SCRIPT += r"""<script>
     dots.forEach(function(x){x.classList.toggle('hov',x===d)});if(d)place(d);else hide()});
   plot.addEventListener('pointerleave',function(){hov=null;dots.forEach(function(x){x.classList.remove('hov')});hide()});
   dots.forEach(function(d){d.addEventListener('focus',function(){place(d)});d.addEventListener('blur',hide)});
-  document.addEventListener('click',function(ev){if(pinned&&!plot.contains(ev.target)&&!ev.target.closest('.st-f,#st-q'))pin(null)});
+  document.addEventListener('click',function(ev){if(pinned&&!plot.contains(ev.target)&&!ev.target.closest('.st-ctl'))pin(null)});
   plot.addEventListener('click',function(ev){var d=ev.detail===0&&ev.target.classList.contains('vd')?ev.target:near(ev,30);pin(d&&pinned!==d?d:null)});
-  q.addEventListener('input',filter);
-  document.querySelectorAll('.st-f .pt').forEach(function(b){b.addEventListener('click',function(){
+  tm.addEventListener('change',filter);
+  document.querySelectorAll('.st-pos .pt').forEach(function(b){b.addEventListener('click',function(){
     var on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on?'true':'false');
-    if(b.dataset.f==='FA')faOnly=on;else show[b.dataset.f]=on?1:0;filter()})});
+    show[b.dataset.f]=on?1:0;filter()})});
   filter();
 })();
 </script>"""
@@ -487,6 +488,10 @@ CSS += r"""
 .st-y span{position:absolute;right:0;transform:translateY(-50%)}
 .st-wrap{grid-template-columns:34px minmax(0,1fr)}
 .st-sw{display:inline-block;width:16px;border-top:1.5px dashed var(--red);vertical-align:middle}
+.st-team{display:grid;gap:4px}
+.st-team select{font:inherit;font-size:.95rem;padding:7px 10px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);min-width:220px}
+.st-pos{display:flex;flex-wrap:wrap;gap:4px}.st-pos .pt{display:inline-flex;align-items:center;gap:6px}.st-pos .pt .sw{border:1.5px solid var(--sheet)}.st-pos .pt[aria-pressed="false"]{opacity:.55}
+.st .vd:not(.lab) em{display:none}.st.searching .vd em{display:none}.st.searching .vd.hit em{display:block}
 .st-bars{display:flex;align-items:flex-end;gap:3px;height:34px;border-bottom:1px solid var(--line)}
 .st-bars i{display:block;flex:1;background:var(--blue);min-height:2px}
 @media (max-width:760px){
