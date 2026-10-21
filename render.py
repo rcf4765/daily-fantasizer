@@ -429,6 +429,14 @@ if TB and len(TB["teams_reporting"]) >= LG.get("trade_block_min_teams", NT):
         if "|" not in line: break
         n, pos, sl, pts, pr = line.split("|"); PINFO[n] = (cur, pos, float(pts), float(pr), sl)
     avail = [(int(tid), p) for tid, ps in TB["block"].items() for p in ps if p["status"] == "ON_THE_BLOCK"]
+    # ESPN can keep a dropped player on the old team's block; only list players that team still rosters.
+    _own = {}
+    for _f in ("data/players/espn_players.json", "data/players/espn_kdst.json"):
+        if os.path.exists(_f):
+            for _p in json.load(open(_f)):
+                _own[_p["name"]] = _p.get("owner"); _own[str(_p.get("id"))] = _p.get("owner")
+    if _own:
+        avail = [(t, p) for t, p in avail if _own.get(p["player"]) == t]
     missing_t = [t for t in sorted(teams) if t not in TB["teams_reporting"]]
     bcards = []
     for t, p in sorted(avail, key=lambda x: -(PINFO.get(x[1]["player"], (0, 0, 0))[2])):
