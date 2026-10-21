@@ -485,5 +485,9 @@ for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{ba
 import mobile as _mobile
 out = _mobile.tag(out)  # phone card layout: tag every table cell with its role and column label
 left = re.findall(r"<!--(?!PS-->)[A-Z0-9]+-->|\{\{[A-Z_]+\}\}|\{[TS]\d+\}", out)
+# Rule Changes tab is in every edition (user, 2026-10-21); stop rather than publish a paper without it.
+missing_tab = [k for k in ('id="tab-props"', 'id="proposals"', 'href="#proposals" data-tab="proposals"', 'id="po-data"') if k not in out]
+if missing_tab:
+    sys.exit(f"Rule Changes tab missing from the page ({missing_tab}); restore it in template.html")
 open(f"daily-fantasizer-week{W}.html", "w", encoding="utf-8").write(out)
 print(f"daily-fantasizer-week{W}.html", len(out), "chars; leftover placeholders:", left)
