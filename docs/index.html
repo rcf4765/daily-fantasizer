@@ -790,6 +790,69 @@ footer b{color:var(--honolulu);font-weight:600}
   #pecking-order td.note{grid-column:2/-1!important;grid-row:4;font-style:italic;font-size:.84rem;color:var(--muted)}
   /* What If: same header, then actual -> best-lineup strip and flipped games */
 }
+
+/* Rule Changes tab: claim a team, propose, vote (one vote per team per proposal, enforced by the league office server) */
+.sec[hidden],.po-admin[hidden]{display:none}
+.po-body{display:grid;gap:12px}
+.po-note{font-size:.92rem;color:var(--muted)}
+.po-list{display:grid;gap:16px}
+.po-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.po-team{appearance:none;font:inherit;color:var(--ink);display:flex;align-items:center;gap:8px;padding:9px 10px;border:2px solid var(--rule);background:var(--sheet);text-align:left;min-width:0;cursor:pointer}
+.po-team b{font-size:.88rem;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.po-team small{display:block;font-family:var(--mono);font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.po-team:hover:not(:disabled){background:var(--ink);color:var(--sheet)}.po-team:hover:not(:disabled) small{color:var(--sheet)}
+.po-team:disabled{cursor:default;border-color:var(--line);opacity:.62}
+.po-team.on{border-color:var(--blue);box-shadow:inset 6px 0 0 var(--blue)}
+.po-me{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;padding:14px 16px;border:3px solid var(--rule);border-left:12px solid var(--honolulu)}
+.po-me .lg{width:46px;height:46px}
+.po-me h3{font-size:1.7rem;font-weight:900;text-transform:uppercase}
+.po-btn{appearance:none;font-family:var(--mono);font-size:.74rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:10px 14px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer}
+.po-btn:hover:not(:disabled){background:var(--ink);color:var(--sheet)}
+.po-btn:disabled{opacity:.5;cursor:default}
+.po-main{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+.po-card{display:grid;gap:12px;padding:16px;border:3px solid var(--rule);background:var(--sheet)}
+.po-card.passed{border-color:var(--blue);box-shadow:inset 0 8px 0 var(--blue)}
+.po-card.failed,.po-card.withdrawn{opacity:.82}
+.po-card h3{font-size:clamp(1.4rem,3.4vw,1.9rem);font-weight:900;text-transform:uppercase}
+.po-card p.po-d{font-size:.95rem;max-width:70ch}
+.po-meta{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.po-tag{background:var(--ink);color:var(--sheet);padding:2px 7px}
+.po-tag.passed{background:var(--blue);color:var(--blue-ink)}.po-tag.open{background:var(--hi);color:var(--hi-ink)}
+.po-bar{position:relative;height:22px;background:var(--paper);border:2px solid var(--rule);display:flex}
+.po-bar i{display:block;height:100%}.po-bar i.y{background:var(--blue)}.po-bar i.n{background:var(--silver)}
+.po-bar u{position:absolute;top:-6px;bottom:-6px;width:3px;background:var(--hi);box-shadow:0 0 0 1px var(--rule)}
+.po-count{display:flex;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:.76rem}
+.po-count b{font-size:1rem}
+.po-ballot{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
+.po-ballot span{display:grid;justify-items:center;gap:3px;font-family:var(--mono);font-size:.56rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:5px 0 4px;background:var(--paper);color:var(--muted)}
+.po-ballot span .lg{width:26px;height:26px}
+.po-ballot span.y{background:var(--blue);color:var(--blue-ink)}.po-ballot span.n{background:var(--silver);color:var(--silver-ink)}
+.po-ballot span.me{outline:3px solid var(--hi);outline-offset:-3px}
+.po-vote{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.po-vote .po-btn{min-width:110px}
+.po-vote .po-btn.on.yes{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+.po-vote .po-btn.on.no{background:var(--silver);border-color:var(--rule);color:var(--silver-ink)}
+.po-msg{font-family:var(--mono);font-size:.74rem}
+.po-msg.err{color:var(--red)}
+.po-form{display:grid;gap:12px;padding:16px;border:3px solid var(--rule)}
+.po-form label{display:grid;gap:4px}
+.po-form input,.po-form textarea{font:inherit;font-size:1rem;padding:10px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);width:100%}
+.po-cats{border:0;padding:0;margin:0;display:grid;gap:4px}
+.po-cats div{display:flex;flex-wrap:wrap;gap:6px}
+.po-cats label{display:flex;gap:6px;align-items:center;border:2px solid var(--rule);padding:6px 10px;font-family:var(--mono);font-size:.74rem;text-transform:uppercase;cursor:pointer}
+.po-cats input{width:auto}
+.po-cats label:has(input:checked){background:var(--ink);color:var(--sheet)}
+.po-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.po-admin{border-top:3px solid var(--line);padding-top:10px}
+.po-admin summary{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer}
+.po-admin select,.po-admin input{font:inherit;padding:8px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink)}
+.po-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+@media (max-width:760px){
+  .tabs .tab-s{display:none}.tabs .tab-t{font-size:.74rem}
+  .po-grid{grid-template-columns:1fr 1fr}
+  .po-ballot{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .po-vote .po-btn{flex:1 1 0;min-width:0}
+}
 </style>
 
 <div class="page">
@@ -810,6 +873,7 @@ footer b{color:var(--honolulu);font-weight:600}
   <button class="tab" role="tab" id="tab-paper" aria-controls="paper" aria-selected="true"><span class="tab-t">This Week's Paper</span><span class="tab-s">Week 6 edition</span></button>
   <button class="tab" role="tab" id="tab-league" aria-controls="league" aria-selected="false" tabindex="-1"><span class="tab-t">League &amp; Teams</span><span class="tab-s">Season so far</span></button>
   <button class="tab" role="tab" id="tab-stats" aria-controls="player-stats" aria-selected="false" tabindex="-1"><span class="tab-t">Player Stats</span><span class="tab-s">PPR player desk</span></button>
+  <button class="tab" role="tab" id="tab-props" aria-controls="proposals" aria-selected="false" tabindex="-1"><span class="tab-t">Rule Changes</span><span class="tab-s">Propose &amp; vote</span></button>
 </nav>
 
 <div class="tab-pane" id="paper" role="tabpanel" aria-labelledby="tab-paper">
@@ -1651,6 +1715,43 @@ tr[hidden]{display:none}
 })();
 </script>
 <!--/PS-->
+<a class="to-league" href="#proposals" data-tab="proposals"><span class="kicker">The league office</span><b>Propose scoring, rules and settings changes. One vote per team.</b><em>Rule Changes →</em></a>
+</div>
+<div class="tab-pane" id="proposals" role="tabpanel" aria-labelledby="tab-props" hidden>
+<section class="lg-hero" aria-label="Rule changes"><span class="kicker">The league office · 2026 season</span><h2>Rule <span>Changes</span></h2><p id="po-rules">Propose a change to scoring, rules or league settings. Every team gets one vote per proposal.</p></section>
+
+<section class="sec" id="po-me">
+  <div class="sec-head"><h2>Your Team</h2><span class="kicker">One phone signs in for each team</span></div>
+  <div id="po-me-body" class="po-body"><p class="po-note">Loading the league office…</p></div>
+</section>
+
+<section class="sec" id="po-open" hidden>
+  <div class="sec-head"><h2>On the Floor</h2><span class="kicker">Open proposals</span></div>
+  <div id="po-open-body" class="po-list"></div>
+</section>
+
+<section class="sec" id="po-new" hidden>
+  <div class="sec-head"><h2>Propose a Change</h2><span class="kicker">Signed-in teams only</span></div>
+  <form id="po-form" class="po-form" novalidate>
+    <fieldset class="po-cats"><legend class="kicker">Category</legend><div id="po-cat-opts"></div></fieldset>
+    <label><span class="kicker">Proposal</span><input id="po-title" maxlength="90" required placeholder="e.g. Make TE receptions worth 1.5 points"></label>
+    <label><span class="kicker">Details (optional)</span><textarea id="po-details" maxlength="600" rows="3" placeholder="Why, and when it would start"></textarea></label>
+    <div class="po-actions"><button type="submit" class="po-btn po-main">Put it to a vote</button><span class="po-msg" id="po-form-msg" role="status"></span></div>
+  </form>
+</section>
+
+<section class="sec" id="po-done" hidden>
+  <div class="sec-head"><h2>The Record</h2><span class="kicker">Closed proposals</span></div>
+  <div id="po-done-body" class="po-list"></div>
+</section>
+
+<section class="sec" id="po-claims" hidden>
+  <div class="sec-head"><h2>Who&rsquo;s Signed In</h2><span class="kicker">Wrong team claimed? Tell the commissioner</span></div>
+  <div id="po-claims-body" class="po-grid"></div>
+</section>
+
+<details class="po-admin" id="po-admin" hidden><summary>Commissioner</summary><div id="po-admin-body" class="po-body"></div></details>
+<script type="application/json" id="po-data">{"1": {"name": "Chimpanzini Bananini", "short": "Chimpanzini"}, "2": {"name": "Detroit Doughboys", "short": "Doughboys"}, "3": {"name": "8D", "short": "8D"}, "4": {"name": "Big Boy Bruisers", "short": "Bruisers"}, "5": {"name": "CeeDeez Nuts", "short": "CeeDeez Nuts"}, "6": {"name": "I don\u2019t know what I\u2019m doing", "short": "IDK"}, "7": {"name": "Michael's Magnificent Team", "short": "Magnificent"}, "8": {"name": "Big Beefy Boys", "short": "Beefy Boys"}, "9": {"name": "Travis's Talented Team", "short": "Travis's Team"}, "10": {"name": "Pink Pony Football Club", "short": "Pink Pony"}, "11": {"name": "#1 Kazakhstan Fantasies Team", "short": "Kazakhstan"}, "12": {"name": "Big Bedazzled Balls", "short": "Bedazzled Balls"}}</script>
 </div>
 
 <footer>
@@ -1699,6 +1800,158 @@ tr[hidden]{display:none}
   window.addEventListener('hashchange',fromHash);
   document.querySelectorAll('.lg-jump a').forEach(function(a){if(!document.getElementById(a.getAttribute('href').slice(1)))a.remove()});
   fromHash();
+})();
+</script>
+<script>
+/* Rule Changes tab. The league office server (Google Apps Script, proposals/Code.gs) is the authority:
+   it checks each team's secret key and keeps one vote per team per proposal. This page only displays. */
+(function(){
+  var API='', KEYS='fz-team', ADMIN='fz-comm';
+  var root=document.getElementById('proposals'); if(!root)return;
+  var T={}; try{T=JSON.parse(document.getElementById('po-data').textContent)}catch(e){}
+  var ids=Object.keys(T).map(Number).sort(function(a,b){return a-b});
+  var S=null, busy=false, timer=null;
+  function $(id){return document.getElementById(id)}
+  function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+  function crest(t,cls){var i=el('i','lg lg-'+t+(cls?' '+cls:''));i.setAttribute('aria-hidden','true');return i}
+  function nm(t,short){return (T[t]||{})[short?'short':'name']||('Team '+t)}
+  function store(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+  function load(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
+  function me(){var m=load(KEYS);return m&&m.team&&m.key?m:null}
+  function when(iso){var d=new Date(iso);return isNaN(d)?'':d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}
+  function left(iso){var ms=Date.parse(iso)-Date.now();if(!(ms>0))return 'closing';var h=Math.round(ms/36e5);return h<48?h+'h left':Math.round(h/24)+' days left'}
+
+  // A sign-in link from another phone: ?team=N&key=... stores the key, then is removed from the address bar.
+  (function(){var q=new URLSearchParams(location.search),t=+q.get('team'),k=q.get('key');
+    if(t&&k){store(KEYS,{team:t,key:k});q.delete('team');q.delete('key');
+      try{history.replaceState(null,'',location.pathname+(q.toString()?'?'+q:'')+'#proposals')}catch(e){}
+      var b=document.getElementById('tab-props');if(b)setTimeout(function(){b.click()},0);}})();
+
+  function call(body){
+    return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)})
+      .then(function(r){return r.json()}).then(function(r){if(r.state){S=r.state;render()}return r});
+  }
+  function refresh(){
+    if(!API){$('po-me-body').innerHTML='';$('po-me-body').append(el('p','po-note','Voting opens soon. The commissioner is setting up the league office.'));return}
+    fetch(API).then(function(r){return r.json()}).then(function(r){if(r.ok){S=r;render()}else throw 0})
+      .catch(function(){if(!S){$('po-me-body').innerHTML='';$('po-me-body').append(el('p','po-note','The league office isn’t answering right now. Try again in a minute.'))}});
+  }
+
+  function render(){
+    var m=me(), R=S.rules, claimed={};
+    ['po-open','po-done','po-claims','po-admin'].forEach(function(id){$(id).hidden=false});
+    S.claims.forEach(function(c){claimed[c.team]=c});
+    if(m&&!claimed[m.team]){store(KEYS,null);m=null}           // claim was reset by the commissioner
+    $('po-rules').textContent='Propose a change to scoring, rules or league settings. Every team gets one vote per proposal; changing your vote replaces it. A change passes with '+R.pass+' of '+R.teams+' teams voting yes. Voting runs '+R.windowDays+' days, or until the result is locked in.';
+
+    // Your team
+    var box=$('po-me-body'); box.innerHTML='';
+    if(m){
+      var card=el('div','po-me'); card.append(crest(m.team));
+      var d=el('div'); d.append(el('span','kicker','This phone votes for'),el('h3',null,nm(m.team))); card.append(d);
+      var share=el('button','po-btn','Use on another phone'); share.type='button';
+      share.onclick=function(){var u=location.origin+location.pathname+'?team='+m.team+'&key='+encodeURIComponent(m.key);
+        var done=function(){share.textContent='Link copied. Keep it private'};
+        if(navigator.share)navigator.share({title:'My Daily Fantasizer vote link',url:u}).catch(function(){});
+        else if(navigator.clipboard)navigator.clipboard.writeText(u).then(done,function(){prompt('Your private sign-in link:',u)});
+        else prompt('Your private sign-in link:',u)};
+      card.append(share); box.append(card);
+      box.append(el('p','po-note','Keep that link to yourself: anyone with it can vote for your team. Save it somewhere in case this browser forgets you.'));
+    } else {
+      box.append(el('p','po-note','Which team is yours? Tap it once to sign this phone in. Each team can be claimed only once; only the commissioner can undo a claim.'));
+      var g=el('div','po-grid');
+      ids.forEach(function(t){var b=el('button','po-team');b.type='button';b.append(crest(t,'lg-sm'));
+        var s=el('span');s.append(el('b',null,nm(t)),el('small',null,claimed[t]?'Claimed '+when(claimed[t].at):'Tap to claim'));b.append(s);
+        b.disabled=!!claimed[t]||busy;
+        b.onclick=function(){if(!confirm('Claim '+nm(t)+' as your team? Only the commissioner can undo this.'))return;
+          busy=true;render();call({action:'claim',team:t}).then(function(r){busy=false;
+            if(r.ok){store(KEYS,{team:t,key:r.key});render()}else{alert(r.error);refresh()}}).catch(function(){busy=false;alert('Couldn’t reach the league office.');render()})};
+        g.append(b)});
+      box.append(g);
+    }
+
+    // Proposals
+    var open=S.proposals.filter(function(p){return p.status==='open'}).reverse();
+    var done=S.proposals.filter(function(p){return p.status!=='open'}).reverse();
+    fill($('po-open-body'),open,'Nothing on the floor right now.'+(m?' Propose something below.':''),m,R);
+    fill($('po-done-body'),done,'No proposals have closed yet.',m,R);
+    $('po-new').hidden=!m;
+    if(m&&!$('po-cat-opts').childNodes.length)R.categories.forEach(function(c,i){
+      var l=el('label'),r=el('input');r.type='radio';r.name='po-cat';r.value=c;if(!i)r.checked=true;l.append(r,document.createTextNode(c));$('po-cat-opts').append(l)});
+
+    // Claims
+    var cl=$('po-claims-body'); cl.innerHTML='';
+    ids.forEach(function(t){var c=claimed[t],s=el('div','po-team'+(m&&m.team===t?' on':''));s.append(crest(t,'lg-sm'));
+      var x=el('span');x.append(el('b',null,nm(t,true)),el('small',null,c?'Signed in '+when(c.at):'Not yet'));s.append(x);if(!c)s.style.opacity='.55';cl.append(s)});
+    admin();
+  }
+
+  function fill(host,list,empty,m,R){
+    host.innerHTML=''; if(!list.length){host.append(el('p','po-note',empty));return}
+    list.forEach(function(p){
+      var y=0,n=0,v={}; p.votes.forEach(function(x){v[x.team]=x.choice;x.choice==='yes'?y++:n++});
+      var c=el('article','po-card '+p.status);
+      var meta=el('div','po-meta'); meta.append(el('span','po-tag '+p.status,p.status==='open'?'Voting':p.status),el('span',null,p.id+' · '+p.category));
+      var by=el('span'); by.append(crest(p.team),document.createTextNode(' '+nm(p.team,true)+' · '+when(p.createdAt))); meta.append(by);
+      meta.append(el('span',null,p.status==='open'?left(p.deadline):'closed '+when(p.closedAt)));
+      c.append(meta,el('h3',null,p.title)); if(p.details)c.append(el('p','po-d',p.details));
+      var bar=el('div','po-bar'); bar.setAttribute('role','img'); bar.setAttribute('aria-label',y+' yes, '+n+' no, '+(R.teams-y-n)+' not voted; '+R.pass+' yes needed');
+      var iy=el('i','y'),ino=el('i','n'); iy.style.width=(y/R.teams*100)+'%'; ino.style.width=(n/R.teams*100)+'%'; bar.append(iy,ino);
+      var u=el('u'); u.style.left='calc('+(R.pass/R.teams*100)+'% - 1.5px)'; u.title=R.pass+' yes to pass'; bar.append(u);
+      var cnt=el('div','po-count'); var a=el('span'),b=el('span');
+      a.append(el('b',null,y+' yes'),document.createTextNode(' · '+n+' no'));
+      b.textContent=p.status==='open'?(Math.max(0,R.pass-y)+' more yes to pass'):(R.teams-y-n)+' didn’t vote';
+      cnt.append(a,b);
+      var bal=el('div','po-ballot'); ids.forEach(function(t){var s=el('span',(v[t]==='yes'?'y':v[t]==='no'?'n':'')+(m&&m.team===t?' me':''));
+        s.title=nm(t)+': '+(v[t]||'not voted'); s.append(crest(t),document.createTextNode(v[t]||'—')); bal.append(s)});
+      c.append(bar,cnt,bal);
+      if(m&&p.status==='open'){
+        var vt=el('div','po-vote'),msg=el('span','po-msg'); msg.setAttribute('role','status');
+        ['yes','no'].forEach(function(ch){var bt=el('button','po-btn '+ch+(v[m.team]===ch?' on':''),ch==='yes'?'Vote yes':'Vote no');bt.type='button';
+          bt.setAttribute('aria-pressed',v[m.team]===ch?'true':'false');
+          bt.onclick=function(){if(v[m.team]===ch)return;vt.querySelectorAll('button').forEach(function(z){z.disabled=true});msg.className='po-msg';msg.textContent='Sending…';
+            call({action:'vote',team:m.team,key:m.key,proposal:p.id,choice:ch}).then(function(r){if(!r.ok){msg.className='po-msg err';msg.textContent=r.error;vt.querySelectorAll('button').forEach(function(z){z.disabled=false})}})
+              .catch(function(){msg.className='po-msg err';msg.textContent='Couldn’t reach the league office.';vt.querySelectorAll('button').forEach(function(z){z.disabled=false})})};
+          vt.append(bt)});
+        vt.append(msg); if(v[m.team])msg.textContent='Your team voted '+v[m.team]+'. You can change it until voting closes.';
+        c.append(vt);
+      }
+      host.append(c);
+    });
+  }
+
+  $('po-form').addEventListener('submit',function(e){
+    e.preventDefault(); var m=me(); if(!m)return; var msg=$('po-form-msg'), btn=this.querySelector('button');
+    var cat=(this.querySelector('input[name=po-cat]:checked')||{}).value;
+    btn.disabled=true; msg.className='po-msg'; msg.textContent='Sending…';
+    call({action:'propose',team:m.team,key:m.key,category:cat,title:$('po-title').value,details:$('po-details').value}).then(function(r){
+      btn.disabled=false; if(r.ok){$('po-title').value='';$('po-details').value='';msg.textContent=r.id+' is up for a vote.';$('po-open').scrollIntoView()}
+      else{msg.className='po-msg err';msg.textContent=r.error}}).catch(function(){btn.disabled=false;msg.className='po-msg err';msg.textContent='Couldn’t reach the league office.'});
+  });
+
+  function admin(){
+    var host=$('po-admin-body'), code=load(ADMIN); host.innerHTML='';
+    if(!code){var r=el('div','po-row'),i=el('input');i.placeholder='Commissioner code';i.autocomplete='off';var b=el('button','po-btn','Unlock');b.type='button';
+      b.onclick=function(){call({action:'admin',op:'check',code:i.value}).then(function(x){if(x.ok){store(ADMIN,i.value.trim());admin()}else alert(x.error)})};
+      r.append(i,b);host.append(r);return}
+    var r1=el('div','po-row'),s1=el('select');
+    S.claims.forEach(function(c){var o=el('option',null,nm(c.team));o.value=c.team;s1.append(o)});
+    var b1=el('button','po-btn','Reset claim');b1.type='button';b1.disabled=!S.claims.length;
+    b1.onclick=function(){if(confirm('Reset '+nm(+s1.value)+'? Its phone is signed out and the team can be claimed again. Its votes stay.'))call({action:'admin',op:'reset',code:code,team:+s1.value}).then(function(x){if(!x.ok)alert(x.error)})};
+    r1.append(s1,b1);
+    var r2=el('div','po-row'),s2=el('select');
+    S.proposals.filter(function(p){return p.status==='open'}).forEach(function(p){var o=el('option',null,p.id+': '+p.title);o.value=p.id;s2.append(o)});
+    var b2=el('button','po-btn','Withdraw');b2.type='button';b2.disabled=!s2.options.length;
+    b2.onclick=function(){if(confirm('Withdraw '+s2.value+'? Voting on it stops.'))call({action:'admin',op:'withdraw',code:code,proposal:s2.value}).then(function(x){if(!x.ok)alert(x.error)})};
+    r2.append(s2,b2);
+    var out=el('button','po-btn','Lock commissioner tools');out.type='button';out.onclick=function(){store(ADMIN,null);admin()};
+    host.append(el('p','po-note','Reset a team that was claimed by the wrong phone, or withdraw a proposal.'),r1,r2,out);
+  }
+
+  // Load when the tab is opened; refresh every 30 s while it's showing.
+  function tick(){if(!root.hidden&&!document.hidden)refresh()}
+  new MutationObserver(function(){if(!root.hidden){refresh();clearInterval(timer);timer=setInterval(tick,30000)}else clearInterval(timer)}).observe(root,{attributes:true,attributeFilter:['hidden']});
+  if(!root.hidden)tick();
 })();
 </script>
 
