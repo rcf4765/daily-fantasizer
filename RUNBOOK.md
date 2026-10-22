@@ -201,3 +201,6 @@ Fourth tab, **Rule Changes** (`#proposals`, subtitle "Propose & vote"), after Pl
 - **Every Tuesday edition includes it** (user, 2026-10-21): it has no copy and no data in the pipeline, so `render.py N` puts it in automatically from `template.html`, and `players.yml`'s midweek `--patch` leaves it alone (it only swaps the Player Stats pane; tested 2026-10-21). Never drop it when re-rendering. On phones the four tabs drop their subtitles to fit.
 - Week 6 (already published) got the tab spliced in without re-rendering, so its numbers didn't change.
 
+## Matchup of the Week spread (user, 2026-10-22)
+
+The featured game is still the one the Week N+1 Forecast (season averages) calls closest, so it matches the Forecast copy. Its spread and O/U now come from both teams' best projected lineups for that week (the same totals shown slot by slot under it), labeled "Projected spread"; before, they were season averages and could disagree with the totals. The Forecast keeps its season-average spreads.

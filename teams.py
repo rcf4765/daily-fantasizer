@@ -1,7 +1,8 @@
 """Team-level sections added 2026-10-19 at the user's request (all automatic, no copy):
 
 This Week's Paper
-- Matchup of the Week: the next week's game with the smallest spread. Both teams' rest-of-season
+- Matchup of the Week: the next week's game the Forecast calls closest (season averages); its spread and O/U
+  come from each team's best projected lineup that week (user, 2026-10-22). Both teams' rest-of-season
   Roster Radars overlaid, plus each lineup slot's blended projection for that week, head to head.
 
 League & Teams
@@ -269,9 +270,7 @@ def matchup(short, W, F, records):
     nw = F.get("next_week") or []
     if not nw:
         return ""
-    g = min(nw, key=lambda n: n["spread"])
     X = S.compute(short, W); d = X["d"]; sh = X["short"]
-    a, b = g["fav"], g["dog"]
     nxt = W + 1
     rawp = S.raw_proj(W)
     sched = json.load(open("data/players/nfl_schedule.json")) if os.path.exists("data/players/nfl_schedule.json") else None
@@ -283,20 +282,26 @@ def matchup(short, W, F, records):
             return 0.0
         v = S.proj_for(d, p, nxt, rawp)
         return v or 0.0
+    # The game is the one the Forecast (season averages) calls closest; its spread and O/U come from both teams'
+    # best projected lineups (user, 2026-10-22), so they always agree with the slot-by-slot totals shown under it.
+    pick = min(nw, key=lambda n: n["spread"])  # same game the Forecast's season-average board calls closest
     lines = {}
-    for t in (a, b):
+    for t in (pick["home"], pick["away"]):
         ps = [p for p in d.P if p.get("owner") == t]
         lines[t] = [(s, x, pj(x) if x else 0.0) for s, x in _lineup(ps, pj)]
     # kickers and defenses: ESPN's projection for that week (data/players/espn_kdst.json); the best one each team rosters
     kf = "data/players/espn_kdst.json"
     KD = json.load(open(kf)) if os.path.exists(kf) else []
-    for t in (a, b):
+    for t in lines:
         for pos in ("D/ST", "K"):
             c = [x for x in KD if x.get("owner") == t and x["pos"] == pos and x.get("proj", {}).get(str(nxt)) is not None]
             best = max(c, key=lambda x: x["proj"][str(nxt)], default=None)
             lines[t].append((pos, {"name": best["name"]} if best else None, float(best["proj"][str(nxt)]) if best else 0.0))
+    tot = {t: sum(v for _, _, v in lines[t]) for t in lines}
+    h, w = pick["home"], pick["away"]
+    a, b = (h, w) if tot[h] >= tot[w] else (w, h)
+    g = dict(spread=round((tot[a] - tot[b]) * 2) / 2, ou=round((tot[h] + tot[w]) * 2) / 2)
     has_kd = all(lines[t][-1][1] and lines[t][-2][1] for t in (a, b))
-    tot = {t: sum(v for _, _, v in lines[t]) for t in (a, b)}
     mx = max(v for t in (a, b) for _, _, v in lines[t]) or 1
     rows = ""
     labels = ["QB", "RB1", "RB2", "WR1", "WR2", "TE", "FLEX", "D/ST", "K"]
@@ -311,7 +316,7 @@ def matchup(short, W, F, records):
            f'{S.frame()}<polygon class="mw-pa" points="{S.poly(sa)}"/><polygon class="mw-pb" points="{S.poly(sb)}"/></svg>')
     rec = lambda t: records.get(t, "")
     head = (f'<div class="mw-head"><div class="mw-team mw-ta">{lg(a, "lg-lg")}<b>{esc(sh[a])}</b><small class="num">{rec(a)}</small></div>'
-            f'<div class="mw-mid"><span class="kicker">Spread</span><b class="num">{(esc(sh[a]) + " −" + format(g["spread"], "g")) if g["spread"] else "Pick&#39;em"}</b><small class="num">O/U {g["ou"]:g}</small></div>'
+            f'<div class="mw-mid"><span class="kicker">Projected spread</span><b class="num">{(esc(sh[a]) + " −" + format(g["spread"], "g")) if g["spread"] else "Pick&#39;em"}</b><small class="num">O/U {g["ou"]:g}</small></div>'
             f'<div class="mw-team mw-tb">{lg(b, "lg-lg")}<b>{esc(sh[b])}</b><small class="num">{rec(b)}</small></div></div>')
     return (f'<section class="sec" id="matchup"><div class="sec-head"><h2>Matchup of the Week</h2>'
             f'<span class="kicker">Week {nxt} · the closest spread on the board</span></div>{head}'
@@ -320,7 +325,7 @@ def matchup(short, W, F, records):
             f'<div class="mw-list"><span class="kicker">Week {nxt} projected points, slot by slot</span>{rows}'
             f'<div class="mw-row mw-tot"><span class="mw-a"><b class="num">{tot[a]:.1f}</b></span><span class="mw-s">Total</span><span class="mw-b"><b class="num">{tot[b]:.1f}</b></span></div></div></div>'
             f'<p class="note-s">Each team&#39;s best projected lineup for week {nxt}: QB through FLEX use the blended projection (consensus and ESPN); '
-            f'kickers and defenses use ESPN&#39;s projection. Byes and players ruled out count zero.'
+            f'kickers and defenses use ESPN&#39;s projection. Byes and players ruled out count zero. The spread and over/under come from these totals.'
             f'{"" if has_kd else " ESPN projections for kickers and defenses were not available for this edition, so those slots show zero."}</p></section>')
 
 
