@@ -208,3 +208,9 @@ The featured game is still the one the Week N+1 Forecast (season averages) calls
 ## League office is live (2026-10-22)
 
 Google Sheet **Daily Fantasizer League Office** in the commissioner's Google account (rezajalali36), Apps Script project bound to it, deployed as web app "League office v1" (execute as the commissioner, access Anyone). Its URL is `league.json` `proposals_api`. To change `Code.gs`: open the Sheet ▸ Extensions ▸ Apps Script, paste, save, then Deploy ▸ Manage deployments ▸ edit ▸ Version: New version (the URL stays the same).
+
+## Rule Changes phone fixes (2026-10-22)
+
+- Propose a Change now sits right under Your Team and is always shown; until that device claims a team it is locked with a yellow note pointing to Your Team (user couldn't find where to type a proposal).
+- Phones: the four tabs are equal columns that always fit; `.page` uses `minmax(0,1fr)` so a long headline can't push the last tab off a 320px screen.
+- `docs/sw.js` (cache `fantasizer-v2`) fetches with `cache: "no-cache"`, so phones and the home-screen app get a new edition or fix right away instead of after GitHub's 10-minute browser cache.
