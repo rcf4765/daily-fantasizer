@@ -27,5 +27,6 @@
  "trade_block_min_teams": 10,
  "upset_top_n": 4,
  "upset_win_gap": 2,
- "heartbreaker_margin": 2
+ "heartbreaker_margin": 2,
+  "proposals_api": "https://script.google.com/macros/s/AKfycbzZIXm4W2-5aWBbA2Qu6nzmKIRXbVuJeA6u7oJgv2SjPHaKRx720ldH2645yoy8UOHw/exec"
 }

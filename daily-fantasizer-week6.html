@@ -1796,7 +1796,7 @@ tr[hidden]{display:none}
 /* Rule Changes tab. The league office server (Google Apps Script, proposals/Code.gs) is the authority:
    it checks each team's secret key and keeps one vote per team per proposal. This page only displays. */
 (function(){
-  var API='', KEYS='fz-team', ADMIN='fz-comm';
+  var API='https://script.google.com/macros/s/AKfycbzZIXm4W2-5aWBbA2Qu6nzmKIRXbVuJeA6u7oJgv2SjPHaKRx720ldH2645yoy8UOHw/exec', KEYS='fz-team', ADMIN='fz-comm';
   var root=document.getElementById('proposals'); if(!root)return;
   var T={}; try{T=JSON.parse(document.getElementById('po-data').textContent)}catch(e){}
   var ids=Object.keys(T).map(Number).sort(function(a,b){return a-b});

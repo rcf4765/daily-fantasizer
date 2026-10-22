@@ -204,3 +204,7 @@ Fourth tab, **Rule Changes** (`#proposals`, subtitle "Propose & vote"), after Pl
 ## Matchup of the Week spread (user, 2026-10-22)
 
 The featured game is still the one the Week N+1 Forecast (season averages) calls closest, so it matches the Forecast copy. Its spread and O/U now come from both teams' best projected lineups for that week (the same totals shown slot by slot under it), labeled "Projected spread"; before, they were season averages and could disagree with the totals. The Forecast keeps its season-average spreads.
+
+## League office is live (2026-10-22)
+
+Google Sheet **Daily Fantasizer League Office** in the commissioner's Google account (rezajalali36), Apps Script project bound to it, deployed as web app "League office v1" (execute as the commissioner, access Anyone). Its URL is `league.json` `proposals_api`. To change `Code.gs`: open the Sheet ▸ Extensions ▸ Apps Script, paste, save, then Deploy ▸ Manage deployments ▸ edit ▸ Version: New version (the URL stays the same).
