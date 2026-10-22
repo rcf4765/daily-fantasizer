@@ -1194,10 +1194,13 @@ footer b{color:var(--honolulu);font-weight:600}
     host.append(el('p','po-note','Reset a team that was claimed by the wrong phone, or withdraw a proposal.'),r1,r2,out);
   }
 
-  // Load when the tab is opened; refresh every 30 s while it's showing.
+  // Load when the tab is opened (even if the page opened in a background browser tab); refresh every 30 s
+  // while it's showing, and right away when the browser tab comes back into view.
   function tick(){if(!root.hidden&&!document.hidden)refresh()}
-  new MutationObserver(function(){if(!root.hidden){refresh();clearInterval(timer);timer=setInterval(tick,30000)}else clearInterval(timer)}).observe(root,{attributes:true,attributeFilter:['hidden']});
-  if(!root.hidden)tick();
+  function start(){refresh();clearInterval(timer);timer=setInterval(tick,30000)}
+  new MutationObserver(function(){if(!root.hidden)start();else clearInterval(timer)}).observe(root,{attributes:true,attributeFilter:['hidden']});
+  document.addEventListener('visibilitychange',tick);
+  if(!root.hidden)start();
 })();
 </script>
 
