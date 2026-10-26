@@ -83,9 +83,17 @@ def inspect():
     for it in sc.get("scoringItems", []):
         print("  scoringItem", json.dumps(it, sort_keys=True))
     P = json.load(open(os.path.join(HERE, "rules_presets.json")))
+    presets = {}
     for pid, p in P.items():
         for ch in p.get("espn", []):
+            presets.setdefault(pid, []).append({"path": ch["path"], "now": get_path(st, ch["path"]), "preset": ch["value"]})
             print(f"preset {pid}: {ch['path']} now = {json.dumps(get_path(st, ch['path']))} -> {json.dumps(ch['value'])}")
+    # League settings only (no logins, no member ids), so they can be read back outside the Action.
+    out = {"checked_at": now(), "login_is_league_manager": lm, "status": L.get("status", {}),
+           "acquisitionSettings": st.get("acquisitionSettings"), "tradeSettings": st.get("tradeSettings"),
+           "rosterSettings_keys": sorted((st.get("rosterSettings") or {}).keys()),
+           "scoringSettings": {k: v for k, v in sc.items()}, "settings_keys": sorted(st.keys()), "presets": presets}
+    json.dump(out, open(os.path.join(HERE, "data", "espn_settings.json"), "w"), indent=1, default=str)
 
 
 def apply(dry):

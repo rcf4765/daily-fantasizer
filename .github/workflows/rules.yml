@@ -41,15 +41,15 @@ jobs:
             dry)     python rules_espn.py apply --dry ;;
             *)       python rules_espn.py apply ;;
           esac
-      - name: Save the rulebook
-        if: ${{ github.event.inputs.mode != 'inspect' }}
+      - name: Save the rulebook (or the inspection)
         run: |
           git config user.name "daily-fantasizer-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add docs/rulebook.json 2>/dev/null || true
+          git add docs/rulebook.json data/espn_settings.json 2>/dev/null || true
           if ! git diff --cached --quiet; then
-            git commit -m "Rulebook: $(date -u +%F)"; git pull --rebase -q; git push
+            git commit -m "Rule changes ($MODE): $(date -u +%F)"; git pull --rebase -q; git push
             gh workflow run pages.yml --ref main || echo "Could not start the site deploy; the next push will"
           fi
         env:
           GH_TOKEN: ${{ github.token }}
+          MODE: ${{ github.event.inputs.mode || 'apply' }}
