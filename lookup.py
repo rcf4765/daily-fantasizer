@@ -87,28 +87,7 @@ def section(d, W, short, own_team):
             continue
         a = A.get(p["key"], {"wk": {}})
         aw = {int(k): v for k, v in a["wk"].items() if int(k) <= W}
-        tot = {}
-        tree = {}
-        wsum = {}
-        for w, v in aw.items():
-            for k, x in v.items():
-                if k in ("tree", "ptree"):
-                    for z, t in x.items():
-                        c = tree.setdefault(k, {}).setdefault(z, [0, 0, 0])
-                        for i in range(3):
-                            c[i] += t[i]
-                elif k in ("sep", "cush", "yacx", "iay"):        # NGS receiving, weighted by targets
-                    wt = v.get("tg", 0) or 1; wsum.setdefault(k, [0, 0]); wsum[k][0] += x * wt; wsum[k][1] += wt
-                elif k in ("box8", "eff", "ttl"):                # NGS rushing, weighted by carries
-                    wt = v.get("car", 0) or 1; wsum.setdefault(k, [0, 0]); wsum[k][0] += x * wt; wsum[k][1] += wt
-                elif k in ("ttt", "aggr", "qiay", "xcmp", "cpoe"):  # passing, weighted by attempts
-                    wt = v.get("att", 0) or 1; wsum.setdefault(k, [0, 0]); wsum[k][0] += x * wt; wsum[k][1] += wt
-                elif k == "ryoe":                                # NGS rush yards over expected: carries with a row
-                    tot["ryoe"] = tot.get("ryoe", 0) + x; tot["ryoe_c"] = tot.get("ryoe_c", 0) + (v.get("car", 0) or 0)
-                elif isinstance(x, (int, float)) and k not in ("ts", "ays", "wopr", "repa", "uepa", "pepa"):
-                    tot[k] = tot.get(k, 0) + x
-        for k, (s_, n_) in wsum.items():
-            tot[k] = s_ / n_ if n_ else None
+        tot, tree = _agg(aw, list(aw))
         u = d.use.get(p["key"], {})
         wopr = [u[w].get("wopr") for w in g if w in u and u[w].get("wopr") is not None]
         # weekly log: [week, opp, PPR, consensus proj, consensus pos rank, finish, line]
@@ -125,6 +104,22 @@ def section(d, W, short, own_team):
                             _line(p["pos"], v, act)])
             else:
                 log.append([w, opp, None, r1(pj), rk or None, None, None])
+        # one view per week played: that game's stats, trees and usage (user, 2026-10-26: week tabs)
+        wv = {}
+        for w in g:
+            wt, wtr = _agg(aw, [w]) if w in aw else ({}, {})
+            act = p["act"][w]
+            for k, ek in (("tg", "tgt"), ("rec", "rec"), ("ry", "re_yds"), ("rtd", "re_td"), ("car", "ru_att"), ("uy", "ru_yds"),
+                          ("utd", "ru_td"), ("att", "pa_att"), ("cmp", "pa_cmp"), ("py", "pa_yds"), ("ptd", "pa_td"), ("int", "pa_int")):
+                if k not in wt and act.get(ek):
+                    wt[k] = act[ek]
+            uw = u.get(w, {})
+            wv[str(w)] = {"t": {k: (round(v, 2) if isinstance(v, float) else v) for k, v in wt.items() if v},
+                          "tr": wtr.get("tree", {}), "ptr": wtr.get("ptree", {}),
+                          "u": [r1(uw["snap"] * 100, 0) if uw.get("snap") is not None else None,
+                                r1(uw["ts"] * 100, 1) if uw.get("ts") is not None else None,
+                                r1(uw["ays"] * 100, 1) if uw.get("ays") is not None else None,
+                                r1(uw.get("wopr"), 2), act.get("tgt") or 0, (act.get("ru_att") or 0) + (act.get("rec") or 0)]}
         gr = [x for x in log if x[2] is not None and x[4] and x[5]]
         gp = [x for x in log if x[2] is not None and x[3] is not None and x[0] in graded]
         bp = S.proj_for(d, p, nxt, rawp)
@@ -147,7 +142,7 @@ def section(d, W, short, own_team):
             "gr": [len(gr), r1(sum(x[4] for x in gr) / len(gr), 1) if gr else None, r1(sum(x[5] for x in gr) / len(gr), 1) if gr else None,
                    r1(sum(x[4] - x[5] for x in gr) / len(gr), 1) if gr else None,
                    r1(sum(x[2] - x[3] for x in gp) / len(gp), 1) if gp else None],
-            "lg": log,
+            "lg": log, "wk": wv,
         })
     if not rows:
         return ""
@@ -168,6 +163,35 @@ def section(d, W, short, own_team):
             f'separation, YAC over expected, rush yards over expected, 8+ box %, time to throw and aggressiveness are Next Gen Stats (only weeks over their minimums count). '
             f'The route tree shows where his targets went (depth and side of every target); the route actually run isn\'t public for this season.</p>')
     return (f'<section class="sec" id="ps-lookup"><div class="sec-head"><h2>Player Lookup</h2><span class="kicker">Every number on one player · weeks 1–{W}</span></div>{body}</section>')
+
+
+RATE_T = ("sep", "cush", "yacx", "iay")            # NGS receiving, weighted by targets
+RATE_C = ("box8", "eff", "ttl")                     # NGS rushing, weighted by carries
+RATE_A = ("ttt", "aggr", "qiay", "xcmp", "cpoe")    # passing, weighted by attempts
+SKIP = ("ts", "ays", "wopr", "repa", "uepa", "pepa")
+
+
+def _agg(aw, weeks):
+    """Totals over the given weeks: counting stats summed, rate stats weighted, target/throw trees merged."""
+    tot, tree, wsum = {}, {}, {}
+    for w in weeks:
+        v = aw.get(w, {})
+        for k, x in v.items():
+            if k in ("tree", "ptree"):
+                for z, t in x.items():
+                    c = tree.setdefault(k, {}).setdefault(z, [0, 0, 0])
+                    for i in range(3):
+                        c[i] += t[i]
+            elif k in RATE_T + RATE_C + RATE_A:
+                wt = (v.get("tg") if k in RATE_T else v.get("car") if k in RATE_C else v.get("att")) or 1
+                wsum.setdefault(k, [0, 0]); wsum[k][0] += x * wt; wsum[k][1] += wt
+            elif k == "ryoe":  # NGS rush yards over expected: only carries in weeks with an NGS row count
+                tot["ryoe"] = tot.get("ryoe", 0) + x; tot["ryoe_c"] = tot.get("ryoe_c", 0) + (v.get("car", 0) or 0)
+            elif isinstance(x, (int, float)) and k not in SKIP:
+                tot[k] = tot.get(k, 0) + x
+    for k, (s_, n_) in wsum.items():
+        tot[k] = s_ / n_ if n_ else None
+    return tot, tree
 
 
 def _line(pos, v, act):
@@ -227,8 +251,10 @@ SCRIPT = r"""<script>
   if(own.length){mine.innerHTML='<span class="kicker">'+e(T[D.own]||'Your team')+'</span>'+own.map(function(p){return '<button type="button" data-k="'+e(p.k)+'">'+e(p.n.replace(/ (Jr\.?|Sr\.?|II|III|IV|V)$/,'').split(' ').slice(-1)[0])+' <small>'+e(p.pos)+'</small></button>'}).join('');
     mine.addEventListener('click',function(ev){var b=ev.target.closest('button');if(b)pick(b.dataset.k)})}
   // ---- pieces ----
+  var VIEW='S',DV=1,CUR=null;
+  function n(x){x=x||0;return DV===1?i0(x):f(x/DV)}
   function tile(lbl,val,sub,cls){return '<div class="lk-t'+(cls?' '+cls:'')+'"><em>'+lbl+'</em><b class="num">'+val+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</div>'}
-  function grid(title,items){return '<div class="lk-blk"><h4>'+title+'</h4><div class="lk-g">'+items.map(function(x){return '<span'+(x[2]?' title="'+e(x[2])+'"':'')+'><em>'+x[0]+'</em><b class="num">'+x[1]+'</b></span>'}).join('')+'</div></div>'}
+  function grid(title,items){return '<div class="lk-blk"><h4>'+title+(DV>1&&title!=='Usage'?' <small>per game</small>':'')+'</h4><div class="lk-g">'+items.map(function(x){return '<span'+(x[2]?' title="'+e(x[2])+'"':'')+'><em>'+x[0]+'</em><b class="num">'+x[1]+'</b></span>'}).join('')+'</div></div>'}
   var ZD={B:'Behind the line',S:'Short (0–9)',M:'Intermediate (10–19)',D:'Deep (20+)'},ZS={L:'left',M:'middle',R:'right'};
   function tree(tr,qb){
     var keys=Object.keys(tr);if(!keys.length)return '<p class="note-s">No targets charted yet.</p>';
@@ -248,24 +274,24 @@ SCRIPT = r"""<script>
       s+='<path d="'+d+'" class="rt" style="stroke-width:'+w.toFixed(1)+';opacity:'+op.toFixed(2)+'"><title>'+ZD[z[0]]+' '+ZS[z[1]]+': '+t[0]+(qb?' throws, ':' targets, ')+t[1]+' caught, '+t[2]+' yds</title></path>';
     });
     keys.forEach(function(z){var t=tr[z],cx=X[z[1]],cy=Y[z[0]];
-      s+='<g class="rz"><circle cx="'+cx+'" cy="'+cy+'" r="11"/><text x="'+cx+'" y="'+(cy+3.5)+'" text-anchor="middle">'+t[0]+'</text><title>'+ZD[z[0]]+' '+ZS[z[1]]+': '+t[0]+(qb?' throws, ':' targets, ')+t[1]+' caught, '+t[2]+' yds</title></g>'});
+      s+='<g class="rz"><circle cx="'+cx+'" cy="'+cy+'" r="11"/><text x="'+cx+'" y="'+(cy+3.5)+'" text-anchor="middle"'+(DV>1?' style="font-size:8px"':'')+'>'+(DV===1?t[0]:(t[0]/DV).toFixed(1))+'</text><title>'+ZD[z[0]]+' '+ZS[z[1]]+': '+t[0]+(qb?' throws, ':' targets, ')+t[1]+' caught, '+t[2]+' yds</title></g>'});
     s+='<circle cx="'+ox+'" cy="'+oy+'" r="4.5" class="org"/>';
     s+='</svg>';
     // share by depth
     var dep={B:0,S:0,M:0,D:0},cat={B:0,S:0,M:0,D:0};keys.forEach(function(z){dep[z[0]]+=tr[z][0];cat[z[0]]+=tr[z][1]});
-    var bars=['D','M','S','B'].map(function(k){return '<span><em>'+{D:'Deep 20+',M:'10–19',S:'0–9',B:'Behind'}[k]+'</em><i style="width:'+(tot?dep[k]/tot*100:0).toFixed(0)+'%"></i><b class="num">'+dep[k]+'<small> · '+(dep[k]?Math.round(cat[k]/dep[k]*100)+'%':'–')+'</small></b></span>'}).join('');
-    return '<div class="lk-treew">'+s+'<div class="lk-dep"><div class="kicker">'+(qb?'Throws':'Targets')+' by depth · catch rate</div>'+bars+'</div></div>';
+    var bars=['D','M','S','B'].map(function(k){return '<span><em>'+{D:'Deep 20+',M:'10–19',S:'0–9',B:'Behind'}[k]+'</em><i style="width:'+(tot?dep[k]/tot*100:0).toFixed(0)+'%"></i><b class="num">'+(DV===1?dep[k]:(dep[k]/DV).toFixed(1))+'<small> · '+(dep[k]?Math.round(cat[k]/dep[k]*100)+'%':'–')+'</small></b></span>'}).join('');
+    return '<div class="lk-treew">'+s+'<div class="lk-dep"><div class="kicker">'+(qb?'Throws':'Targets')+(DV>1?' per game':'')+' by depth · catch rate</div>'+bars+'</div></div>';
   }
   function weeks(p){
     var L=p.lg,mx=Math.max.apply(null,L.map(function(x){return Math.max(x[2]||0,x[3]||0)}).concat([10]));
     var h='<div class="lk-wk" style="--n:'+L.length+'">';
     L.forEach(function(x){
       var hasPts=x[2]!=null,beat=hasPts&&x[3]!=null?x[2]-x[3]:null;
-      h+='<div class="lk-w"><div class="lk-bar">'+(hasPts?'<i class="'+(beat==null?'':beat>=0?'up':'dn')+'" style="height:'+(x[2]/mx*100).toFixed(1)+'%"><b class="num">'+f(x[2])+'</b></i>':'<span class="lk-dnp">'+(x[1]==='BYE'?'bye':'–')+'</span>')+
+      h+='<button type="button" class="lk-w'+(String(VIEW)===String(x[0])?' sel':'')+'" data-v="'+x[0]+'" aria-label="Week '+x[0]+'"><div class="lk-bar">'+(hasPts?'<i class="'+(beat==null?'':beat>=0?'up':'dn')+'" style="height:'+(x[2]/mx*100).toFixed(1)+'%"><b class="num">'+f(x[2])+'</b></i>':'<span class="lk-dnp">'+(x[1]==='BYE'?'bye':'–')+'</span>')+
         (x[3]!=null?'<u style="bottom:'+(x[3]/mx*100).toFixed(1)+'%" title="Consensus projection '+f(x[3])+'"></u>':'')+'</div>'+
         '<span class="lk-wl">W'+x[0]+'<small>'+e(x[1]||'')+'</small></span>'+
         '<span class="lk-rf num">'+(x[4]&&x[5]?p.pos+x[4]+'→'+p.pos+x[5]:x[4]&&hasPts?p.pos+x[4]+'→?':'')+'</span>'+
-        '<span class="lk-vp num '+(beat==null?'':beat>=0?'up':'dn')+'">'+(beat==null?'':(beat>0?'+':'')+beat.toFixed(1))+'</span></div>';
+        '<span class="lk-vp num '+(beat==null?'':beat>=0?'up':'dn')+'">'+(beat==null?'':(beat>0?'+':'')+beat.toFixed(1))+'</span></button>';
     });
     return h+'</div>';
   }
@@ -280,26 +306,43 @@ SCRIPT = r"""<script>
   }
   function receiving(p,t,full){
     var tg=t.tg||0,rec=t.rec||0,ry=t.ry||0,ay=t.ay||0,yac=t.yac||0,real=ry-yac,unr=ay-real;
-    var it=[['Targets',i0(tg)],['Catches',i0(rec)],['Catch %',tg?pc(rec/tg*100):'–'],['Rec yards',i0(ry)],['Rec TD',i0(t.rtd||0)],
-      ['Air yards',i0(ay),'Air yards on every target'],['aDOT',tg?f(ay/tg):'–','Average depth of target'],['Unrealized air yds',i0(unr),'Air yards on targets he didn\'t turn into catch yardage: air yards − (rec yards − YAC)'],
-      ['YAC',i0(yac),'Yards after the catch'],['YAC / catch',rec?f(yac/rec):'–'],['YAC over exp.',t.yacx==null?'–':(t.yacx>0?'+':'')+f(t.yacx),'Next Gen Stats, per catch'],
+    var it=[['Targets',n(tg)],['Catches',n(rec)],['Catch %',tg?pc(rec/tg*100):'–'],['Rec yards',n(ry)],['Rec TD',n(t.rtd||0)],
+      ['Air yards',n(ay),'Air yards on every target'],['aDOT',tg?f(ay/tg):'–','Average depth of target'],['Unrealized air yds',n(unr),'Air yards on targets he didn\'t turn into catch yardage: air yards − (rec yards − YAC)'],
+      ['YAC',n(yac),'Yards after the catch'],['YAC / catch',rec?f(yac/rec):'–'],['YAC over exp.',t.yacx==null?'–':(t.yacx>0?'+':'')+f(t.yacx),'Next Gen Stats, per catch'],
       ['Separation',t.sep==null?'–':f(t.sep)+' yd','Next Gen Stats: yards from the nearest defender at the catch or incompletion'],['Cushion',t.cush==null?'–':f(t.cush)+' yd'],
-      ['RACR',ay>0?f(ry/ay,2):'–','Receiving yards per air yard'],['1st downs',i0(t.rfd||0)],['Drops',i0(t.drp||0)],['Broken tackles',i0(t.rbrk||0)],
-      ['Red-zone tgts',i0(t.rzt||0)],['End-zone tgts',i0(t.ezt||0)],['Deep tgts 20+',i0(t.dpt||0)]];
+      ['RACR',ay>0?f(ry/ay,2):'–','Receiving yards per air yard'],['1st downs',n(t.rfd||0)],['Drops',n(t.drp||0)],['Broken tackles',n(t.rbrk||0)],
+      ['Red-zone tgts',n(t.rzt||0)],['End-zone tgts',n(t.ezt||0)],['Deep tgts 20+',n(t.dpt||0)]];
     if(!full)it=[it[0],it[1],it[2],it[3],it[4],it[6],it[8],it[9],it[17]];
     return grid(full?'Receiving':'Receiving work',it);
   }
   function show(p){
-    var t=p.t,g=p.g,u=p.u,lp=p.l3-p.ppg,ar=lp>1?'▲':lp<-1?'▼':'•',ac=lp>1?'up':lp<-1?'dn':'';
-    var inj=(p.inj&&p.inj!=='ACTIVE'&&p.inj!=='NORMAL')?' <span class="inj">'+e(p.inj.replace('_',' ').toLowerCase())+'</span>':'';
+    CUR=p;var inj=(p.inj&&p.inj!=='ACTIVE'&&p.inj!=='NORMAL')?' <span class="inj">'+e(p.inj.replace('_',' ').toLowerCase())+'</span>':'';
+    var wkv=(VIEW!=='S'&&VIEW!=='A')?p.wk[VIEW]:null;
+    var isW=VIEW!=='S'&&VIEW!=='A',lw=isW?p.lg[VIEW-1]:null;
+    var t=isW?(wkv?wkv.t:{}):p.t,g=p.g,u=isW?(wkv?wkv.u:[null,null,null,null,0,0]):p.u;
+    DV=VIEW==='A'?g:1;
+    var lp=p.l3-p.ppg,ar=lp>1?'▲':lp<-1?'▼':'•',ac=lp>1?'up':lp<-1?'dn':'';
+    var big=isW?(lw&&lw[2]!=null?'<b class="num">'+f(lw[2])+'</b><span>PPR · week '+VIEW+'<br><em>'+e(lw[1]||'')+'</em></span>':'<b class="num">–</b><span>week '+VIEW+'<br><em>'+(lw&&lw[1]==='BYE'?'bye':'did not play')+'</em></span>')
+      :'<b class="num">'+f(p.ppg)+'</b><span>PPR / game<br><em>'+(p.prk?p.pos+p.prk+' at the position':'fewer than 2 games')+'</em></span>';
     var h='<div class="lk-head"><div><span class="kicker">'+e(p.pos)+' · '+e(p.tm)+' · '+g+' game'+(g===1?'':'s')+(p.bye?' · bye wk '+p.bye:'')+'</span>'+
-      '<h3>'+e(p.n)+inj+'</h3>'+owner(p)+'</div>'+
-      '<div class="lk-big"><b class="num">'+f(p.ppg)+'</b><span>PPR / game<br><em>'+(p.prk?p.pos+p.prk+' at the position':'fewer than 2 games')+'</em></span></div></div>';
-    h+='<div class="lk-tiles">'+tile('Last 3','<span class="'+ac+'">'+f(p.l3)+' '+ar+'</span>','vs '+f(p.ppg)+' season')+
-      tile('Total PPR',f(p.tot),'weeks 1–'+D.W)+
-      tile('Expected',f(p.xp),p.xp==null?'needs 3 games':((p.ppg-p.xp>=0?'+':'')+f(p.ppg-p.xp)+' vs volume'),p.xp!=null&&p.ppg-p.xp>=0?'up':p.xp!=null?'dn':'')+
-      tile('Week '+D.nx+' proj',f(p.np),e(p.nopp))+
-      tile('Rest of season',e(p.rr||'–'),p.ro?'overall '+p.ro+(p.ros?' · '+f(p.ros)+'/g':''):'unranked')+'</div>';
+      '<h3>'+e(p.n)+inj+'</h3>'+owner(p)+'</div><div class="lk-big">'+big+'</div></div>';
+    // view tabs: whole season, per-game average, each week
+    h+='<div class="lk-views" role="group" aria-label="Which weeks"><button type="button" class="pt" data-v="S" aria-pressed="'+(VIEW==='S')+'">Season</button><button type="button" class="pt" data-v="A" aria-pressed="'+(VIEW==='A')+'">Average</button>'+
+      p.lg.map(function(x){var played=!!p.wk[x[0]];return '<button type="button" class="pt'+(played?'':' nog')+'" data-v="'+x[0]+'" aria-pressed="'+(String(VIEW)===String(x[0]))+'" title="'+(played?'Week '+x[0]+' '+e(x[1]||''):x[1]==='BYE'?'Bye':'No game')+'">Wk '+x[0]+'</button>'}).join('')+'</div>';
+    if(isW){
+      var beat=lw&&lw[2]!=null&&lw[3]!=null?lw[2]-lw[3]:null;
+      h+='<div class="lk-tiles">'+tile('Week '+VIEW+' PPR',lw&&lw[2]!=null?f(lw[2]):'–',lw&&lw[1]?e(lw[1]==='BYE'?'bye week':lw[1]):'')+
+        tile('Projected',lw&&lw[3]!=null?f(lw[3]):'–','consensus, before the week')+
+        tile('vs projection',beat==null?'–':(beat>0?'+':'')+f(beat),beat==null?'':beat>=0?'beat it':'missed it',beat==null?'':beat>=0?'up':'dn')+
+        tile('Ranked',lw&&lw[4]?p.pos+lw[4]:'–','consensus before the week')+
+        tile('Finished',lw&&lw[5]?p.pos+lw[5]:'–','at his position',lw&&lw[4]&&lw[5]?(lw[5]<=lw[4]?'up':'dn'):'')+'</div>';
+    } else {
+      h+='<div class="lk-tiles">'+tile('Last 3','<span class="'+ac+'">'+f(p.l3)+' '+ar+'</span>','vs '+f(p.ppg)+' season')+
+        (VIEW==='A'?tile('PPR / game',f(p.ppg),p.prk?p.pos+p.prk+' at the position':''):tile('Total PPR',f(p.tot),'weeks 1–'+D.W))+
+        tile('Expected',f(p.xp),p.xp==null?'needs 3 games':((p.ppg-p.xp>=0?'+':'')+f(p.ppg-p.xp)+' vs volume'),p.xp!=null&&p.ppg-p.xp>=0?'up':p.xp!=null?'dn':'')+
+        tile('Week '+D.nx+' proj',f(p.np),e(p.nopp))+
+        tile('Rest of season',e(p.rr||'–'),p.ro?'overall '+p.ro+(p.ros?' · '+f(p.ros)+'/g':''):'unranked')+'</div>';
+    }
     // graded weeks
     var G=p.gr;
     h+='<div class="lk-blk"><h4>Week by week · graded</h4>'+weeks(p)+
@@ -308,32 +351,38 @@ SCRIPT = r"""<script>
         '<span><em>Pts vs proj</em><b class="num '+(G[4]==null?'':G[4]>=0?'up':'dn')+'">'+(G[4]==null?'–':(G[4]>0?'+':'')+f(G[4]))+'</b></span></div>'+
       '<div class="lk-key"><span><i class="k-up"></i>Beat projection</span><span><i class="k-dn"></i>Missed</span><span><i class="k-pj"></i>Consensus projection</span><span>WR12→WR5 = ranked → finished</span></div></div>';
     // usage
-    if(p.pos==='QB')h+=grid('Usage',[['Games',g],['Snap %',pc(u[0])],['Pass att / g',g?f((t.att||0)/g):'–'],['Dropbacks / g',g?f(((t.att||0)+(t.sk||0))/g):'–'],['Carries / g',g?f((t.car||0)/g):'–']]);
-    else h+=grid('Usage',[['Games',g],['Snap %',pc(u[0])],['Target share',pc(u[1],1)],['Air-yd share',p.pos==='RB'||p.pos==='QB'?'–':pc(u[2],1)],['WOPR',u[3]==null?'–':f(u[3],2),'Weighted opportunity: 1.5 × target share + 0.7 × air-yards share'],['Targets / g',f(u[4])],['Touches / g',f(u[5])]]);
+    var played=!isW||!!wkv;
+    if(!played){h+='<p class="lk-none">'+(lw&&lw[1]==='BYE'?'Bye week: no game.':'He didn\'t play in week '+VIEW+'.')+'</p>';card.innerHTML=h;return}
+    var gl=isW?['Opponent',e(lw[1]||'')]:['Games',g];
+    if(p.pos==='QB')h+=grid('Usage',[gl,['Snap %',pc(u[0])],[isW?'Pass att':'Pass att / g',isW?n(t.att):f((t.att||0)/g)],[isW?'Dropbacks':'Dropbacks / g',isW?n((t.att||0)+(t.sk||0)):f(((t.att||0)+(t.sk||0))/g)],[isW?'Carries':'Carries / g',isW?n(t.car):f((t.car||0)/g)]]);
+    else h+=grid('Usage',[gl,['Snap %',pc(u[0])],['Target share',pc(u[1],1)],['Air-yd share',p.pos==='RB'||p.pos==='QB'?'–':pc(u[2],1)],['WOPR',u[3]==null?'–':f(u[3],2),'Weighted opportunity: 1.5 × target share + 0.7 × air-yards share'],[isW?'Targets':'Targets / g',isW?n(u[4]):f(u[4])],[isW?'Touches':'Touches / g',isW?n(u[5]):f(u[5])]]);
     var c=t.car||0;
     if(p.pos==='RB'){
-      h+=grid('Rushing',[['Carries',i0(c)],['Rush yards',i0(t.uy||0)],['YPC',c?f((t.uy||0)/c):'–'],['Rush TD',i0(t.utd||0)],
-        ['Yds before contact',i0(t.ybc||0),'PFR charting'],['YBC / carry',c&&t.ybc!=null?f((t.ybc||0)/c):'–'],['Yds after contact',i0(t.yaco||0),'PFR charting'],['YAC / carry',c?f((t.yaco||0)/c):'–'],
-        ['Broken tackles',i0((t.brk||0)+(t.rbrk||0)),'Rushing and receiving'],['RYOE / carry',t.ryoe_c?((t.ryoe/t.ryoe_c>0?'+':'')+f(t.ryoe/t.ryoe_c)):'–','Next Gen Stats rush yards over expected'],
-        ['8+ in box',t.box8==null?'–':pc(t.box8),'Share of carries against 8+ defenders (NGS)'],['Red-zone carries',i0(t.rzc||0)],['Goal-line carries',i0(t.glc||0),'Inside the 5'],['Rush 1st downs',i0(t.ufd||0)],['Fumbles lost',i0(t.fl||0)]]);
+      h+=grid('Rushing',[['Carries',n(c)],['Rush yards',n(t.uy||0)],['YPC',c?f((t.uy||0)/c):'–'],['Rush TD',n(t.utd||0)],
+        ['Yds before contact',n(t.ybc||0),'PFR charting'],['YBC / carry',c&&t.ybc!=null?f((t.ybc||0)/c):'–'],['Yds after contact',n(t.yaco||0),'PFR charting'],['YAC / carry',c?f((t.yaco||0)/c):'–'],
+        ['Broken tackles',n((t.brk||0)+(t.rbrk||0)),'Rushing and receiving'],['RYOE / carry',t.ryoe_c?((t.ryoe/t.ryoe_c>0?'+':'')+f(t.ryoe/t.ryoe_c)):'–','Next Gen Stats rush yards over expected'],
+        ['8+ in box',t.box8==null?'–':pc(t.box8),'Share of carries against 8+ defenders (NGS)'],['Red-zone carries',n(t.rzc||0)],['Goal-line carries',n(t.glc||0),'Inside the 5'],['Rush 1st downs',n(t.ufd||0)],['Fumbles lost',n(t.fl||0)]]);
       h+=receiving(p,t,false);
     } else if(p.pos==='QB'){
       var at=t.att||0,cm=t.cmp||0;
-      h+=grid('Passing',[['Cmp / Att',i0(cm)+'/'+i0(at)],['Comp %',at?pc(cm/at*100,1):'–'],['Pass yards',i0(t.py||0)],['YPA',at?f((t.py||0)/at):'–'],['Pass TD',i0(t.ptd||0)],['INT',i0(t.int||0)],
-        ['Sacks',i0(t.sk||0)],['Air yards',i0(t.pay||0),'Air yards on all his throws'],['Intended air / att',t.qiay==null?'–':f(t.qiay),'NGS average intended air yards'],['YAC on his throws',i0(t.pyac||0)],
+      h+=grid('Passing',[['Cmp / Att',n(cm)+'/'+n(at)],['Comp %',at?pc(cm/at*100,1):'–'],['Pass yards',n(t.py||0)],['YPA',at?f((t.py||0)/at):'–'],['Pass TD',n(t.ptd||0)],['INT',n(t.int||0)],
+        ['Sacks',n(t.sk||0)],['Air yards',n(t.pay||0),'Air yards on all his throws'],['Intended air / att',t.qiay==null?'–':f(t.qiay),'NGS average intended air yards'],['YAC on his throws',n(t.pyac||0)],
         ['CPOE',t.cpoe==null?'–':(t.cpoe>0?'+':'')+f(t.cpoe),'Completion % over expected'],['Pressure %',at?pc((t.prs||0)/(at+(t.sk||0))*100):'–','PFR: pressured on dropbacks'],
-        ['Bad-throw %',at?pc((t.bad||0)/at*100,1):'–','PFR charting'],['Drops by receivers',i0(t.pdrp||0)],['Time to throw',t.ttt==null?'–':f(t.ttt,2)+'s','NGS'],
-        ['Aggressiveness',t.aggr==null?'–':pc(t.aggr),'NGS: throws into tight windows'],['Pass 1st downs',i0(t.pfd||0)],['Fumbles lost',i0(t.fl||0)]]);
-      h+=grid('Rushing',[['Carries',i0(c)],['Rush yards',i0(t.uy||0)],['YPC',c?f((t.uy||0)/c):'–'],['Rush TD',i0(t.utd||0)],['Yds before contact',i0(t.ybc||0)],['Yds after contact',i0(t.yaco||0)],['Red-zone carries',i0(t.rzc||0)]]);
+        ['Bad-throw %',at?pc((t.bad||0)/at*100,1):'–','PFR charting'],['Drops by receivers',n(t.pdrp||0)],['Time to throw',t.ttt==null?'–':f(t.ttt,2)+'s','NGS'],
+        ['Aggressiveness',t.aggr==null?'–':pc(t.aggr),'NGS: throws into tight windows'],['Pass 1st downs',n(t.pfd||0)],['Fumbles lost',n(t.fl||0)]]);
+      h+=grid('Rushing',[['Carries',n(c)],['Rush yards',n(t.uy||0)],['YPC',c?f((t.uy||0)/c):'–'],['Rush TD',n(t.utd||0)],['Yds before contact',n(t.ybc||0)],['Yds after contact',n(t.yaco||0)],['Red-zone carries',n(t.rzc||0)]]);
     } else {
       h+=receiving(p,t,true);
-      if(c)h+=grid('Rushing',[['Carries',i0(c)],['Rush yards',i0(t.uy||0)],['Rush TD',i0(t.utd||0)],['Yds after contact',i0(t.yaco||0)]]);
+      if(c)h+=grid('Rushing',[['Carries',n(c)],['Rush yards',n(t.uy||0)],['Rush TD',n(t.utd||0)],['Yds after contact',n(t.yaco||0)]]);
     }
-    var tr=p.pos==='QB'?p.ptr:p.tr;
-    h+='<div class="lk-blk"><h4>'+(p.pos==='QB'?'Passing tree':'Route tree')+' <small>'+(p.pos==='QB'?'where his throws went':'where his targets went')+' · weeks 1–'+D.W+'</small></h4>'+tree(tr,p.pos==='QB')+'</div>';
-    h+=glog(p);
+    var tr=isW?(p.pos==='QB'?wkv.ptr:wkv.tr):(p.pos==='QB'?p.ptr:p.tr);
+    h+='<div class="lk-blk"><h4>'+(p.pos==='QB'?'Passing tree':'Route tree')+' <small>'+(p.pos==='QB'?'where his throws went':'where his targets went')+' · '+(isW?'week '+VIEW:VIEW==='A'?'per game, weeks 1–'+D.W:'weeks 1–'+D.W)+'</small></h4>'+tree(tr,p.pos==='QB')+'</div>';
+    if(!isW)h+=glog(p);
     card.innerHTML=h;
   }
+  card.addEventListener('click',function(ev){var b=ev.target.closest('[data-v]');if(!b||!CUR)return;
+    var v=b.dataset.v;VIEW=(v==='S'||v==='A')?v:+v;show(CUR);
+    var nb=card.querySelector('.lk-views [data-v="'+v+'"]');if(nb)nb.focus({preventScroll:true});});
   pick(D.def);q.value='';
 })();
 </script>"""
@@ -382,9 +431,18 @@ CSS = r"""
 .lk-g em{font-style:normal;font-family:var(--mono);font-size:.56rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lk-g span[title] em{text-decoration:underline dotted;text-underline-offset:2px}
 .lk-g b{font-size:1.02rem}
+/* week / season / average switch */
+.lk-views{display:flex;flex-wrap:wrap;gap:4px;border-bottom:2px solid var(--rule);padding-bottom:10px}
+.lk-views .pt{padding:5px 10px}
+.lk-views .pt.nog{opacity:.5;text-decoration:line-through}
+.lk-views .pt[aria-pressed="true"]{background:var(--honolulu);border-color:var(--honolulu);color:#fff;opacity:1}
+.lk-none{font-family:var(--display);font-size:1.6rem;font-weight:800;text-transform:uppercase;color:var(--muted)}
 /* week by week */
 .lk-wk{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:6px;align-items:end}
-.lk-w{display:grid;gap:2px;text-align:center;min-width:0}
+.lk-w{appearance:none;background:none;border:0;padding:2px 0;font:inherit;color:inherit;cursor:pointer;display:grid;gap:2px;text-align:center;min-width:0}
+.lk-w:hover .lk-bar{background-color:var(--paper)}
+.lk-w.sel{outline:2px solid var(--honolulu);outline-offset:1px}
+.lk-w:focus-visible{outline:3px solid var(--hi)}
 .lk-bar{position:relative;height:120px;background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 25%;border-bottom:2px solid var(--rule)}
 .lk-bar i{position:absolute;left:14%;right:14%;bottom:0;background:var(--silver);display:block}
 .lk-bar i.up{background:var(--blue)}.lk-bar i.dn{background:var(--red)}
@@ -428,6 +486,7 @@ table.lk-gl td,table.lk-gl th{padding:5px 6px;white-space:nowrap}
   .lk-card{padding:12px;border-width:2px;border-top-width:8px}
   .lk-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   .lk-tiles .lk-t:last-child{grid-column:1/-1}
+  .lk-views .pt{padding:5px 7px;font-size:.66rem;flex:1 0 auto}
   .lk-big b{font-size:2.6rem}
   .lk-g{grid-template-columns:repeat(3,minmax(0,1fr))}
   .lk-g span{padding:6px 7px}.lk-g b{font-size:.92rem}
