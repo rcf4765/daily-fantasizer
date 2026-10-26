@@ -175,27 +175,18 @@ def build(short_names, week=None):
     out = []
     fpN0 = d.fp.get(d.next) or {}
     out.append(f'<section class="ps-hero" aria-label="Player stats"><span class="kicker">The PPR player desk</span><h2>Player <span>Stats</span></h2>'
-               f'<div class="ps-sub"><span>Usage {esc(live_note)}</span><span>Week {d.next} rankings &amp; start/sit</span><span>Rest of season</span><span>Rankings vs. actuals</span></div>'
+               f'<div class="ps-sub"><span>Player lookup {esc(live_note)}</span><span>Week {d.next} rankings &amp; start/sit</span><span>Rest of season</span><span>Rankings vs. actuals</span></div>'
                f'<nav class="ps-jump" aria-label="Player stats sections">'
-               + "".join(f'<a href="#{a}">{t}</a>' for a, t in [("ps-current", "Current data"), ("ps-volume", "Volume vs. scoring"), ("ps-steady", "Steady or streaky"), ("ps-trend", "Trend lines"), ("ps-next", f"Week {d.next} ranks"), ("ps-proj", "Projections"), ("ps-defense", "Defense matchups"), ("ps-startsit", "Start/sit"), ("ps-faceoff", "Face-off"), ("ps-ros", "Rest of season"), ("ps-variance", "Ranks vs. actuals")])
+               + "".join(f'<a href="#{a}">{t}</a>' for a, t in [("ps-lookup", "Player lookup"), ("ps-volume", "Volume vs. scoring"), ("ps-steady", "Steady or streaky"), ("ps-trend", "Trend lines"), ("ps-next", f"Week {d.next} ranks"), ("ps-proj", "Projections"), ("ps-defense", "Defense matchups"), ("ps-startsit", "Start/sit"), ("ps-faceoff", "Face-off"), ("ps-ros", "Rest of season"), ("ps-variance", "Ranks vs. actuals")])
                + '</nav></section>')
 
-    # ---------- 1. current data: usage board ----------
-    panes = {}
-    for pos in ["WR", "RB", "TE", "QB"]:
-        ps = sorted([p for p in d.P if p["pos"] == pos and p["g"] >= 2], key=lambda p: -p["ppg"])[:TOP[pos]]
-        if pos == "QB":
-            head = '<th>#</th><th>Player</th><th>Owner</th><th class="n">G</th><th class="n">Pass att/g</th><th class="n">Carries/g</th><th class="n">Snap %</th><th class="n">PPR/g</th><th class="n">Last 3</th>'
-            rows = "".join(f'<tr><td class="rk2">{i}</td><td>{d.pname(p)}</td><td>{d.owner(p)}</td><td class="n">{p["g"]}</td><td class="n">{f1(p["att_g"])}</td><td class="n">{f1(p["car_g"])}</td><td class="n">{pct(p["snap"])}</td><td class="n"><b>{f1(p["ppg"])}</b></td><td class="n">{trend(p)}</td></tr>' for i, p in enumerate(ps, 1))
-        else:
-            mx = max((p["ts"] or 0) for p in ps) or 1
-            head = '<th>#</th><th>Player</th><th>Owner</th><th class="n">G</th><th class="n">Snap %</th><th>Target share</th><th class="n">Tgt/g</th><th class="n">Touches/g</th><th class="n">Air-yd share</th><th class="n">PPR/g</th><th class="n">Last 3</th>'
-            rows = "".join(f'<tr><td class="rk2">{i}</td><td>{d.pname(p)}</td><td>{d.owner(p)}</td><td class="n">{p["g"]}</td><td class="n">{pct(p["snap"])}</td>'
-                           f'<td><span class="tsb"><i style="width:{(p["ts"] or 0) / mx * 100:.0f}%"></i><em class="num">{pct(p["ts"])}</em></span></td>'
-                           f'<td class="n">{f1(p["tgt_g"])}</td><td class="n">{f1(p["tch_g"])}</td><td class="n">{pct(p["ays"]) if pos != "RB" else "–"}</td><td class="n"><b>{f1(p["ppg"])}</b></td><td class="n">{trend(p)}</td></tr>' for i, p in enumerate(ps, 1))
-        panes[pos] = f'<div class="tbl-wrap"><table class="pst"><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table></div>'
-    out.append(sec("ps-current", "Current Data", f"PPR usage, {live_note}",
-                   postabs("cur", panes) + '<p class="note-s">Ranked by PPR points per game played (2+ games). Snap % and shares are per-game averages. Last 3 = PPR per game over his last three games, arrow vs. season.</p>'))
+    # ---------- 1. Player Lookup (lookup.py; replaced the Current Data board, user 2026-10-26) ----------
+    import lookup
+    own_t = int(d.meta.get("owner_team") or (json.load(open(os.path.join(HERE, "league.json"))).get("owner_team") if os.path.exists(os.path.join(HERE, "league.json")) else 1) or 1)
+    try:
+        out.append(lookup.section(d, d.cap or (max(d.final) if d.final else (max(d.weeks_played) if d.weeks_played else 1)), d.short, own_t))
+    except Exception as e:  # never lose the tab over one section
+        print("player lookup skipped:", e)
 
     # ---------- 2. volume vs scoring (interactive: search, filters, tooltips) ----------
     cand = [p for p in d.P if p["pos"] in ("RB", "WR", "TE") and p.get("xp") is not None and p["xp"] >= 4]
@@ -425,32 +416,11 @@ def build(short_names, week=None):
         th = '<thead><tr><th>Player</th><th>Owner</th><th class="n">Wks</th><th class="n">Avg rank</th><th class="n">Avg finish</th><th class="n">Pts vs proj</th></tr></thead>'
         season = (f'<div class="twocol2"><div><h3>Underrated all season</h3><div class="tbl-wrap"><table class="pst sm">{th}<tbody>{"".join(trow(a) for a in under)}</tbody></table></div></div>'
                   f'<div><h3>Overrated all season</h3><div class="tbl-wrap"><table class="pst sm">{th}<tbody>{"".join(trow(a) for a in over)}</tbody></table></div></div></div>')
-        # every graded player, by position, searchable
-        allp = {}
-        for a in agg.values():
-            a["av"] = a["v"] / a["n"]; a["apd"] = a["pd"] / a["pn"] if a["pn"] else 0
-            allp.setdefault(a["p"]["pos"], []).append(a)
-        lastw = {x["p"]["key"]: x for x in L}
-        panes = {}
-        for pos in ["WR", "RB", "TE", "QB"]:
-            rows = sorted(allp.get(pos, []), key=lambda a: -a["apd"])
-            def full(a):
-                lx = lastw.get(a["p"]["key"])
-                lwk = (f'{pos}{lx["rk"]} → {pos}{lx["fin"]} <em class="{"up" if lx["pts"] - (lx["proj"] or 0) > 0 else "dn"}">{lx["pts"] - (lx["proj"] or 0):+.1f}</em>' if lx else "–")
-                return (f'<tr data-n="{esc(a["p"]["name"].lower())}"><td>{d.pname(a["p"])}</td><td>{d.owner(a["p"])}</td><td class="n">{a["n"]}</td>'
-                        f'<td class="n">{pos}{a["rk"] / a["n"]:.0f}</td><td class="n">{pos}{a["fin"] / a["n"]:.0f}</td>'
-                        f'<td class="n">{a["av"]:+.1f}</td><td class="n"><b class="{"up" if a["apd"] > 0 else "dn"}">{a["apd"]:+.1f}</b></td><td class="n lwk">{lwk}</td></tr>')
-            panes[pos] = (f'<div class="tbl-wrap"><table class="pst gr-all"><thead><tr><th>Player</th><th>Owner</th><th class="n">Wks</th><th class="n">Avg rank</th><th class="n">Avg finish</th>'
-                          f'<th class="n">Spots vs rank</th><th class="n">Pts vs proj</th><th class="n">Week {lw}</th></tr></thead><tbody>{"".join(full(a) for a in rows)}</tbody></table></div>')
-        n_all = sum(len(v) for v in allp.values())
-        every = ('<div class="gr-every"><div class="gr-head"><h3>Every graded player</h3><label class="vs-find"><span class="kicker">Find a player</span>'
-                 '<input type="search" id="gr-q" placeholder="Type a name…" autocomplete="off"></label></div>'
-                 + postabs("grade", panes) + f'<p class="note-s">{n_all} players graded. Spots vs rank: positive = finished better than ranked on average. Pts vs proj: average PPR points above or below his projection. Sorted best to worst.</p></div>')
         out.append(sec("ps-variance", "Rankings vs. Actuals", f"Weeks {min(graded)}–{lw} graded",
-                       f'<div class="rum-stats rs5">{tiles}</div>{bv}{season}{every}'
-                       f'<p class="note-s">Every week\'s consensus PPR ranks (top 60 WR, 48 RB, 24 QB, 24 TE) graded against where each player actually finished at his position. Variance = actual points minus projected points; rank arrows read ranked → finished. Underrated/overrated lists need 3+ graded weeks.</p>'))
+                       f'<div class="rum-stats rs5">{tiles}</div>{bv}{season}'
+                       f'<p class="note-s">Every week\'s consensus PPR ranks (top 60 WR, 48 RB, 24 QB, 24 TE) graded against where each player actually finished at his position (look up any player above for his week-by-week grades). Variance = actual points minus projected points; rank arrows read ranked → finished. Underrated/overrated lists need 3+ graded weeks.</p>'))
 
-    # Trend Lines and Defense Matchups (desk.py, added 2026-10-19): slotted after Current Data and Start/Sit
+    # Trend Lines and Defense Matchups (desk.py, added 2026-10-19): slotted after Player Lookup and Start/Sit
     import desk
     W_ = d.cap or (max(d.final) if d.final else (max(d.weeks_played) if d.weeks_played else 1))
     extra = desk.sections(d, W_, short_names)
@@ -462,11 +432,11 @@ def build(short_names, week=None):
                 out.insert(i + 1, html_); return
         out.append(html_)
     extra.update(desk.sections2(d, W_, short_names, int(d.meta.get("owner_team") or (json.load(open("league.json")).get("owner_team") if os.path.exists("league.json") else 1) or 1)))
-    after("ps-current", extra.get("trend")); after("ps-volume", extra.get("steady"))
+    after("ps-lookup", extra.get("trend")); after("ps-volume", extra.get("steady"))
     after("ps-startsit", extra.get("defense")); after("ps-startsit", extra.get("faceoff"))
     # Reading order (user, 2026-10-19: "order the pages so the data makes sense as you scroll"):
     # season so far -> next week -> rest of season -> how the rankings did
-    ORDER = ["ps-current", "ps-volume", "ps-steady", "ps-trend",
+    ORDER = ["ps-lookup", "ps-volume", "ps-steady", "ps-trend",
              "ps-next", "ps-proj", "ps-defense", "ps-startsit", "ps-faceoff",
              "ps-ros", "ps-variance"]
     secs = {}
@@ -477,9 +447,10 @@ def build(short_names, week=None):
     out.extend(secs[i] for i in ORDER if i in secs)
     out.append(SCRIPT)
     out.append(desk.SCRIPT)
+    out.append(lookup.SCRIPT)
     # the tab carries its own styles, so a midweek --patch also updates them
     import mobile  # phone card layout for the tables (tags each cell with its role and column label)
-    return "<!--PS-->\n<style>" + CSS + desk.CSS + "</style>\n" + mobile.tag("\n".join(out)) + "\n<!--/PS-->"
+    return "<!--PS-->\n<style>" + CSS + desk.CSS + lookup.CSS + "</style>\n" + mobile.tag("\n".join(out)) + "\n<!--/PS-->"
 
 
 def trend(p):
@@ -595,13 +566,6 @@ SCRIPT = r"""<script>
       if(window.innerWidth<760)plot.scrollIntoView({block:'center',behavior:'smooth'});
     })});
   })();
-  var gq=document.getElementById('gr-q');
-  if(gq)gq.addEventListener('input',function(){
-    var t=gq.value.trim().toLowerCase(),g=gq.closest('.gr-every');
-    g.querySelectorAll('tbody tr').forEach(function(r){r.hidden=!!t&&r.dataset.n.indexOf(t)<0});
-    if(t){var first=g.querySelector('tbody tr:not([hidden])');if(first){var pane=first.closest('.pp');
-      if(pane&&pane.hidden){var b=g.querySelector('.pt[data-pos="'+pane.dataset.pos+'"]');if(b)b.click();}}}
-  });
   var el=document.getElementById('ss-data'); if(!el)return;
   var D=JSON.parse(el.textContent),C=D.c,T=D.teams,byk={};C.forEach(function(c){byk[c.k]=c});
   var A=document.getElementById('ss-a'),B=document.getElementById('ss-b'),O=document.getElementById('ss-out');
@@ -776,13 +740,6 @@ button.rw-row:focus-visible{outline:3px solid var(--hi);outline-offset:-3px}
 .bv-p{font-size:.84rem;text-align:right;white-space:nowrap}.bv-p em{font-style:normal;color:var(--muted);font-size:.7rem}
 .twocol2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
 
-.gr-every{display:grid;gap:10px;min-width:0}
-.gr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:10px}
-.gr-head h3{font-size:1.45rem;font-weight:800;text-transform:uppercase}
-.gr-every .tbl-wrap{max-height:560px;overflow:auto}
-.gr-every thead th{position:sticky;top:0;background:var(--sheet);z-index:1}
-table.gr-all{min-width:760px}
-td.lwk{font-size:.78rem;white-space:nowrap}td.lwk em{font-style:normal;font-weight:600}
 tr[hidden]{display:none}
 @media (max-width:760px){
   .vs-tip{position:fixed;left:12px!important;right:12px!important;top:auto!important;bottom:12px!important;width:auto;z-index:50}

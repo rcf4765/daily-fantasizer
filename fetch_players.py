@@ -12,6 +12,12 @@ Writes compact JSON into data/players/:
                       ESPN returns), actual points, league owner (added 2026-10-19 for Matchup of the Week)
   waivers.json        ESPN waiver settings (acquisitionSettings) and each team's current waiver rank, saved every
                       run with a history so order changes can be compared week to week (added 2026-10-20)
+  adv.json            Player Lookup (added 2026-10-26): per player and week, from nflverse: receiving (air yards, YAC,
+                      first downs, RACR), rushing, passing (air yards, CPOE, sacks), PFR advanced (yards before and after
+                      contact, broken tackles, drops, bad throws, pressures), Next Gen Stats (separation, YAC over expected,
+                      rush yards over expected, 8+ box %, time to throw, aggressiveness) and play-by-play target maps
+                      (every target's depth x side, red-zone and end-zone looks). Real route types aren't public this
+                      season (nflverse participation stops at 2024), so the page's route tree is drawn from target depth/side.
   nfl_schedule.json   NFL regular-season schedule (nflverse games.csv): team -> week -> opponent, plus bye weeks
                       (for trend-line projections, byes and defense matchups; added 2026-10-19)
   meta.json           which weeks are complete, the upcoming week, fetch time
@@ -283,6 +289,129 @@ def nfl_schedule():
     print("schedule unavailable; keeping the previous file if any")
 
 
+# zones for the route/target tree: depth band x side of the field (play-by-play air_yards, pass_location)
+def _zone(ay, loc):
+    try:
+        a = float(ay)
+    except (TypeError, ValueError):
+        return None
+    d = "B" if a < 0 else "S" if a < 10 else "M" if a < 20 else "D"
+    s = {"left": "L", "middle": "M", "right": "R"}.get(loc)
+    return d + s if s else None
+
+
+def advanced():
+    """adv.json for the Player Lookup. Every source is optional: a missing file just leaves those stats blank."""
+    base = "https://github.com/nflverse/nflverse-data/releases/download/"
+    get = lambda path: S.get(base + path, timeout=120)
+    num = lambda v: None if v in (None, "", "NA", "NaN") else float(v)
+    P = {}      # gsis id -> player
+    def wk(pid, w):
+        return P[pid]["wk"].setdefault(str(w), {})
+    try:
+        rows = list(csv.DictReader(io.StringIO(get(f"stats_player/stats_player_week_{SEASON}.csv").text)))
+    except Exception as e:
+        print("adv: weekly stats failed:", e); return
+    F = {"tg": "targets", "rec": "receptions", "ry": "receiving_yards", "rtd": "receiving_tds", "ay": "receiving_air_yards",
+         "yac": "receiving_yards_after_catch", "rfd": "receiving_first_downs", "car": "carries", "uy": "rushing_yards",
+         "utd": "rushing_tds", "ufd": "rushing_first_downs", "cmp": "completions", "att": "attempts", "py": "passing_yards",
+         "ptd": "passing_tds", "int": "passing_interceptions", "sk": "sacks_suffered", "pay": "passing_air_yards",
+         "pyac": "passing_yards_after_catch", "pfd": "passing_first_downs", "cpoe": "passing_cpoe", "fl": "fumbles_lost_total",
+         "ts": "target_share", "ays": "air_yards_share", "wopr": "wopr", "repa": "receiving_epa", "uepa": "rushing_epa", "pepa": "passing_epa"}
+    name_team = {}
+    for x in rows:
+        if x.get("season_type") != "REG" or x.get("position") not in ("QB", "RB", "WR", "TE"):
+            continue
+        pid = x["player_id"]
+        p = P.setdefault(pid, {"name": x["player_display_name"], "pos": x["position"], "team": x["team"], "wk": {}})
+        p["team"] = x["team"]
+        d = wk(pid, x["week"]); d["opp"] = x.get("opponent_team")
+        for k, c in F.items():
+            v = num(x.get(c))
+            if v is not None:
+                d[k] = round(v, 4) if k in ("ts", "ays", "wopr") else round(v, 2)
+        name_team[(norm(x["player_display_name"]), x["team"])] = pid
+        name_team.setdefault((norm(x["player_display_name"]), None), pid)
+    find = lambda n, t: name_team.get((norm(n), t)) or name_team.get((norm(n), None))
+    # PFR advanced: yards before/after contact, broken tackles, drops, bad throws, pressure
+    for kind, cols in (("rush", {"ybc": "rushing_yards_before_contact", "yaco": "rushing_yards_after_contact", "brk": "rushing_broken_tackles"}),
+                       ("rec", {"rbrk": "receiving_broken_tackles", "drp": "receiving_drop", "rint": "receiving_int"}),
+                       ("pass", {"pdrp": "passing_drops", "bad": "passing_bad_throws", "prs": "times_pressured", "blz": "times_blitzed", "hit": "times_hit"})):
+        try:
+            for x in csv.DictReader(io.StringIO(get(f"pfr_advstats/advstats_week_{kind}_{SEASON}.csv").text)):
+                if x.get("game_type") != "REG":
+                    continue
+                pid = find(x["pfr_player_name"], x["team"])
+                if not pid:
+                    continue
+                d = wk(pid, x["week"])
+                for k, c in cols.items():
+                    v = num(x.get(c))
+                    if v is not None:
+                        d[k] = v
+        except Exception as e:
+            print("adv: PFR", kind, "failed:", e)
+    # Next Gen Stats (weekly rows only exist for players over NGS's weekly minimums)
+    for kind, cols in (("receiving", {"sep": "avg_separation", "cush": "avg_cushion", "yacx": "avg_yac_above_expectation", "iay": "avg_intended_air_yards"}),
+                       ("rushing", {"ryoe": "rush_yards_over_expected", "box8": "percent_attempts_gte_eight_defenders", "eff": "efficiency", "ttl": "avg_time_to_los"}),
+                       ("passing", {"ttt": "avg_time_to_throw", "aggr": "aggressiveness", "qiay": "avg_intended_air_yards", "xcmp": "expected_completion_percentage"})):
+        try:
+            r = get(f"nextgen_stats/ngs_{kind}.csv.gz")
+            import gzip
+            for x in csv.DictReader(io.StringIO(gzip.decompress(r.content).decode())):
+                if x.get("season") != str(SEASON) or x.get("season_type") != "REG" or x.get("week") in ("0", ""):
+                    continue
+                pid = x.get("player_gsis_id")
+                if pid not in P:
+                    continue
+                d = wk(pid, x["week"])
+                for k, c in cols.items():
+                    v = num(x.get(c))
+                    if v is not None:
+                        d[k] = round(v, 3)
+        except Exception as e:
+            print("adv: NGS", kind, "failed:", e)
+    # play by play: target trees, passing trees, red zone / end zone / goal line
+    try:
+        import gzip
+        r = get(f"pbp/play_by_play_{SEASON}.csv.gz")
+        for x in csv.DictReader(io.StringIO(gzip.decompress(r.content).decode())):
+            if x.get("season_type") != "REG" or x.get("play_deleted") == "1" or x.get("two_point_attempt") == "1":
+                continue
+            w = x["week"]; yl = num(x.get("yardline_100"))
+            if x.get("pass_attempt") == "1" and x.get("sack") != "1" and x.get("qb_spike") != "1":
+                z = _zone(x.get("air_yards"), x.get("pass_location"))
+                c = x.get("complete_pass") == "1"
+                yds = num(x.get("receiving_yards")) if c else 0
+                if yds is None:
+                    yds = num(x.get("yards_gained")) or 0
+                for pid, key in ((x.get("receiver_player_id"), "tree"), (x.get("passer_player_id"), "ptree")):
+                    if not pid or pid not in P or not z:
+                        continue
+                    t = wk(pid, w).setdefault(key, {})
+                    a = t.setdefault(z, [0, 0, 0]); a[0] += 1; a[1] += int(c); a[2] += int(yds or 0)
+                rid = x.get("receiver_player_id")
+                if rid in P and yl is not None:
+                    d = wk(rid, w)
+                    if yl <= 20: d["rzt"] = d.get("rzt", 0) + 1
+                    ay = num(x.get("air_yards"))
+                    if ay is not None and ay >= yl: d["ezt"] = d.get("ezt", 0) + 1
+                    if ay is not None and ay >= 20: d["dpt"] = d.get("dpt", 0) + 1
+            if x.get("rush_attempt") == "1" and x.get("qb_kneel") != "1":
+                pid = x.get("rusher_player_id")
+                if pid in P and yl is not None:
+                    d = wk(pid, w)
+                    if yl <= 20: d["rzc"] = d.get("rzc", 0) + 1
+                    if yl <= 5: d["glc"] = d.get("glc", 0) + 1
+    except Exception as e:
+        print("adv: play-by-play failed:", e)
+    for p in P.values():  # zeros are implied: keeps the file small
+        for d in p["wk"].values():
+            for k in [k for k, v in d.items() if v == 0 or v is None]:
+                del d[k]
+    save("adv.json", [dict(id=k, **v) for k, v in P.items()])
+
+
 def main():
     cur, final = espn()
     try:
@@ -295,10 +424,17 @@ def main():
         print("K/DST failed:", e)
     nflverse()
     nfl_schedule()
+    try:
+        advanced()
+    except Exception as e:  # nice-to-have: the Player Lookup shows what it has
+        print("adv failed:", e)
     upcoming = fantasypros(cur, final)
     save("meta.json", {"season": SEASON, "espn_week": cur, "final_weeks": final, "upcoming": upcoming,
                        "fetched": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%MZ")})
 
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1:] == ["--adv-only"]:
+        advanced()
+    else:
+        main()
