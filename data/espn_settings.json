@@ -1,5 +1,14 @@
 {
- "checked_at": "2026-10-26T23:32:08Z",
+ "checked_at": "2026-10-26T23:33:03Z",
+ "login": {
+  "which": "ESPN_S2",
+  "name": "ESPNFAN4333804318",
+  "teams": [
+   1
+  ],
+  "is_league_manager": false
+ },
+ "league_managers": [],
  "login_is_league_manager": false,
  "status": {
   "activatedDate": 1780490874105,
