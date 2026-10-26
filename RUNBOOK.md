@@ -28,6 +28,7 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 | `strength.py` | Builds the Roster Radar section (lineup-slot radar per team, season vs. rest of season); called by `render.py` | no |
 | `teams.py` | Matchup of the Week (paper), Manager Report Card, One-Man Show, Trade Matchmaker (League & Teams); called by `render.py` | no |
 | `lookup.py` | Player Lookup (Player Stats tab): type a name, get one card with every fantasy and real-life number on him, graded weeks and a route tree; called by `players.build` | no |
+| `glossary.py` | Tap-to-explain abbreviations (PPR, YAC, aDOT, WOPR, team codes, WR12…) on every tab, and the phone Top button pinned to the bottom-right corner; the block lives at the end of `template.html`, `python3 glossary.py FILE…` adds it to built pages | no |
 | `desk.py` | Player Stats additions: Trend Lines, Steady or Streaky, Player Face-Off, Defense Matchups; called by `players.build` so the midweek refresh keeps them | no |
 | `data/players/` | Player Stats data (ESPN, nflverse, FantasyPros) | refreshed by Actions |
 | `publish_site.py` | Puts week N on the league website: `docs/index.html`, `docs/weekN.html`, `docs/archive.html` | step 9 |
@@ -229,3 +230,9 @@ First section of Player Stats (`#ps-lookup`, built by `lookup.py`, called from `
 - Game log (collapsed): one row per week.
 - **View tabs** (user, 2026-10-26) under the card's header: **Season** (totals, weeks 1–N), **Average** (counting stats and the route tree per game; rates and percentages unchanged) and **Wk 1 … Wk N** (that game only: PPR, consensus projection, vs projection, ranked → finished, opponent, that week's usage, stats and route tree). Weeks without a game are struck through and say bye / didn't play. Tapping a bar in Week by week also opens that week. Game log shows in Season and Average.
 - Data: `data/players/adv.json` from `fetch_players.advanced()` (nflverse weekly stats, PFR advanced stats, Next Gen Stats weekly rows, play-by-play), refreshed with the rest of the player data (`fetch.yml`, `players.yml`). NGS rows exist only for weeks a player cleared NGS's minimums. `python3 fetch_players.py --adv-only` rebuilds just that file (no ESPN cookies needed).
+
+## Abbreviations and the Top button (user, 2026-10-26)
+
+- Every abbreviation on the page gets a dotted underline; tapping (or clicking) it opens a small bubble spelling it out. Covers fantasy and stat terms (PPR, ROS, FA, D/ST, FLEX, YAC, YBC, aDOT, RACR, WOPR, RYOE, CPOE, YPC, YPA, LOS, NGS, PFR, Tgt, Proj…), positions, position ranks (WR12 = No. 12 wide receiver) and NFL team codes when they stand alone (an opponent cell, not inside a sentence). Player Lookup stat labels with an explanation open the same bubble. Content drawn later (Player Lookup, Start/Sit, Face-Off) is covered too. To add a term, add it to `G` in `glossary.py`'s block, then copy the block into `template.html` with `python3 glossary.py template.html`.
+- The phone Top button stays in the bottom-right corner of the screen, including when the page is zoomed or panned sideways (it pins to the visual viewport then) and above the iPhone home bar (safe-area inset).
+- Both live in one block at the end of `template.html` (`<!--gloss-->`…`<!--/gloss-->`); weeks 5 and 6 got it spliced in without re-rendering.
