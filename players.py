@@ -175,9 +175,9 @@ def build(short_names, week=None):
     out = []
     fpN0 = d.fp.get(d.next) or {}
     out.append(f'<section class="ps-hero" aria-label="Player stats"><span class="kicker">The PPR player desk</span><h2>Player <span>Stats</span></h2>'
-               f'<div class="ps-sub"><span>Player lookup {esc(live_note)}</span><span>Week {d.next} rankings &amp; start/sit</span><span>Rest of season</span><span>Rankings vs. actuals</span></div>'
+               f'<div class="ps-sub"><span>Player data {esc(live_note)}</span><span>Week {d.next} rankings &amp; start/sit</span><span>Rest of season</span><span>Rankings vs. actuals</span></div>'
                f'<nav class="ps-jump" aria-label="Player stats sections">'
-               + "".join(f'<a href="#{a}">{t}</a>' for a, t in [("ps-lookup", "Player lookup"), ("ps-volume", "Volume vs. scoring"), ("ps-steady", "Steady or streaky"), ("ps-trend", "Trend lines"), ("ps-next", "Rankings"), ("ps-proj", "Projections"), ("ps-defense", "Defense matchups"), ("ps-startsit", "Start/sit"), ("ps-faceoff", "Face-off"), ("ps-variance", "Ranks vs. actuals")])
+               + "".join(f'<a href="#{a}">{t}</a>' for a, t in [("ps-lookup", "Player data"), ("ps-volume", "Volume vs. scoring"), ("ps-steady", "Steady or streaky"), ("ps-trend", "Trend lines"), ("ps-next", "Rankings"), ("ps-proj", "Projections"), ("ps-defense", "Defense matchups"), ("ps-startsit", "Start/sit"), ("ps-faceoff", "Face-off"), ("ps-variance", "Ranks vs. actuals")])
                + '</nav></section>')
 
     # ---------- 1. Player Lookup (lookup.py; replaced the Current Data board, user 2026-10-26) ----------

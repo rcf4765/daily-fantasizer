@@ -162,7 +162,7 @@ def section(d, W, short, own_team):
             f'Unrealized air yards = air yards on all his targets minus the air yards on the balls he caught. Yards before/after contact, broken tackles, drops, bad throws and pressures are charted by PFR; '
             f'separation, YAC over expected, rush yards over expected, 8+ box %, time to throw and aggressiveness are Next Gen Stats (only weeks over their minimums count). '
             f'The route tree shows where his targets went (depth and side of every target); the route actually run isn\'t public for this season.</p>')
-    return (f'<section class="sec" id="ps-lookup"><div class="sec-head"><h2>Player Lookup</h2><span class="kicker">Every number on one player · weeks 1–{W}</span></div>{body}</section>')
+    return (f'<section class="sec" id="ps-lookup"><div class="sec-head"><h2>Player Data</h2><span class="kicker">Every number on one player · weeks 1–{W}</span></div>{body}</section>')
 
 
 RATE_T = ("sep", "cush", "yacx", "iay")            # NGS receiving, weighted by targets
@@ -302,7 +302,13 @@ SCRIPT = r"""<script>
       else if(p.pos==='RB')c=l;
       else c=l.slice(0,6).concat([l[6]+'%']);
       return '<tr><td>W'+x[0]+'</td><td>'+e(x[1])+'</td><td class="n"><b>'+f(x[2])+'</b></td><td class="n">'+f(x[3])+'</td>'+c.map(function(v){return '<td class="n">'+v+'</td>'}).join('')+'</tr>'}).join('');
-    return '<details class="lk-log"><summary>Game log</summary><div class="tbl-wrap"><table class="lk-gl"><thead><tr><th>Wk</th><th>Opp</th><th class="n">PPR</th><th class="n">Proj</th>'+H.map(function(x){return '<th class="n">'+x+'</th>'}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div></details>';
+    var cards=p.lg.filter(function(x){return x[6]}).map(function(x){var l=x[6],c;
+      if(p.pos==='QB')c=[l[0]+'/'+l[1]+' cmp',l[2]+' pass yds',l[3]+' TD',l[4]+' INT',l[5]+' car',l[6]+' rush yds',l[7]+' rush TD'];
+      else if(p.pos==='RB')c=[l[0]+' car',l[1]+' rush yds',l[2]+' YBC',l[3]+' yds after contact',l[4]+' tgts',l[5]+' rec',l[6]+' rec yds',l[7]+' TD'];
+      else c=[l[0]+' tgts',l[1]+' rec',l[2]+' yds',l[3]+' air yds',l[4]+' YAC',l[5]+' TD',l[6]+'% tgt share'];
+      var b=x[3]!=null?x[2]-x[3]:null;
+      return '<li><div class="lk-lc-h"><b>W'+x[0]+'</b><span>'+e(x[1])+'</span><b class="num">'+f(x[2])+' <small>PPR</small></b><span class="num '+(b==null?'':b>=0?'up':'dn')+'">'+(x[3]!=null?'proj '+f(x[3]):'')+'</span></div><p class="num">'+c.join(' · ')+'</p></li>'}).join('');
+    return '<details class="lk-log"><summary>Game log</summary><ul class="lk-lc">'+cards+'</ul><div class="tbl-wrap"><table class="lk-gl"><thead><tr><th>Wk</th><th>Opp</th><th class="n">PPR</th><th class="n">Proj</th>'+H.map(function(x){return '<th class="n">'+x+'</th>'}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div></details>';
   }
   function receiving(p,t,full){
     var tg=t.tg||0,rec=t.rec||0,ry=t.ry||0,ay=t.ay||0,yac=t.yac||0,real=ry-yac,unr=ay-real;
@@ -478,6 +484,14 @@ CSS = r"""
 .lk-dep i{display:block;height:10px;background:var(--blue);min-width:2px}
 .lk-dep b{font-size:.9rem}.lk-dep b small{font-size:.66rem;color:var(--muted);font-weight:400}
 /* game log */
+.lk-card>*{min-width:0;max-width:100%}
+.lk-log{min-width:0;max-width:100%;overflow:hidden}
+.lk-log .tbl-wrap{max-width:100%}
+.lk-lc{display:none;list-style:none;margin:8px 0 0;padding:0}
+.lk-lc li{border-bottom:1px solid var(--line);padding:8px 0;display:grid;gap:3px}
+.lk-lc-h{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:baseline}
+.lk-lc-h small{font-size:.6rem;color:var(--muted);font-weight:400}
+.lk-lc p{margin:0;font-size:.8rem;color:var(--ink);line-height:1.45}
 .lk-log summary{cursor:pointer;font-family:var(--display);font-size:1.15rem;font-weight:800;text-transform:uppercase}
 .lk-log .tbl-wrap{overflow-x:auto;margin-top:8px}
 table.lk-gl{min-width:560px;font-size:.84rem}
@@ -496,11 +510,8 @@ table.lk-gl td,table.lk-gl th{padding:5px 6px;white-space:nowrap}
   .lk-rf{font-size:.5rem}
   .lk-treew{grid-template-columns:minmax(0,1fr)}
   .lk-tree{max-width:300px;margin:0 auto}
-  table.lk-gl{display:table!important;min-width:520px}
-  table.lk-gl thead{position:static!important;width:auto!important;height:auto!important;clip:auto!important}
-  table.lk-gl tr{display:table-row!important;padding:0!important}
-  table.lk-gl td{display:table-cell!important;background:none!important}
-  table.lk-gl td::before{display:none!important}
-  .lk-log .tbl-wrap{overflow-x:auto!important}
+  .lk-log .tbl-wrap{display:none!important}
+  .lk-lc{display:block}
+
 }
 """
