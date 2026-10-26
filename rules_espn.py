@@ -106,7 +106,10 @@ def inspect():
     _, me = manager_check(L)
     mine = [t.get("id") for t in L.get("teams", []) if SWID.strip().upper() in [str(o).upper() for o in (t.get("owners") or [])]]
     out = {"checked_at": now(), "login": {"which": LOGIN or "ESPN_S2", "name": me, "teams": mine, "is_league_manager": lm},
-           "league_managers": managers(L), "login_is_league_manager": lm, "status": L.get("status", {}),
+           "league_managers": managers(L),
+           "member_fields": sorted({k for m in L.get("members", []) for k in m}),
+           "member_flags": [{k: v for k, v in m.items() if k not in ("id", "firstName", "lastName", "notificationSettings")} for m in L.get("members", [])],
+           "status_keys": sorted(L.get("status", {}).keys()), "login_is_league_manager": lm, "status": L.get("status", {}),
            "acquisitionSettings": st.get("acquisitionSettings"), "tradeSettings": st.get("tradeSettings"),
            "rosterSettings_keys": sorted((st.get("rosterSettings") or {}).keys()),
            "scoringSettings": {k: v for k, v in sc.items()}, "settings_keys": sorted(st.keys()), "presets": presets}
