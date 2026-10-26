@@ -34,6 +34,8 @@ jobs:
         env:
           ESPN_S2: ${{ secrets.ESPN_S2 }}
           ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LM_S2: ${{ secrets.ESPN_LM_S2 }}
+          ESPN_LM_SWID: ${{ secrets.ESPN_LM_SWID }}
           MODE: ${{ github.event.inputs.mode || 'apply' }}
         run: |
           case "$MODE" in

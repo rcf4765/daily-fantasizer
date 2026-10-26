@@ -29,9 +29,13 @@ WRITE = f"https://lm-api-writes.fantasy.espn.com/apis/v3/games/ffl/seasons/{SEAS
 HERE = os.path.dirname(os.path.abspath(__file__))
 S = requests.Session()
 S.headers["User-Agent"] = "Mozilla/5.0 (DailyFantasizer)"
-if os.environ.get("ESPN_S2"):
-    S.cookies.set("espn_s2", os.environ["ESPN_S2"].strip(), domain=".espn.com")
-    S.cookies.set("SWID", os.environ["ESPN_SWID"].strip(), domain=".espn.com")
+# Settings changes need the league manager's ESPN login. If the repo has ESPN_LM_S2 / ESPN_LM_SWID secrets
+# (the commissioner adds them in GitHub; nobody else ever sees them), those are used; otherwise ESPN_S2 / ESPN_SWID.
+LOGIN = "LM" if os.environ.get("ESPN_LM_S2") and os.environ.get("ESPN_LM_SWID") else ""
+S2, SWID = os.environ.get(f"ESPN{'_' + LOGIN if LOGIN else ''}_S2", ""), os.environ.get(f"ESPN{'_' + LOGIN if LOGIN else ''}_SWID", "")
+if S2:
+    S.cookies.set("espn_s2", S2.strip(), domain=".espn.com")
+    S.cookies.set("SWID", SWID.strip(), domain=".espn.com")
 
 
 def now(): return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
@@ -62,11 +66,21 @@ def set_path(obj, path, value):
 
 
 def manager_check(L):
-    swid = os.environ.get("ESPN_SWID", "").strip().upper()
+    swid = SWID.strip().upper()
     for m in L.get("members", []):
         if str(m.get("id", "")).upper() == swid:
             return bool(m.get("isLeagueManager")), m.get("displayName", "")
     return None, ""
+
+
+def managers(L):
+    """Display names of the league managers and which teams they own (no ids)."""
+    owners = {}
+    for t in L.get("teams", []):
+        for o in t.get("owners", []) or []:
+            owners.setdefault(str(o).upper(), []).append(t.get("id"))
+    return [{"name": m.get("displayName", ""), "teams": owners.get(str(m.get("id", "")).upper(), [])}
+            for m in L.get("members", []) if m.get("isLeagueManager")]
 
 
 def inspect():
@@ -89,7 +103,10 @@ def inspect():
             presets.setdefault(pid, []).append({"path": ch["path"], "now": get_path(st, ch["path"]), "preset": ch["value"]})
             print(f"preset {pid}: {ch['path']} now = {json.dumps(get_path(st, ch['path']))} -> {json.dumps(ch['value'])}")
     # League settings only (no logins, no member ids), so they can be read back outside the Action.
-    out = {"checked_at": now(), "login_is_league_manager": lm, "status": L.get("status", {}),
+    _, me = manager_check(L)
+    mine = [t.get("id") for t in L.get("teams", []) if SWID.strip().upper() in [str(o).upper() for o in (t.get("owners") or [])]]
+    out = {"checked_at": now(), "login": {"which": LOGIN or "ESPN_S2", "name": me, "teams": mine, "is_league_manager": lm},
+           "league_managers": managers(L), "login_is_league_manager": lm, "status": L.get("status", {}),
            "acquisitionSettings": st.get("acquisitionSettings"), "tradeSettings": st.get("tradeSettings"),
            "rosterSettings_keys": sorted((st.get("rosterSettings") or {}).keys()),
            "scoringSettings": {k: v for k, v in sc.items()}, "settings_keys": sorted(st.keys()), "presets": presets}
