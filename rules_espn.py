@@ -69,7 +69,8 @@ def manager_check(L):
     swid = SWID.strip().upper()
     for m in L.get("members", []):
         if str(m.get("id", "")).upper() == swid:
-            return bool(m.get("isLeagueManager")), m.get("displayName", "")
+            # ESPN only says who the league manager is in some views; unknown (None) means "try and verify".
+            return (bool(m["isLeagueManager"]) if "isLeagueManager" in m else None), m.get("displayName", "")
     return None, ""
 
 
@@ -107,9 +108,7 @@ def inspect():
     mine = [t.get("id") for t in L.get("teams", []) if SWID.strip().upper() in [str(o).upper() for o in (t.get("owners") or [])]]
     out = {"checked_at": now(), "login": {"which": LOGIN or "ESPN_S2", "name": me, "teams": mine, "is_league_manager": lm},
            "league_managers": managers(L),
-           "member_fields": sorted({k for m in L.get("members", []) for k in m}),
-           "member_flags": [{k: v for k, v in m.items() if k not in ("id", "firstName", "lastName", "notificationSettings")} for m in L.get("members", [])],
-           "status_keys": sorted(L.get("status", {}).keys()), "login_is_league_manager": lm, "status": L.get("status", {}),
+ "login_is_league_manager": lm, "status": L.get("status", {}),
            "acquisitionSettings": st.get("acquisitionSettings"), "tradeSettings": st.get("tradeSettings"),
            "rosterSettings_keys": sorted((st.get("rosterSettings") or {}).keys()),
            "scoringSettings": {k: v for k, v in sc.items()}, "settings_keys": sorted(st.keys()), "presets": presets}

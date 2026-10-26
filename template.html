@@ -770,70 +770,137 @@ footer b{color:var(--honolulu);font-weight:600}
   /* What If: same header, then actual -> best-lineup strip and flipped games */
 }
 
-/* Rule Changes tab: claim a team, propose, vote (one vote per team per proposal, enforced by the league office server) */
-.sec[hidden],.po-admin[hidden]{display:none}
-.po-body{display:grid;gap:12px}
-.po-note{font-size:.92rem;color:var(--muted)}
-.po-list{display:grid;gap:16px}
-.po-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.po-team{appearance:none;font:inherit;color:var(--ink);display:flex;align-items:center;gap:8px;padding:9px 10px;border:2px solid var(--rule);background:var(--sheet);text-align:left;min-width:0;cursor:pointer}
-.po-team b{font-size:.88rem;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.po-team small{display:block;font-family:var(--mono);font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.po-team:hover:not(:disabled){background:var(--ink);color:var(--sheet)}.po-team:hover:not(:disabled) small{color:var(--sheet)}
-.po-team:disabled{cursor:default;border-color:var(--line);opacity:.62}
-.po-team.on{border-color:var(--blue);box-shadow:inset 6px 0 0 var(--blue)}
-.po-me{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;padding:14px 16px;border:3px solid var(--rule);border-left:12px solid var(--honolulu)}
-.po-me .lg{width:46px;height:46px}
-.po-me h3{font-size:1.7rem;font-weight:900;text-transform:uppercase}
-.po-btn{appearance:none;font-family:var(--mono);font-size:.74rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:10px 14px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer}
-.po-btn:hover:not(:disabled){background:var(--ink);color:var(--sheet)}
-.po-btn:disabled{opacity:.5;cursor:default}
-.po-main{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
-.po-card{display:grid;gap:12px;padding:16px;border:3px solid var(--rule);background:var(--sheet)}
-.po-card.passed{border-color:var(--blue);box-shadow:inset 0 8px 0 var(--blue)}
-.po-card.failed,.po-card.withdrawn{opacity:.82}
-.po-card h3{font-size:clamp(1.4rem,3.4vw,1.9rem);font-weight:900;text-transform:uppercase}
-.po-card p.po-d{font-size:.95rem;max-width:70ch}
-.po-meta{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.po-tag{background:var(--ink);color:var(--sheet);padding:2px 7px}
-.po-tag.passed{background:var(--blue);color:var(--blue-ink)}.po-tag.open{background:var(--hi);color:var(--hi-ink)}
-.po-bar{position:relative;height:22px;background:var(--paper);border:2px solid var(--rule);display:flex}
-.po-bar i{display:block;height:100%}.po-bar i.y{background:var(--blue)}.po-bar i.n{background:var(--silver)}
-.po-bar u{position:absolute;top:-6px;bottom:-6px;width:3px;background:var(--hi);box-shadow:0 0 0 1px var(--rule)}
-.po-count{display:flex;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:.76rem}
-.po-count b{font-size:1rem}
-.po-ballot{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
-.po-ballot span{display:grid;justify-items:center;gap:3px;font-family:var(--mono);font-size:.56rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:5px 0 4px;background:var(--paper);color:var(--muted)}
-.po-ballot span .lg{width:26px;height:26px}
-.po-ballot span.y{background:var(--blue);color:var(--blue-ink)}.po-ballot span.n{background:var(--silver);color:var(--silver-ink)}
-.po-ballot span.me{outline:3px solid var(--hi);outline-offset:-3px}
-.po-vote{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.po-vote .po-btn{min-width:110px}
-.po-vote .po-btn.on.yes{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
-.po-vote .po-btn.on.no{background:var(--silver);border-color:var(--rule);color:var(--silver-ink)}
-.po-msg{font-family:var(--mono);font-size:.74rem}
-.po-msg.err{color:var(--red)}
-.po-form{display:grid;gap:12px;padding:16px;border:3px solid var(--rule)}
-.po-form label{display:grid;gap:4px}
-.po-form input,.po-form textarea{font:inherit;font-size:1rem;padding:10px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);width:100%}
-.po-cats{border:0;padding:0;margin:0;display:grid;gap:4px}
-.po-cats div{display:flex;flex-wrap:wrap;gap:6px}
-.po-cats label{display:flex;gap:6px;align-items:center;border:2px solid var(--rule);padding:6px 10px;font-family:var(--mono);font-size:.74rem;text-transform:uppercase;cursor:pointer}
-.po-cats input{width:auto}
-.po-cats label:has(input:checked){background:var(--ink);color:var(--sheet)}
-.po-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.po-gate{font-family:var(--mono);font-size:.78rem;padding:10px 12px;background:var(--hi);color:var(--hi-ink)}
-.po-gate a{color:inherit;font-weight:600}
-.po-form.locked{opacity:.55}
-.po-admin{border-top:3px solid var(--line);padding-top:10px}
-.po-admin summary{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer}
-.po-admin select,.po-admin input{font:inherit;padding:8px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink)}
-.po-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+/* Rule Changes tab (redesigned 2026-10-26). Every class is rc-*, scoped to #proposals, so nothing leaks into the paper.
+   One vote per team per proposal is enforced by the league office server (proposals/Code.gs). */
+#proposals [hidden]{display:none!important}
+#proposals .rc-hero{gap:14px}
+#proposals .rc-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:3px solid var(--rule);background:var(--sheet);max-width:640px}
+#proposals .rc-stats div{display:grid;gap:2px;padding:10px 14px;border-right:1px solid var(--line)}
+#proposals .rc-stats div:last-child{border-right:0}
+#proposals .rc-stats b{font-family:var(--display);font-weight:900;font-size:clamp(1.8rem,5vw,2.6rem);line-height:.9;color:var(--blue)}
+#proposals .rc-stats span{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#proposals .rc-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#proposals .rc-steps li{display:flex;gap:10px;align-items:center;font-size:.9rem;line-height:1.25}
+#proposals .rc-steps b{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--sheet);font-family:var(--display);font-weight:900;font-size:1.05rem}
+#proposals .rc-steps li:last-child b{background:var(--hi);color:var(--hi-ink)}
+#proposals .rc-note{font-size:.92rem;color:var(--muted)}
+#proposals .rc-btn{appearance:none;font-family:var(--mono);font-size:.74rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:10px 14px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer;border-radius:0}
+#proposals .rc-btn:hover:not(:disabled){background:var(--ink);color:var(--sheet)}
+#proposals .rc-btn:disabled{opacity:.45;cursor:default}
+#proposals .rc-btn.main{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+#proposals .rc-btn.main:hover:not(:disabled){background:var(--ink);border-color:var(--ink)}
+#proposals .rc-msg{font-family:var(--mono);font-size:.74rem}
+#proposals .rc-msg.err{color:var(--red)}
+#proposals .rc-tag{display:inline-block;font-family:var(--mono);font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;background:var(--ink);color:var(--sheet)}
+#proposals .rc-tag.Scoring{background:var(--blue);color:var(--blue-ink)}
+#proposals .rc-tag.Rules{background:var(--honolulu);color:#fff}
+#proposals .rc-tag.Settings{background:var(--silver);color:var(--silver-ink)}
+
+/* your team */
+#proposals .rc-me{display:grid;gap:12px}
+#proposals .rc-pick{display:grid;gap:12px;padding:16px;border:3px solid var(--rule);border-top:10px solid var(--hi);background:var(--sheet)}
+#proposals .rc-pick h3{font-size:1.6rem;font-weight:900;text-transform:uppercase}
+#proposals .rc-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+#proposals .rc-team{appearance:none;font:inherit;color:var(--ink);display:grid;justify-items:center;gap:6px;padding:10px 4px 8px;border:2px solid var(--line);background:var(--paper);cursor:pointer;min-width:0;position:relative}
+#proposals .rc-team .lg{width:40px;height:40px}
+#proposals .rc-team b{font-family:var(--mono);font-size:.62rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#proposals .rc-team:hover:not(:disabled){border-color:var(--blue);background:var(--sheet)}
+#proposals .rc-team:disabled{cursor:default;opacity:.5}
+#proposals .rc-team:disabled::after{content:"✓";position:absolute;top:4px;right:6px;font-size:.8rem;color:var(--muted)}
+#proposals .rc-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;background:var(--blue);color:var(--blue-ink)}
+#proposals .rc-bar .lg{width:42px;height:42px;box-shadow:0 0 0 2px var(--blue),0 0 0 4px var(--blue-ink)}
+#proposals .rc-bar .kicker{color:var(--blue-ink);opacity:.8}
+#proposals .rc-bar h3{font-size:1.5rem;font-weight:900;text-transform:uppercase;line-height:1}
+#proposals .rc-bar .rc-who{flex:1 1 200px;display:grid;gap:2px}
+#proposals .rc-bar .rc-btn{border-color:var(--blue-ink);background:transparent;color:var(--blue-ink)}
+#proposals .rc-bar .rc-btn:hover{background:var(--blue-ink);color:var(--blue)}
+#proposals .rc-roll{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#proposals .rc-roll .lg{width:26px;height:26px}
+#proposals .rc-roll .off{opacity:.25;filter:grayscale(1)}
+#proposals .rc-roll span{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-left:4px}
+
+/* open votes */
+#proposals .rc-list{display:grid;gap:16px}
+#proposals .rc-card{display:grid;gap:12px;padding:18px;border:3px solid var(--rule);background:var(--sheet);border-left:12px solid var(--hi)}
+#proposals .rc-meta{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#proposals .rc-meta .lg{width:18px;height:18px}
+#proposals .rc-meta .rc-left{margin-left:auto;color:var(--ink);font-weight:600}
+#proposals .rc-card h3{font-size:clamp(1.5rem,3.6vw,2.1rem);font-weight:900;text-transform:uppercase}
+#proposals .rc-change{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.9rem}
+#proposals .rc-change s{color:var(--muted);text-decoration-thickness:2px}
+#proposals .rc-change b{background:var(--hi);color:var(--hi-ink);padding:1px 6px}
+#proposals .rc-change i{font-style:normal;font-family:var(--mono);color:var(--muted)}
+#proposals .rc-d{font-size:.95rem;max-width:70ch}
+#proposals .rc-tally{display:grid;gap:6px}
+#proposals .rc-count{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+#proposals .rc-count b{font-family:var(--display);font-weight:900;font-size:1.6rem;line-height:1}
+#proposals .rc-count b.y{color:var(--blue)}
+#proposals .rc-count em{font-style:normal;font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+#proposals .rc-meter{position:relative;height:16px;background:var(--paper);display:flex;border:2px solid var(--rule)}
+#proposals .rc-meter i{display:block;height:100%}
+#proposals .rc-meter i.y{background:var(--blue)}
+#proposals .rc-meter i.n{background:var(--silver);margin-left:auto}
+#proposals .rc-meter u{position:absolute;top:-7px;bottom:-7px;width:4px;background:var(--hi);box-shadow:0 0 0 1.5px var(--rule)}
+#proposals .rc-ballot{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
+#proposals .rc-ballot span{display:grid;justify-items:center;gap:2px;padding:5px 0 3px;background:var(--paper);font-family:var(--mono);font-size:.54rem;font-weight:600;text-transform:uppercase;color:var(--muted)}
+#proposals .rc-ballot span .lg{width:24px;height:24px}
+#proposals .rc-ballot span.y{background:var(--blue);color:var(--blue-ink)}
+#proposals .rc-ballot span.n{background:var(--silver);color:var(--silver-ink)}
+#proposals .rc-ballot span.me{outline:3px solid var(--hi);outline-offset:-3px}
+#proposals .rc-vote{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center}
+#proposals .rc-vote .rc-btn{font-size:.9rem;padding:13px 10px}
+#proposals .rc-vote .rc-btn.on.yes{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+#proposals .rc-vote .rc-btn.on.no{background:var(--silver);color:var(--silver-ink)}
+#proposals .rc-vote .rc-msg{grid-column:1/-1}
+#proposals .rc-empty{padding:18px;border:2px dashed var(--line);font-size:.95rem;color:var(--muted);text-align:center}
+
+/* suggestion box */
+#proposals .rc-ideas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#proposals .rc-idea{display:grid;grid-template-rows:auto auto auto 1fr auto;gap:8px;padding:14px;border:2px solid var(--rule);background:var(--sheet)}
+#proposals .rc-idea h3{font-size:1.25rem;font-weight:900;text-transform:uppercase;line-height:1}
+#proposals .rc-idea p{font-size:.86rem;color:var(--muted)}
+#proposals .rc-idea .rc-btn{width:100%}
+#proposals .rc-idea.is-open{border-color:var(--hi);box-shadow:inset 0 6px 0 var(--hi)}
+#proposals .rc-idea.is-law{border-color:var(--blue);box-shadow:inset 0 6px 0 var(--blue)}
+#proposals .rc-own{border:2px solid var(--rule);background:var(--sheet)}
+#proposals .rc-own summary{cursor:pointer;padding:12px 14px;font-family:var(--mono);font-size:.76rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+#proposals .rc-own form{display:grid;gap:12px;padding:0 14px 14px}
+#proposals .rc-own label{display:grid;gap:4px}
+#proposals .rc-own input[type=text],#proposals .rc-own textarea{font:inherit;font-size:1rem;padding:10px;border:2px solid var(--rule);background:var(--paper);color:var(--ink);width:100%}
+#proposals .rc-cats{display:flex;flex-wrap:wrap;gap:6px;border:0;padding:0;margin:0}
+#proposals .rc-cats label{display:flex;gap:6px;align-items:center;border:2px solid var(--rule);padding:6px 10px;font-family:var(--mono);font-size:.72rem;text-transform:uppercase;cursor:pointer}
+#proposals .rc-cats label:has(input:checked){background:var(--ink);color:var(--sheet)}
+#proposals .rc-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#proposals .rc-own .rc-note{margin:0 14px 12px}
+
+/* rulebook */
+#proposals .rc-book{display:grid;border-top:3px solid var(--rule)}
+#proposals .rc-law{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:12px 2px;border-bottom:1px solid var(--line)}
+#proposals .rc-law h4{margin:0;font-family:var(--display);font-weight:900;font-size:1.25rem;text-transform:uppercase;line-height:1}
+#proposals .rc-law small{grid-column:1;font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:.04em}
+#proposals .rc-law .rc-st{grid-row:1/span 2;grid-column:2;font-family:var(--mono);font-size:.66rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:6px 9px;white-space:nowrap}
+#proposals .rc-st.live{background:var(--blue);color:var(--blue-ink)}
+#proposals .rc-st.soon{background:var(--hi);color:var(--hi-ink)}
+#proposals .rc-st.comm{background:var(--paper);color:var(--ink);border:2px solid var(--rule)}
+#proposals .rc-law.down h4{color:var(--muted);text-decoration:line-through;text-decoration-thickness:2px}
+#proposals .rc-law.down .rc-st{background:transparent;color:var(--muted);border:1px solid var(--line)}
+#proposals .rc-admin{border-top:3px solid var(--line);padding-top:10px}
+#proposals .rc-admin summary{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer}
+#proposals .rc-admin .rc-body{display:grid;gap:10px;padding-top:10px}
+#proposals .rc-admin select,#proposals .rc-admin input{font:inherit;padding:8px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);max-width:100%}
+
+@media (max-width:760px){
+  #proposals .rc-stats div{padding:8px 10px}
+  #proposals .rc-steps{grid-template-columns:1fr;gap:6px}
+  #proposals .rc-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  #proposals .rc-ideas{grid-template-columns:1fr}
+  #proposals .rc-ballot{grid-template-columns:repeat(6,minmax(0,1fr))}
+  #proposals .rc-vote{grid-template-columns:1fr 1fr}
+  #proposals .rc-card{padding:14px;border-left-width:8px}
+  #proposals .rc-meta .rc-left{margin-left:0}
+}
 @media (max-width:760px){
   .tabs .tab-s{display:none}.tabs .tab-t{font-size:.74rem}
-  .po-grid{grid-template-columns:1fr 1fr}
-  .po-ballot{grid-template-columns:repeat(6,minmax(0,1fr))}
-  .po-vote .po-btn{flex:1 1 0;min-width:0}
   /* four tabs always fit the screen: equal columns, words wrap instead of running off the edge */
   .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
   .tabs .tab{padding:8px 5px 7px}
@@ -974,42 +1041,41 @@ footer b{color:var(--honolulu);font-weight:600}
 <a class="to-league" href="#proposals" data-tab="proposals"><span class="kicker">The league office</span><b>Propose scoring, rules and settings changes. One vote per team.</b><em>Rule Changes →</em></a>
 </div>
 <div class="tab-pane" id="proposals" role="tabpanel" aria-labelledby="tab-props" hidden>
-<section class="lg-hero" aria-label="Rule changes"><span class="kicker">The league office · {{SEASON}} season</span><h2>Rule <span>Changes</span></h2><p id="po-rules">Propose a change to scoring, rules or league settings. Every team gets one vote per proposal. Claim your team below to propose and vote.</p></section>
-
-<section class="sec" id="po-me">
-  <div class="sec-head"><h2>Your Team</h2><span class="kicker">One phone signs in for each team</span></div>
-  <div id="po-me-body" class="po-body"><p class="po-note">Loading the league office…</p></div>
+<section class="lg-hero rc-hero" aria-label="Rule changes"><span class="kicker">The league office · {{SEASON}} season</span><h2>Rule <span>Changes</span></h2>
+<p>Change the league's scoring, rules or settings by vote. Every team gets one vote per proposal. Seven yes votes and it goes live on ESPN the next Tuesday, between weeks.</p>
+<div class="rc-stats" aria-live="polite"><div><b id="rc-n-open">–</b><span>Open votes</span></div><div><b id="rc-n-law">–</b><span>Passed</span></div><div><b id="rc-n-in">–</b><span>Teams signed in</span></div></div>
+<ol class="rc-steps"><li><b>1</b><span>Claim your team</span></li><li><b>2</b><span>Pick a suggestion or write your own</span></li><li><b>3</b><span>7 of 12 vote yes: live on ESPN Tuesday</span></li></ol>
 </section>
 
-<section class="sec" id="po-new" hidden>
-  <div class="sec-head"><h2>Propose a Change</h2><span class="kicker">One team, one vote</span></div>
-  <p class="po-gate" id="po-gate" hidden>Claim your team under <a href="#po-me">Your Team</a> first. Then this box unlocks.</p>
-  <form id="po-form" class="po-form" novalidate>
-    <fieldset class="po-cats"><legend class="kicker">Category</legend><div id="po-cat-opts"></div></fieldset>
-    <label><span class="kicker">Proposal</span><input id="po-title" maxlength="90" required placeholder="e.g. Make TE receptions worth 1.5 points"></label>
-    <label><span class="kicker">Details (optional)</span><textarea id="po-details" maxlength="600" rows="3" placeholder="Why, and when it would start"></textarea></label>
-    <div class="po-actions"><button type="submit" class="po-btn po-main">Put it to a vote</button><span class="po-msg" id="po-form-msg" role="status"></span></div>
-  </form>
+<div class="rc-me" id="rc-me"><p class="rc-note">Loading the league office…</p></div>
+
+<section class="sec" id="rc-floor" hidden>
+  <div class="sec-head"><h2>On the Floor</h2><span class="kicker">Open votes · one per team</span></div>
+  <div id="rc-floor-body" class="rc-list"></div>
 </section>
 
-<section class="sec" id="po-open" hidden>
-  <div class="sec-head"><h2>On the Floor</h2><span class="kicker">Open proposals</span></div>
-  <div id="po-open-body" class="po-list"></div>
+<section class="sec" id="rc-ideas" hidden>
+  <div class="sec-head"><h2>Suggestion Box</h2><span class="kicker">One tap puts it to a vote</span></div>
+  <div id="rc-ideas-body" class="rc-ideas"></div>
+  <details class="rc-own" id="rc-own"><summary>Something else? Write your own proposal</summary>
+    <p class="rc-note">Your own proposals go to a vote the same way. If they pass, the commissioner sets them in ESPN.</p>
+    <form id="rc-form" novalidate>
+      <fieldset class="rc-cats" id="rc-cats"><legend class="kicker">Category</legend></fieldset>
+      <label><span class="kicker">Proposal</span><input type="text" id="rc-title" maxlength="90" placeholder="e.g. Add a second IR spot next season"></label>
+      <label><span class="kicker">Details (optional)</span><textarea id="rc-details" maxlength="600" rows="3" placeholder="Why, and when it would start"></textarea></label>
+      <div class="rc-row"><button type="submit" class="rc-btn main">Put it to a vote</button><span class="rc-msg" id="rc-form-msg" role="status"></span></div>
+    </form>
+  </details>
 </section>
 
-
-<section class="sec" id="po-done" hidden>
-  <div class="sec-head"><h2>The Record</h2><span class="kicker">Closed proposals</span></div>
-  <div id="po-done-body" class="po-list"></div>
+<section class="sec" id="rc-book-sec" hidden>
+  <div class="sec-head"><h2>League Rulebook</h2><span class="kicker">What passed, and whether it&rsquo;s live on ESPN</span></div>
+  <div id="rc-book" class="rc-book"></div>
 </section>
 
-<section class="sec" id="po-claims" hidden>
-  <div class="sec-head"><h2>Who&rsquo;s Signed In</h2><span class="kicker">Wrong team claimed? Tell the commissioner</span></div>
-  <div id="po-claims-body" class="po-grid"></div>
-</section>
-
-<details class="po-admin" id="po-admin" hidden><summary>Commissioner</summary><div id="po-admin-body" class="po-body"></div></details>
+<details class="rc-admin" id="rc-admin" hidden><summary>Commissioner</summary><div id="rc-admin-body" class="rc-body"></div></details>
 <script type="application/json" id="po-data"><!--POTEAMS--></script>
+<script type="application/json" id="rc-presets"><!--RCPRESETS--></script>
 </div>
 
 <footer>
@@ -1061,154 +1127,188 @@ footer b{color:var(--honolulu);font-weight:600}
 })();
 </script>
 <script>
-/* Rule Changes tab. The league office server (Google Apps Script, proposals/Code.gs) is the authority:
-   it checks each team's secret key and keeps one vote per team per proposal. This page only displays. */
+/* Rule Changes tab (redesigned 2026-10-26). The league office server (Google Apps Script, proposals/Code.gs) is the
+   authority: it checks each team's secret key and keeps one vote per team per proposal. Passed one-tap suggestions are
+   applied to ESPN on Tuesdays by rules_espn.py, which records the outcome in docs/rulebook.json. This page only displays. */
 (function(){
   var API='{{PROPOSALS_API}}', KEYS='fz-team', ADMIN='fz-comm';
   var root=document.getElementById('proposals'); if(!root)return;
-  var T={}; try{T=JSON.parse(document.getElementById('po-data').textContent)}catch(e){}
+  var T={},PR={}; try{T=JSON.parse(document.getElementById('po-data').textContent)}catch(e){}
+  try{PR=JSON.parse(document.getElementById('rc-presets').textContent)}catch(e){}
   var ids=Object.keys(T).map(Number).sort(function(a,b){return a-b});
-  var S=null, busy=false, timer=null;
+  var S=null, BOOK={}, timer=null, busy=false;
   function $(id){return document.getElementById(id)}
   function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
-  function crest(t,cls){var i=el('i','lg lg-'+t+(cls?' '+cls:''));i.setAttribute('aria-hidden','true');return i}
+  function crest(t){var i=el('i','lg lg-'+t);i.setAttribute('aria-hidden','true');return i}
   function nm(t,short){return (T[t]||{})[short?'short':'name']||('Team '+t)}
   function store(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
   function load(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
   function me(){var m=load(KEYS);return m&&m.team&&m.key?m:null}
   function when(iso){var d=new Date(iso);return isNaN(d)?'':d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}
-  function left(iso){var ms=Date.parse(iso)-Date.now();if(!(ms>0))return 'closing';var h=Math.round(ms/36e5);return h<48?h+'h left':Math.round(h/24)+' days left'}
+  function left(iso){var ms=Date.parse(iso)-Date.now();if(!(ms>0))return 'Closing';var h=Math.round(ms/36e5);return h<48?h+'h left':Math.round(h/24)+' days left'}
+  function btn(cls,txt){var b=el('button','rc-btn'+(cls?' '+cls:''),txt);b.type='button';return b}
+  function nextTuesday(){var d=new Date();d.setDate(d.getDate()+((9-d.getDay())%7||7));return d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}
 
-  // A sign-in link from another phone: ?team=N&key=... stores the key, then is removed from the address bar.
+  // Private sign-in link from another phone: ?team=N&key=... stores the key, then leaves the address bar.
   (function(){var q=new URLSearchParams(location.search),t=+q.get('team'),k=q.get('key');
     if(t&&k){store(KEYS,{team:t,key:k});q.delete('team');q.delete('key');
       try{history.replaceState(null,'',location.pathname+(q.toString()?'?'+q:'')+'#proposals')}catch(e){}
-      var b=document.getElementById('tab-props');if(b)setTimeout(function(){b.click()},0);}})();
+      var b=$('tab-props');if(b)setTimeout(function(){b.click()},0);}})();
 
   function call(body){
     return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)})
       .then(function(r){return r.json()}).then(function(r){if(r.state){S=r.state;render()}return r});
   }
   function refresh(){
-    if(!API){$('po-me-body').innerHTML='';$('po-me-body').append(el('p','po-note','Voting opens soon. The commissioner is setting up the league office.'));return}
+    if(!API){$('rc-me').innerHTML='';$('rc-me').append(el('p','rc-note','Voting opens soon. The commissioner is setting up the league office.'));return}
     fetch(API).then(function(r){return r.json()}).then(function(r){if(r.ok){S=r;render()}else throw 0})
-      .catch(function(){if(!S){$('po-me-body').innerHTML='';$('po-me-body').append(el('p','po-note','The league office isn’t answering right now. Try again in a minute.'))}});
+      .catch(function(){if(!S){$('rc-me').innerHTML='';$('rc-me').append(el('p','rc-note','The league office isn’t answering right now. Try again in a minute.'))}});
+    fetch('rulebook.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():{}}).then(function(b){BOOK=(b&&b.entries)||{};if(S)render()}).catch(function(){});
   }
 
   function render(){
     var m=me(), R=S.rules, claimed={};
-    ['po-open','po-done','po-claims','po-admin'].forEach(function(id){$(id).hidden=false});
     S.claims.forEach(function(c){claimed[c.team]=c});
-    if(m&&!claimed[m.team]){store(KEYS,null);m=null}           // claim was reset by the commissioner
-    $('po-rules').textContent='Propose a change to scoring, rules or league settings. Every team gets one vote per proposal; changing your vote replaces it. A change passes with '+R.pass+' of '+R.teams+' teams voting yes. Voting runs '+R.windowDays+' days, or until the result is locked in.';
+    if(m&&!claimed[m.team]){store(KEYS,null);m=null}          // the commissioner reset this claim
+    ['rc-floor','rc-ideas','rc-book-sec','rc-admin'].forEach(function(id){$(id).hidden=false});
+    var open=S.proposals.filter(function(p){return p.status==='open'}).reverse();
+    var passed=S.proposals.filter(function(p){return p.status==='passed'}).reverse();
+    var down=S.proposals.filter(function(p){return p.status==='failed'||p.status==='withdrawn'}).reverse();
+    $('rc-n-open').textContent=open.length; $('rc-n-law').textContent=passed.length; $('rc-n-in').textContent=S.claims.length+'/'+R.teams;
+    team(m,claimed); floor(open,m,R); ideas(m); book(passed,down,R); admin();
+  }
 
-    // Your team
-    var box=$('po-me-body'); box.innerHTML='';
+  function team(m,claimed){
+    var box=$('rc-me'); box.innerHTML='';
     if(m){
-      var card=el('div','po-me'); card.append(crest(m.team));
-      var d=el('div'); d.append(el('span','kicker','This phone votes for'),el('h3',null,nm(m.team))); card.append(d);
-      var share=el('button','po-btn','Use on another phone'); share.type='button';
+      var bar=el('div','rc-bar'); bar.append(crest(m.team));
+      var w=el('div','rc-who'); w.append(el('span','kicker','Voting as'),el('h3',null,nm(m.team))); bar.append(w);
+      var share=btn('','Use on another phone');
       share.onclick=function(){var u=location.origin+location.pathname+'?team='+m.team+'&key='+encodeURIComponent(m.key);
-        var done=function(){share.textContent='Link copied. Keep it private'};
         if(navigator.share)navigator.share({title:'My Daily Fantasizer vote link',url:u}).catch(function(){});
-        else if(navigator.clipboard)navigator.clipboard.writeText(u).then(done,function(){prompt('Your private sign-in link:',u)});
+        else if(navigator.clipboard)navigator.clipboard.writeText(u).then(function(){share.textContent='Link copied. Keep it private'},function(){prompt('Your private sign-in link:',u)});
         else prompt('Your private sign-in link:',u)};
-      card.append(share); box.append(card);
-      box.append(el('p','po-note','Keep that link to yourself: anyone with it can vote for your team. Save it somewhere in case this browser forgets you.'));
+      bar.append(share); box.append(bar);
     } else {
-      box.append(el('p','po-note','Which team is yours? Tap it once to sign this phone in. Each team can be claimed only once; only the commissioner can undo a claim.'));
-      var g=el('div','po-grid');
-      ids.forEach(function(t){var b=el('button','po-team');b.type='button';b.append(crest(t,'lg-sm'));
-        var s=el('span');s.append(el('b',null,nm(t)),el('small',null,claimed[t]?'Claimed '+when(claimed[t].at):'Tap to claim'));b.append(s);
+      var full=S.claims.length>=ids.length, pick=el('div','rc-pick');
+      pick.append(el('span','kicker',full?'All teams signed in':'Step 1'),el('h3',null,full?'Every team has a phone':'Which team is yours?'),
+        el('p','rc-note',full?'All 12 teams are signed in on some phone. To vote from this one too, open \u201cUse on another phone\u201d on your signed-in phone. Wrong team taken? The commissioner can reset it.'
+          :'Tap your team once to sign this phone in. Each team can be claimed once; if someone takes yours, the commissioner can reset it.'));
+      var g=el('div','rc-grid');
+      ids.forEach(function(t){var b=el('button','rc-team');b.type='button';b.append(crest(t),el('b',null,nm(t,true)));
+        b.title=claimed[t]?nm(t)+' (signed in '+when(claimed[t].at)+')':'Claim '+nm(t);
         b.disabled=!!claimed[t]||busy;
         b.onclick=function(){if(!confirm('Claim '+nm(t)+' as your team? Only the commissioner can undo this.'))return;
           busy=true;render();call({action:'claim',team:t}).then(function(r){busy=false;
             if(r.ok){store(KEYS,{team:t,key:r.key});render()}else{alert(r.error);refresh()}}).catch(function(){busy=false;alert('Couldn’t reach the league office.');render()})};
         g.append(b)});
-      box.append(g);
+      pick.append(g); box.append(pick);
     }
-
-    // Proposals
-    var open=S.proposals.filter(function(p){return p.status==='open'}).reverse();
-    var done=S.proposals.filter(function(p){return p.status!=='open'}).reverse();
-    fill($('po-open-body'),open,'Nothing on the floor right now.'+(m?' Propose something below.':''),m,R);
-    fill($('po-done-body'),done,'No proposals have closed yet.',m,R);
-    $('po-new').hidden=false; $('po-gate').hidden=!!m;
-    $('po-form').querySelectorAll('input,textarea,button').forEach(function(x){x.disabled=!m}); $('po-form').classList.toggle('locked',!m);
-    if(!$('po-cat-opts').childNodes.length)R.categories.forEach(function(c,i){
-      var l=el('label'),r=el('input');r.type='radio';r.name='po-cat';r.value=c;if(!i)r.checked=true;r.disabled=!m;l.append(r,document.createTextNode(c));$('po-cat-opts').append(l)});
-
-    // Claims
-    var cl=$('po-claims-body'); cl.innerHTML='';
-    ids.forEach(function(t){var c=claimed[t],s=el('div','po-team'+(m&&m.team===t?' on':''));s.append(crest(t,'lg-sm'));
-      var x=el('span');x.append(el('b',null,nm(t,true)),el('small',null,c?'Signed in '+when(c.at):'Not yet'));s.append(x);if(!c)s.style.opacity='.55';cl.append(s)});
-    admin();
+    var roll=el('div','rc-roll');
+    ids.forEach(function(t){var c=crest(t);if(!claimed[t])c.classList.add('off');c.title=nm(t)+(claimed[t]?' · signed in':' · not yet');roll.append(c)});
+    roll.append(el('span',null,S.claims.length+' of '+ids.length+' teams signed in')); box.append(roll);
   }
 
-  function fill(host,list,empty,m,R){
-    host.innerHTML=''; if(!list.length){host.append(el('p','po-note',empty));return}
+  function change(p){var pr=p&&PR[p];if(!pr||!pr.now_label)return null;
+    var c=el('div','rc-change');c.append(el('i',null,'Now'),el('s',null,pr.now_label),el('i',null,'→'),el('b',null,pr.new_label));return c}
+
+  function floor(list,m,R){
+    var host=$('rc-floor-body'); host.innerHTML='';
+    if(!list.length){host.append(el('div','rc-empty','Nothing up for a vote right now. Pick something from the Suggestion Box below.'));return}
     list.forEach(function(p){
       var y=0,n=0,v={}; p.votes.forEach(function(x){v[x.team]=x.choice;x.choice==='yes'?y++:n++});
-      var c=el('article','po-card '+p.status);
-      var meta=el('div','po-meta'); meta.append(el('span','po-tag '+p.status,p.status==='open'?'Voting':p.status),el('span',null,p.id+' · '+p.category));
-      var by=el('span'); by.append(crest(p.team),document.createTextNode(' '+nm(p.team,true)+' · '+when(p.createdAt))); meta.append(by);
-      meta.append(el('span',null,p.status==='open'?left(p.deadline):'closed '+when(p.closedAt)));
-      c.append(meta,el('h3',null,p.title)); if(p.details)c.append(el('p','po-d',p.details));
-      var bar=el('div','po-bar'); bar.setAttribute('role','img'); bar.setAttribute('aria-label',y+' yes, '+n+' no, '+(R.teams-y-n)+' not voted; '+R.pass+' yes needed');
+      var c=el('article','rc-card');
+      var meta=el('div','rc-meta'); meta.append(el('span','rc-tag '+p.category,p.category));
+      var by=el('span'); by.append(crest(p.team),document.createTextNode(' '+nm(p.team,true)+' · '+when(p.createdAt))); meta.append(by,el('span','rc-left',left(p.deadline)));
+      c.append(meta,el('h3',null,p.title)); var ch=change(p.preset); if(ch)c.append(ch);
+      if(p.details)c.append(el('p','rc-d',p.details));
+      var t=el('div','rc-tally'),cnt=el('div','rc-count'),a=el('span');
+      a.append(el('b','y',y+' yes'),document.createTextNode(' \u00b7 '),el('b',null,n+' no'));
+      cnt.append(a,el('em',null,Math.max(0,R.pass-y)+' more yes to pass · '+(R.teams-y-n)+' still to vote'));
+      var bar=el('div','rc-meter'); bar.setAttribute('role','img'); bar.setAttribute('aria-label',y+' yes, '+n+' no; '+R.pass+' yes needed');
       var iy=el('i','y'),ino=el('i','n'); iy.style.width=(y/R.teams*100)+'%'; ino.style.width=(n/R.teams*100)+'%'; bar.append(iy,ino);
-      var u=el('u'); u.style.left='calc('+(R.pass/R.teams*100)+'% - 1.5px)'; u.title=R.pass+' yes to pass'; bar.append(u);
-      var cnt=el('div','po-count'); var a=el('span'),b=el('span');
-      a.append(el('b',null,y+' yes'),document.createTextNode(' · '+n+' no'));
-      b.textContent=p.status==='open'?(Math.max(0,R.pass-y)+' more yes to pass'):(R.teams-y-n)+' didn’t vote';
-      cnt.append(a,b);
-      var bal=el('div','po-ballot'); ids.forEach(function(t){var s=el('span',(v[t]==='yes'?'y':v[t]==='no'?'n':'')+(m&&m.team===t?' me':''));
-        s.title=nm(t)+': '+(v[t]||'not voted'); s.append(crest(t),document.createTextNode(v[t]||'—')); bal.append(s)});
-      c.append(bar,cnt,bal);
-      if(m&&p.status==='open'){
-        var vt=el('div','po-vote'),msg=el('span','po-msg'); msg.setAttribute('role','status');
-        ['yes','no'].forEach(function(ch){var bt=el('button','po-btn '+ch+(v[m.team]===ch?' on':''),ch==='yes'?'Vote yes':'Vote no');bt.type='button';
-          bt.setAttribute('aria-pressed',v[m.team]===ch?'true':'false');
-          bt.onclick=function(){if(v[m.team]===ch)return;vt.querySelectorAll('button').forEach(function(z){z.disabled=true});msg.className='po-msg';msg.textContent='Sending…';
-            call({action:'vote',team:m.team,key:m.key,proposal:p.id,choice:ch}).then(function(r){if(!r.ok){msg.className='po-msg err';msg.textContent=r.error;vt.querySelectorAll('button').forEach(function(z){z.disabled=false})}})
-              .catch(function(){msg.className='po-msg err';msg.textContent='Couldn’t reach the league office.';vt.querySelectorAll('button').forEach(function(z){z.disabled=false})})};
-          vt.append(bt)});
-        vt.append(msg); if(v[m.team])msg.textContent='Your team voted '+v[m.team]+'. You can change it until voting closes.';
-        c.append(vt);
-      }
-      host.append(c);
+      var u=el('u'); u.style.left='calc('+(R.pass/R.teams*100)+'% - 2px)'; u.title=R.pass+' yes to pass'; bar.append(u);
+      t.append(cnt,bar);
+      var bal=el('div','rc-ballot'); ids.forEach(function(tt){var s=el('span',(v[tt]==='yes'?'y':v[tt]==='no'?'n':'')+(m&&m.team===tt?' me':''));
+        s.title=nm(tt)+': '+(v[tt]||'not voted yet'); s.append(crest(tt),document.createTextNode(v[tt]||'—')); bal.append(s)});
+      c.append(t,bal);
+      var vt=el('div','rc-vote'),msg=el('span','rc-msg'); msg.setAttribute('role','status');
+      if(m){
+        ['yes','no'].forEach(function(choice){var b=btn(choice+(v[m.team]===choice?' on':''),choice==='yes'?'Vote yes':'Vote no');
+          b.setAttribute('aria-pressed',v[m.team]===choice?'true':'false');
+          b.onclick=function(){if(v[m.team]===choice)return;vt.querySelectorAll('button').forEach(function(z){z.disabled=true});msg.className='rc-msg';msg.textContent='Sending…';
+            call({action:'vote',team:m.team,key:m.key,proposal:p.id,choice:choice}).then(function(r){if(!r.ok){msg.className='rc-msg err';msg.textContent=r.error;vt.querySelectorAll('button').forEach(function(z){z.disabled=false})}})
+              .catch(function(){msg.className='rc-msg err';msg.textContent='Couldn’t reach the league office.';vt.querySelectorAll('button').forEach(function(z){z.disabled=false})})};
+          vt.append(b)});
+        if(v[m.team])msg.textContent='You voted '+v[m.team]+'. You can change it until voting closes.';
+      } else msg.textContent='Claim your team above to vote.';
+      vt.append(msg); c.append(vt); host.append(c);
     });
   }
 
-  $('po-form').addEventListener('submit',function(e){
-    e.preventDefault(); var m=me(); if(!m)return; var msg=$('po-form-msg'), btn=this.querySelector('button');
-    var cat=(this.querySelector('input[name=po-cat]:checked')||{}).value;
-    btn.disabled=true; msg.className='po-msg'; msg.textContent='Sending…';
-    call({action:'propose',team:m.team,key:m.key,category:cat,title:$('po-title').value,details:$('po-details').value}).then(function(r){
-      btn.disabled=false; if(r.ok){$('po-title').value='';$('po-details').value='';msg.textContent=r.id+' is up for a vote.';$('po-open').scrollIntoView()}
-      else{msg.className='po-msg err';msg.textContent=r.error}}).catch(function(){btn.disabled=false;msg.className='po-msg err';msg.textContent='Couldn’t reach the league office.'});
+  function ideas(m){
+    var host=$('rc-ideas-body'); host.innerHTML='';
+    var openP={},lawP={}; S.proposals.forEach(function(p){if(!p.preset)return;if(p.status==='open')openP[p.preset]=p;if(p.status==='passed')lawP[p.preset]=p});
+    Object.keys(PR).forEach(function(k){var pr=PR[k],c=el('article','rc-idea'+(openP[k]?' is-open':lawP[k]?' is-law':''));
+      c.append(el('span','rc-tag '+pr.category,pr.category),el('h3',null,pr.title)); var ch=change(k); if(ch)c.append(ch); c.append(el('p',null,pr.pitch));
+      var b=btn('main','Put it to a vote');
+      if(openP[k]){b.textContent='On the floor';b.disabled=true}
+      else if(lawP[k]){b.textContent='Passed';b.disabled=true}
+      else if(!(S.rules.presets||[]).includes(k)){b.textContent='Opening soon';b.disabled=true}  // league office not updated yet
+      else if(!m){b.textContent='Claim your team to propose';b.disabled=true}
+      b.onclick=function(){if(!confirm('Put “'+pr.title+'” to a vote? Voting runs '+S.rules.windowDays+' days.'))return;b.disabled=true;b.textContent='Sending…';
+        call({action:'propose',team:m.team,key:m.key,preset:k}).then(function(r){if(!r.ok){alert(r.error);render()}else $('rc-floor').scrollIntoView({behavior:'smooth'})})
+          .catch(function(){alert('Couldn’t reach the league office.');render()})};
+      c.append(b); host.append(c)});
+    var own=$('rc-form'); own.querySelectorAll('input,textarea,button').forEach(function(x){x.disabled=!m});
+    if(!$('rc-cats').querySelector('input'))S.rules.categories.forEach(function(c,i){var l=el('label'),r=el('input');r.type='radio';r.name='rc-cat';r.value=c;if(!i)r.checked=true;r.disabled=!m;l.append(r,document.createTextNode(c));$('rc-cats').append(l)});
+    else $('rc-cats').querySelectorAll('input').forEach(function(x){x.disabled=!m});
+    $('rc-form-msg').textContent=m?'':'Claim your team above first.';
+  }
+
+  function book(passed,down,R){
+    var host=$('rc-book'); host.innerHTML='';
+    if(!passed.length&&!down.length){host.append(el('div','rc-empty','Nothing has passed yet. The rulebook fills in as votes close.'));return}
+    function yes(p){return p.votes.filter(function(x){return x.choice==='yes'}).length}
+    passed.forEach(function(p){var e=BOOK[p.id]||{},row=el('div','rc-law'),st;
+      if(e.result==='applied')st=el('span','rc-st live','Live on ESPN');
+      else if(e.result==='manual'||e.result==='needs_commissioner'||!p.preset)st=el('span','rc-st comm','Commissioner sets in ESPN');
+      else st=el('span','rc-st soon','Goes live '+nextTuesday());
+      row.append(el('h4',null,p.title),st,el('small',null,'Passed '+when(p.closedAt)+' · '+yes(p)+' of '+R.teams+' yes'+(e.applied_at?' · on ESPN since '+when(e.applied_at):'')+(e.result==='needs_commissioner'&&e.note?' · '+e.note:'')));
+      host.append(row)});
+    down.forEach(function(p){var row=el('div','rc-law down');
+      row.append(el('h4',null,p.title),el('span','rc-st',p.status==='withdrawn'?'Withdrawn':'Voted down'),el('small',null,'Closed '+when(p.closedAt)+' · '+yes(p)+' of '+R.teams+' yes'));host.append(row)});
+  }
+
+  $('rc-form').addEventListener('submit',function(e){
+    e.preventDefault(); var m=me(); if(!m)return; var msg=$('rc-form-msg'), b=this.querySelector('button');
+    var cat=(this.querySelector('input[name=rc-cat]:checked')||{}).value;
+    b.disabled=true; msg.className='rc-msg'; msg.textContent='Sending…';
+    call({action:'propose',team:m.team,key:m.key,category:cat,title:$('rc-title').value,details:$('rc-details').value}).then(function(r){
+      b.disabled=false; if(r.ok){$('rc-title').value='';$('rc-details').value='';msg.textContent=r.id+' is up for a vote.';$('rc-floor').scrollIntoView({behavior:'smooth'})}
+      else{msg.className='rc-msg err';msg.textContent=r.error}}).catch(function(){b.disabled=false;msg.className='rc-msg err';msg.textContent='Couldn’t reach the league office.'});
   });
 
   function admin(){
-    var host=$('po-admin-body'), code=load(ADMIN); host.innerHTML='';
-    if(!code){var r=el('div','po-row'),i=el('input');i.placeholder='Commissioner code';i.autocomplete='off';var b=el('button','po-btn','Unlock');b.type='button';
+    var host=$('rc-admin-body'), code=load(ADMIN); host.innerHTML='';
+    if(!code){var r=el('div','rc-row'),i=el('input');i.placeholder='Commissioner code';i.autocomplete='off';var b=btn('','Unlock');
       b.onclick=function(){call({action:'admin',op:'check',code:i.value}).then(function(x){if(x.ok){store(ADMIN,i.value.trim());admin()}else alert(x.error)})};
       r.append(i,b);host.append(r);return}
-    var r1=el('div','po-row'),s1=el('select');
+    var r1=el('div','rc-row'),s1=el('select');
     S.claims.forEach(function(c){var o=el('option',null,nm(c.team));o.value=c.team;s1.append(o)});
-    var b1=el('button','po-btn','Reset claim');b1.type='button';b1.disabled=!S.claims.length;
+    var b1=btn('','Reset claim');b1.disabled=!S.claims.length;
     b1.onclick=function(){if(confirm('Reset '+nm(+s1.value)+'? Its phone is signed out and the team can be claimed again. Its votes stay.'))call({action:'admin',op:'reset',code:code,team:+s1.value}).then(function(x){if(!x.ok)alert(x.error)})};
     r1.append(s1,b1);
-    var r2=el('div','po-row'),s2=el('select');
+    var r2=el('div','rc-row'),s2=el('select');
     S.proposals.filter(function(p){return p.status==='open'}).forEach(function(p){var o=el('option',null,p.id+': '+p.title);o.value=p.id;s2.append(o)});
-    var b2=el('button','po-btn','Withdraw');b2.type='button';b2.disabled=!s2.options.length;
+    var b2=btn('','Withdraw');b2.disabled=!s2.options.length;
     b2.onclick=function(){if(confirm('Withdraw '+s2.value+'? Voting on it stops.'))call({action:'admin',op:'withdraw',code:code,proposal:s2.value}).then(function(x){if(!x.ok)alert(x.error)})};
     r2.append(s2,b2);
-    var out=el('button','po-btn','Lock commissioner tools');out.type='button';out.onclick=function(){store(ADMIN,null);admin()};
-    host.append(el('p','po-note','Reset a team that was claimed by the wrong phone, or withdraw a proposal.'),r1,r2,out);
+    var out=btn('','Lock commissioner tools');out.onclick=function(){store(ADMIN,null);admin()};
+    host.append(el('p','rc-note','Reset a team claimed by the wrong phone, or withdraw a proposal.'),r1,r2,out);
   }
 
-  // Load when the tab is opened (even if the page opened in a background browser tab); refresh every 30 s
-  // while it's showing, and right away when the browser tab comes back into view.
+  // Load when the tab opens (even in a background browser tab); refresh every 30 s while showing and when it comes back into view.
   function tick(){if(!root.hidden&&!document.hidden)refresh()}
   function start(){refresh();clearInterval(timer);timer=setInterval(tick,30000)}
   new MutationObserver(function(){if(!root.hidden)start();else clearInterval(timer)}).observe(root,{attributes:true,attributeFilter:['hidden']});

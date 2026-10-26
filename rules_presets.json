@@ -2,43 +2,105 @@
  "rolling-waivers": {
   "category": "Settings",
   "title": "Rolling waiver priority",
-  "pitch": "Use a claim, drop to the back of the line. No more weekly reset that hands the worst team first dibs every week.",
-  "espn": [{"path": ["acquisitionSettings", "waiverOrderReset"], "value": false}]
+  "pitch": "Use a claim, go to the back of the line. Right now the order resets every week by record.",
+  "espn": [
+   {
+    "path": [
+     "acquisitionSettings",
+     "waiverOrderReset"
+    ],
+    "value": false
+   }
+  ],
+  "now_label": "Resets weekly by standings",
+  "new_label": "Rolling: whoever claims moves to last"
  },
- "reset-waivers": {
+ "faab": {
   "category": "Settings",
-  "title": "Reset waiver order every week",
-  "pitch": "Waiver order resets weekly by standings: worst record picks first.",
-  "espn": [{"path": ["acquisitionSettings", "waiverOrderReset"], "value": true}]
+  "title": "Blind bidding (FAAB)",
+  "pitch": "Every team gets a $100 budget for the season and bids on free agents. Highest bid wins; no more waiver-order luck.",
+  "espn": [
+   {
+    "path": [
+     "acquisitionSettings",
+     "isUsingAcquisitionBudget"
+    ],
+    "value": true
+   }
+  ],
+  "now_label": "Waiver order",
+  "new_label": "$100 budget, $1 minimum bid"
  },
- "one-day-waivers": {
-  "category": "Settings",
-  "title": "Shorter waiver period (1 day)",
-  "pitch": "Dropped players clear waivers in 24 hours instead of 48. Faster pickups.",
-  "espn": [{"path": ["acquisitionSettings", "waiverHours"], "value": 24}]
- },
- "move-limit-5": {
+ "weekly-add-cap": {
   "category": "Rules",
   "title": "Cap pickups at 5 per week",
-  "pitch": "Five adds a week, max. Stops the streaming arms race.",
-  "espn": [{"path": ["acquisitionSettings", "acquisitionLimit"], "value": 5}]
+  "pitch": "Five adds per matchup week, max. Stops the streaming arms race.",
+  "espn": [
+   {
+    "path": [
+     "acquisitionSettings",
+     "matchupAcquisitionLimit"
+    ],
+    "value": 5.0
+   }
+  ],
+  "now_label": "Unlimited",
+  "new_label": "5 per week"
  },
  "pass-td-6": {
   "category": "Scoring",
   "title": "6-point passing touchdowns",
-  "pitch": "QBs get 6 for a TD pass instead of 4. Quarterbacks matter more.",
-  "espn": [{"path": ["scoringSettings", "scoringItems", {"statId": 4}, "points"], "value": 6}]
+  "pitch": "A TD pass is worth 6 instead of 4, same as a rushing or receiving TD. Quarterbacks matter more.",
+  "espn": [
+   {
+    "path": [
+     "scoringSettings",
+     "scoringItems",
+     {
+      "statId": 4
+     },
+     "points"
+    ],
+    "value": 6.0
+   }
+  ],
+  "now_label": "4 points",
+  "new_label": "6 points"
  },
  "half-ppr": {
   "category": "Scoring",
   "title": "Half-point PPR",
-  "pitch": "Receptions worth 0.5 instead of 1. Running backs back in style.",
-  "espn": [{"path": ["scoringSettings", "scoringItems", {"statId": 53}, "points"], "value": 0.5}]
+  "pitch": "Catches worth 0.5 instead of 1. Pulls running backs back level with slot receivers.",
+  "espn": [
+   {
+    "path": [
+     "scoringSettings",
+     "scoringItems",
+     {
+      "statId": 53
+     },
+     "points"
+    ],
+    "value": 0.5
+   }
+  ],
+  "now_label": "1 point per catch",
+  "new_label": "0.5 per catch"
  },
- "trade-review-1-day": {
+ "harder-veto": {
   "category": "Rules",
-  "title": "Faster trades (1-day review)",
-  "pitch": "Trades go through after 1 day of review instead of 2.",
-  "espn": [{"path": ["tradeSettings", "revisionHours"], "value": 24}]
+  "title": "Harder to veto trades",
+  "pitch": "A trade gets blocked only if 6 teams vote against it, not 4. Fewer hostage situations.",
+  "espn": [
+   {
+    "path": [
+     "tradeSettings",
+     "vetoVotesRequired"
+    ],
+    "value": 6
+   }
+  ],
+  "now_label": "4 veto votes",
+  "new_label": "6 veto votes"
  }
 }

@@ -24,3 +24,7 @@ Changing `Code.gs` later: paste the new version, then **Deploy ▸ Manage deploy
 ## Changing the rules
 
 `TEAMS`, `PASS`, `WINDOW_DAYS`, `MAX_OPEN_PER_TEAM` and `CATEGORIES` at the top of `Code.gs`. The tab reads them from the server, so the site needs no change. New commissioner code: put the SHA-256 of the new code (upper case) in `ADMIN_HASH` and redeploy.
+
+## Suggestions and auto-apply (2026-10-26)
+
+`PRESETS` in `Code.gs` lists the one-tap suggestions (same ids as `rules_presets.json`). When one passes, the "Apply rule changes" GitHub Action sets it in ESPN the next Tuesday and the League Rulebook on the tab shows whether it's live. After changing `Code.gs`, redeploy: open the Sheet ▸ Extensions ▸ Apps Script, paste, save, then **Deploy ▸ Manage deployments ▸ ✏️ edit ▸ Version: New version ▸ Deploy**. The web app URL stays the same.
