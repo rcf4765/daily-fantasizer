@@ -45,7 +45,7 @@ jobs:
         run: |
           git config user.name "daily-fantasizer-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add docs/rulebook.json data/espn_settings.json 2>/dev/null || true
+          for f in docs/rulebook.json data/espn_settings.json; do [ -f "$f" ] && git add "$f"; done
           if ! git diff --cached --quiet; then
             git commit -m "Rule changes ($MODE): $(date -u +%F)"; git pull --rebase -q; git push
             gh workflow run pages.yml --ref main || echo "Could not start the site deploy; the next push will"
