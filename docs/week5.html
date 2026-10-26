@@ -1764,7 +1764,7 @@ abbr.ac:hover{text-decoration-style:solid}
   var TEAMS=/^(ARI|ATL|BAL|BUF|CAR|CHI|CIN|CLE|DAL|DEN|DET|GB|HOU|IND|JAX|KC|LV|LAC|LAR|LA|MIA|MIN|NE|NO|NYG|NYJ|PHI|PIT|SF|SEA|TB|TEN|WSH|WAS)$/;
   var keys=Object.keys(G).sort(function(a,b){return b.length-a.length}).map(function(k){return k.replace(/[\/]/g,'\\/')});
   var RX=new RegExp('(^|[^A-Za-z0-9/])((?:QB|RB|WR|TE)\\d{1,3}|'+keys.join('|')+')(?![A-Za-z0-9])','g');
-  var SKIP='script,style,svg,button,select,option,input,textarea,a,abbr,label.vs-find,h1,.masthead,.lk-head h3,.pn b,.gl-tip,[contenteditable],.tabs,.lk-views,.vd';
+  var SKIP='script,style,svg,button,select,option,input,textarea,a,abbr,label.vs-find,h1,.masthead,.lk-head h3,.pn b,.gl-tip,[contenteditable],.tabs,.lk-views,.vd,.lk-lc';
   function mean(t){var m=/^(QB|RB|WR|TE)(\d+)$/.exec(t);if(m)return 'No. '+m[2]+' '+POSN[m[1]]+' (rank at the position)';return G[t]}
   function walk(root){
     if(!root||root.nodeType!==1||(root.closest&&root.closest(SKIP)))return;

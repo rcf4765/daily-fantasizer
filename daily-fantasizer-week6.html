@@ -1528,11 +1528,21 @@ tr[hidden]{display:none}
 .lk-card>*{min-width:0;max-width:100%}
 .lk-log{min-width:0;max-width:100%;overflow:hidden}
 .lk-log .tbl-wrap{max-width:100%}
-.lk-lc{display:none;list-style:none;margin:8px 0 0;padding:0}
-.lk-lc li{border-bottom:1px solid var(--line);padding:8px 0;display:grid;gap:3px}
-.lk-lc-h{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:baseline}
-.lk-lc-h small{font-size:.6rem;color:var(--muted);font-weight:400}
-.lk-lc p{margin:0;font-size:.8rem;color:var(--ink);line-height:1.45}
+.lk-lc{display:none;list-style:none;margin:10px 0 0;padding:0}
+.lk-lc li{padding:12px 0 14px;border-top:1px solid var(--line);display:grid;gap:10px}
+.lk-lc li:first-child{border-top:2px solid var(--rule)}
+.lk-lc-h{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:10px;align-items:center}
+.lk-lc-w{grid-row:1/span 2;font-family:var(--display);font-weight:900;font-size:1.25rem;text-transform:uppercase;background:var(--ink);color:var(--sheet);padding:4px 8px;line-height:1;align-self:center}
+.lk-lc-o{font-family:var(--mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.lk-lc-p{grid-column:3;grid-row:1/span 2;font-family:var(--display);font-weight:900;font-size:1.9rem;line-height:1;text-align:right}
+.lk-lc-p small{font-family:var(--mono);font-size:.58rem;font-weight:400;color:var(--muted);margin-left:3px;letter-spacing:.06em}
+.lk-lc-b{grid-column:2;grid-row:2;font-size:.78rem;font-weight:600;white-space:nowrap}
+.lk-lc-b small{font-weight:400;color:var(--muted);font-size:.68rem}
+.lk-lc-s{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.lk-lc-s span{display:grid;gap:1px;background:var(--paper);padding:6px 8px;border-radius:2px}
+.lk-lc-s b{font-size:1rem;line-height:1.1}
+.lk-lc-s em{font-style:normal;font-family:var(--mono);font-size:.54rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);line-height:1.2}
+.lk-lc-s span{align-content:start}
 .lk-log summary{cursor:pointer;font-family:var(--display);font-size:1.15rem;font-weight:800;text-transform:uppercase}
 .lk-log .tbl-wrap{overflow-x:auto;margin-top:8px}
 table.lk-gl{min-width:560px;font-size:.84rem}
@@ -1929,11 +1939,13 @@ table.lk-gl td,table.lk-gl th{padding:5px 6px;white-space:nowrap}
       else c=l.slice(0,6).concat([l[6]+'%']);
       return '<tr><td>W'+x[0]+'</td><td>'+e(x[1])+'</td><td class="n"><b>'+f(x[2])+'</b></td><td class="n">'+f(x[3])+'</td>'+c.map(function(v){return '<td class="n">'+v+'</td>'}).join('')+'</tr>'}).join('');
     var cards=p.lg.filter(function(x){return x[6]}).map(function(x){var l=x[6],c;
-      if(p.pos==='QB')c=[l[0]+'/'+l[1]+' cmp',l[2]+' pass yds',l[3]+' TD',l[4]+' INT',l[5]+' car',l[6]+' rush yds',l[7]+' rush TD'];
-      else if(p.pos==='RB')c=[l[0]+' car',l[1]+' rush yds',l[2]+' YBC',l[3]+' yds after contact',l[4]+' tgts',l[5]+' rec',l[6]+' rec yds',l[7]+' TD'];
-      else c=[l[0]+' tgts',l[1]+' rec',l[2]+' yds',l[3]+' air yds',l[4]+' YAC',l[5]+' TD',l[6]+'% tgt share'];
-      var b=x[3]!=null?x[2]-x[3]:null;
-      return '<li><div class="lk-lc-h"><b>W'+x[0]+'</b><span>'+e(x[1])+'</span><b class="num">'+f(x[2])+' <small>PPR</small></b><span class="num '+(b==null?'':b>=0?'up':'dn')+'">'+(x[3]!=null?'proj '+f(x[3]):'')+'</span></div><p class="num">'+c.join(' · ')+'</p></li>'}).join('');
+      if(p.pos==='QB')c=[[l[0]+'/'+l[1],'Cmp/Att'],[l[2],'Pass yds'],[l[3],'Pass TD'],[l[4],'INT'],[l[5],'Carries'],[l[6],'Rush yds'],[l[7],'Rush TD']];
+      else if(p.pos==='RB')c=[[l[0],'Carries'],[l[1],'Rush yds'],[l[2],'Yds before contact'],[l[3],'Yds after contact'],[l[4],'Targets'],[l[5],'Catches'],[l[6],'Rec yds'],[l[7],'TD']];
+      else c=[[l[0],'Targets'],[l[1],'Catches'],[l[2],'Rec yds'],[l[5],'TD'],[l[3],'Air yds'],[l[4],'YAC'],[l[6]+'%','Tgt share']];
+      var b=x[3]!=null?x[2]-x[3]:null,home=x[1]&&x[1][0]!=='@';
+      return '<li><div class="lk-lc-h"><span class="lk-lc-w">Wk '+x[0]+'</span><span class="lk-lc-o">'+(home?'vs ':'at ')+e((x[1]||'').replace('@',''))+'</span>'+
+        '<span class="lk-lc-p num">'+f(x[2])+'<small>PPR</small></span>'+(b==null?'':'<span class="lk-lc-b num '+(b>=0?'up':'dn')+'">'+(b>0?'+':'')+b.toFixed(1)+' <small>vs proj</small></span>')+'</div>'+
+        '<div class="lk-lc-s">'+c.map(function(v){return '<span><b class="num">'+v[0]+'</b><em>'+v[1]+'</em></span>'}).join('')+'</div></li>'}).join('');
     return '<details class="lk-log"><summary>Game log</summary><ul class="lk-lc">'+cards+'</ul><div class="tbl-wrap"><table class="mcards lk-gl"><thead><tr><th>Wk</th><th>Opp</th><th class="n">PPR</th><th class="n">Proj</th>'+H.map(function(x){return '<th class="n">'+x+'</th>'}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div></details>';
   }
   function receiving(p,t,full){
@@ -2362,7 +2374,7 @@ abbr.ac:hover{text-decoration-style:solid}
   var TEAMS=/^(ARI|ATL|BAL|BUF|CAR|CHI|CIN|CLE|DAL|DEN|DET|GB|HOU|IND|JAX|KC|LV|LAC|LAR|LA|MIA|MIN|NE|NO|NYG|NYJ|PHI|PIT|SF|SEA|TB|TEN|WSH|WAS)$/;
   var keys=Object.keys(G).sort(function(a,b){return b.length-a.length}).map(function(k){return k.replace(/[\/]/g,'\\/')});
   var RX=new RegExp('(^|[^A-Za-z0-9/])((?:QB|RB|WR|TE)\\d{1,3}|'+keys.join('|')+')(?![A-Za-z0-9])','g');
-  var SKIP='script,style,svg,button,select,option,input,textarea,a,abbr,label.vs-find,h1,.masthead,.lk-head h3,.pn b,.gl-tip,[contenteditable],.tabs,.lk-views,.vd';
+  var SKIP='script,style,svg,button,select,option,input,textarea,a,abbr,label.vs-find,h1,.masthead,.lk-head h3,.pn b,.gl-tip,[contenteditable],.tabs,.lk-views,.vd,.lk-lc';
   function mean(t){var m=/^(QB|RB|WR|TE)(\d+)$/.exec(t);if(m)return 'No. '+m[2]+' '+POSN[m[1]]+' (rank at the position)';return G[t]}
   function walk(root){
     if(!root||root.nodeType!==1||(root.closest&&root.closest(SKIP)))return;
