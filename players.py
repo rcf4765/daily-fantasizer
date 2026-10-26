@@ -177,7 +177,7 @@ def build(short_names, week=None):
     out.append(f'<section class="ps-hero" aria-label="Player stats"><span class="kicker">The PPR player desk</span><h2>Player <span>Stats</span></h2>'
                f'<div class="ps-sub"><span>Player lookup {esc(live_note)}</span><span>Week {d.next} rankings &amp; start/sit</span><span>Rest of season</span><span>Rankings vs. actuals</span></div>'
                f'<nav class="ps-jump" aria-label="Player stats sections">'
-               + "".join(f'<a href="#{a}">{t}</a>' for a, t in [("ps-lookup", "Player lookup"), ("ps-volume", "Volume vs. scoring"), ("ps-steady", "Steady or streaky"), ("ps-trend", "Trend lines"), ("ps-next", f"Week {d.next} ranks"), ("ps-proj", "Projections"), ("ps-defense", "Defense matchups"), ("ps-startsit", "Start/sit"), ("ps-faceoff", "Face-off"), ("ps-ros", "Rest of season"), ("ps-variance", "Ranks vs. actuals")])
+               + "".join(f'<a href="#{a}">{t}</a>' for a, t in [("ps-lookup", "Player lookup"), ("ps-volume", "Volume vs. scoring"), ("ps-steady", "Steady or streaky"), ("ps-trend", "Trend lines"), ("ps-next", "Rankings"), ("ps-proj", "Projections"), ("ps-defense", "Defense matchups"), ("ps-startsit", "Start/sit"), ("ps-faceoff", "Face-off"), ("ps-variance", "Ranks vs. actuals")])
                + '</nav></section>')
 
     # ---------- 1. Player Lookup (lookup.py; replaced the Current Data board, user 2026-10-26) ----------
@@ -334,8 +334,9 @@ def build(short_names, week=None):
             for r in lst)
         panes[pos] = (f'<div class="tbl-wrap"><table class="pst"><thead><tr><th>#</th><th>Player</th><th>Owner</th><th>Opp</th><th class="n">Rank range</th><th class="n">Grade</th><th class="n">Proj</th></tr></thead><tbody>{rows}</tbody></table></div>'
                       if lst else '<p class="note-s">Rankings post early in the week.</p>')
-    out.append(sec("ps-next", f"Week {N} Rankings", "Consensus, PPR · yellow = free agent in our league",
-                   postabs("next", panes) + ("" if has_fp else f'<p class="note-s">Consensus week {N} ranks aren\'t posted yet; until they are, this list is ordered by projection.</p>')))
+    # Week N+1 and rest-of-season rankings share one section with a switch (user, 2026-10-26)
+    next_html = (postabs("next", panes) + ("" if has_fp else f'<p class="note-s">Consensus week {N} ranks aren\'t posted yet; until they are, this list is ordered by projection.</p>')
+                 + '<p class="note-s">Weekly consensus PPR ranks with the range across experts, start/sit grade and blended projection. Yellow rows are free agents in our league.</p>')
 
     # 6. rest of season
     panes = {}; fa_best = []
@@ -357,10 +358,13 @@ def build(short_names, week=None):
         panes[pos] = f'<div class="tbl-wrap"><table class="pst"><thead><tr><th>#</th><th>Player</th><th>Owner</th><th class="n">Pos rank</th><th class="n">Overall</th><th>Move</th><th class="n">PPR/g</th><th class="n">Expected</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
     fa_best.sort(key=lambda x: x[0])
     fa_html = "".join(f'<div class="fa-c"><span class="kicker">{esc(r["pos_rank"] or p["pos"])} · overall {r["rank_ecr"]}</span><b>{esc(p["name"])}</b><small>{esc(p["team"])} · {f1(p["ppg"])} PPR/g</small></div>' for _, p, r in fa_best[:6])
-    out.append(sec("ps-ros", "Rest-of-Season Rankings", f"Consensus, PPR · updated {esc(str(d.ros.get('updated') or ''))}",
-                   (f'<div class="fa-best"><span class="fs-tag">On our wire</span>{fa_html}</div>' if fa_html else "")
-                   + postabs("ros", panes)
-                   + '<p class="note-s">Move = change in consensus overall rank since last week. Expected = PPR/g his volume supports (see Volume vs. Scoring). Yellow rows are free agents in our league.</p>'))
+    ros_html = ((f'<div class="fa-best"><span class="fs-tag">On our wire</span>{fa_html}</div>' if fa_html else "")
+                + postabs("ros", panes)
+                + f'<p class="note-s">Rest-of-season consensus, updated {esc(str(d.ros.get("updated") or ""))}. Move = change in consensus overall rank since last week. Expected = PPR/g his volume supports (see Volume vs. Scoring). Yellow rows are free agents in our league.</p>')
+    sw = (f'<div class="rk-sw" role="group" aria-label="Which rankings"><button type="button" class="pt" data-rk="next" aria-pressed="true">Week {N}</button>'
+          f'<button type="button" class="pt" data-rk="ros" aria-pressed="false">Rest of season</button></div>')
+    out.append(sec("ps-next", "Rankings", f"Week {N} &amp; rest of season · consensus PPR · yellow = free agent",
+                   f'{sw}<div class="rk-v" data-rk="next">{next_html}</div><div class="rk-v" data-rk="ros" hidden>{ros_html}</div>'))
 
     # ---------- 7. rankings vs actuals ----------
     graded = [w for w in d.final if d.fp.get(w)]
@@ -438,7 +442,7 @@ def build(short_names, week=None):
     # season so far -> next week -> rest of season -> how the rankings did
     ORDER = ["ps-lookup", "ps-volume", "ps-steady", "ps-trend",
              "ps-next", "ps-proj", "ps-defense", "ps-startsit", "ps-faceoff",
-             "ps-ros", "ps-variance"]
+             "ps-variance"]
     secs = {}
     for h in list(out):
         for id_ in ORDER:
@@ -566,6 +570,15 @@ SCRIPT = r"""<script>
       if(window.innerWidth<760)plot.scrollIntoView({block:'center',behavior:'smooth'});
     })});
   })();
+  document.querySelectorAll('.rk-sw').forEach(function(sw){
+    var sec=sw.parentElement,bs=sw.querySelectorAll('.pt'),vs=sec.querySelectorAll('.rk-v');
+    bs.forEach(function(b){b.addEventListener('click',function(){
+      var from=sec.querySelector('.rk-v:not([hidden]) .pts .pt[aria-pressed="true"]'),pos=from&&from.dataset.pos;
+      bs.forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+      vs.forEach(function(v){v.hidden=v.dataset.rk!==b.dataset.rk});
+      var to=pos&&sec.querySelector('.rk-v[data-rk="'+b.dataset.rk+'"] .pts .pt[data-pos="'+pos+'"]');if(to)to.click();
+    })});
+  });
   var el=document.getElementById('ss-data'); if(!el)return;
   var D=JSON.parse(el.textContent),C=D.c,T=D.teams,byk={};C.forEach(function(c){byk[c.k]=c});
   var A=document.getElementById('ss-a'),B=document.getElementById('ss-b'),O=document.getElementById('ss-out');
@@ -618,6 +631,10 @@ CSS = r"""
 .pt:focus-visible{outline:3px solid var(--hi);outline-offset:1px}
 .pp[hidden]{display:none}
 .ps-group,.pp{min-width:0;display:grid}
+.rk-sw{display:flex;gap:4px;margin-bottom:12px;border-bottom:2px solid var(--rule);padding-bottom:10px}
+.rk-sw .pt{font-size:.82rem;padding:7px 16px}
+.rk-sw .pt[aria-pressed="true"]{background:var(--honolulu);border-color:var(--honolulu);color:#fff}
+.rk-v{display:grid;gap:10px;min-width:0}.rk-v[hidden]{display:none}
 .pp[hidden]{display:none}
 table.pst{min-width:680px}
 table.pst.sm{min-width:520px}
