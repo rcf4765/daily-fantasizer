@@ -1,0 +1,55 @@
+name: Apply rule changes
+
+# Passed Rule Changes proposals go live on ESPN between weeks: Tuesday after the paper, Wednesday as a retry.
+# Only presets in rules_presets.json are sent to ESPN (rules_espn.py); results go to docs/rulebook.json.
+on:
+  schedule:
+    - cron: "37 14 * * 2"   # Tuesdays 14:37 UTC = 10:37am Eastern (9:37 in winter), after the 6am paper
+    - cron: "37 14 * * 3"   # Wednesday retry, still before Thursday night's game
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "inspect (read-only), dry (apply without writing), or apply"
+        required: true
+        default: "inspect"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: rules-apply
+  cancel-in-progress: false
+
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Run
+        env:
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          MODE: ${{ github.event.inputs.mode || 'apply' }}
+        run: |
+          case "$MODE" in
+            inspect) python rules_espn.py inspect ;;
+            dry)     python rules_espn.py apply --dry ;;
+            *)       python rules_espn.py apply ;;
+          esac
+      - name: Save the rulebook
+        if: ${{ github.event.inputs.mode != 'inspect' }}
+        run: |
+          git config user.name "daily-fantasizer-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/rulebook.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Rulebook: $(date -u +%F)"; git pull --rebase -q; git push
+            gh workflow run pages.yml --ref main || echo "Could not start the site deploy; the next push will"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
