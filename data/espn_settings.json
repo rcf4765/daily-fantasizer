@@ -1,5 +1,5 @@
 {
- "checked_at": "2026-10-26T23:33:03Z",
+ "checked_at": "2026-10-26T23:33:37Z",
  "login": {
   "which": "ESPN_S2",
   "name": "ESPNFAN4333804318",
@@ -9,6 +9,73 @@
   "is_league_manager": false
  },
  "league_managers": [],
+ "member_fields": [
+  "displayName",
+  "firstName",
+  "id",
+  "lastName",
+  "notificationSettings"
+ ],
+ "member_flags": [
+  {
+   "displayName": "Captain Booty IV"
+  },
+  {
+   "displayName": "Nathan LaWarre"
+  },
+  {
+   "displayName": "ESPNFAN4333804318"
+  },
+  {
+   "displayName": "_TAdams"
+  },
+  {
+   "displayName": "rschira24"
+  },
+  {
+   "displayName": "espn62842519"
+  },
+  {
+   "displayName": "Jtorry26"
+  },
+  {
+   "displayName": "MichaelWilliams217"
+  },
+  {
+   "displayName": "espnfan8256006376"
+  },
+  {
+   "displayName": "maybelizard"
+  },
+  {
+   "displayName": "espn70794346"
+  },
+  {
+   "displayName": "espn38986158"
+  }
+ ],
+ "status_keys": [
+  "activatedDate",
+  "createdAsLeagueType",
+  "currentLeagueType",
+  "currentMatchupPeriod",
+  "finalScoringPeriod",
+  "firstScoringPeriod",
+  "isActive",
+  "isExpired",
+  "isFull",
+  "isPlayoffMatchupEdited",
+  "isToBeDeleted",
+  "isViewable",
+  "isWaiverOrderEdited",
+  "latestScoringPeriod",
+  "previousSeasons",
+  "standingsUpdateDate",
+  "teamsJoined",
+  "transactionScoringPeriod",
+  "waiverLastExecutionDate",
+  "waiverProcessStatus"
+ ],
  "login_is_league_manager": false,
  "status": {
   "activatedDate": 1780490874105,
