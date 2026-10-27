@@ -46,6 +46,9 @@ jobs:
           ESPN_S2: ${{ secrets.ESPN_S2 }}
           ESPN_SWID: ${{ secrets.ESPN_SWID }}
         run: python fetch_players.py
+      - name: Fetch bets (Betting tab)
+        continue-on-error: true
+        run: python fetch_bets.py
       - name: Commit data
         run: |
           git config user.name "daily-fantasizer-bot"

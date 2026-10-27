@@ -107,6 +107,10 @@ def main():
         for w in sorted(weeks, reverse=True)
     )
     (DOCS / "archive.html").write_text(ARCHIVE.format(items=items, app=APP_TAGS), encoding="utf-8")
+    # Betting tab boards: the league office checks every bet's odds and lock time against these (bets.py)
+    (DOCS / "bets").mkdir(exist_ok=True)
+    for f in (ROOT / "data" / "bets").glob("lines*.json"):
+        shutil.copyfile(f, DOCS / "bets" / f.name)
     print(f"site: index = week {latest}; archive = {weeks}")
 
 

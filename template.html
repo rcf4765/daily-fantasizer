@@ -938,7 +938,7 @@ footer b{color:var(--honolulu);font-weight:600}
 @media (max-width:760px){
   .tabs .tab-s{display:none}.tabs .tab-t{font-size:.74rem}
   /* four tabs always fit the screen: equal columns, words wrap instead of running off the edge */
-  .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+  .tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
   .tabs .tab{padding:8px 5px 7px}
   .tabs .tab-t{overflow-wrap:anywhere;hyphens:none}
 }
@@ -966,6 +966,7 @@ footer b{color:var(--honolulu);font-weight:600}
   <button class="tab" role="tab" id="tab-league" aria-controls="league" aria-selected="false" tabindex="-1"><span class="tab-t">League &amp; Teams</span><span class="tab-s">Season so far</span></button>
   <button class="tab" role="tab" id="tab-stats" aria-controls="player-stats" aria-selected="false" tabindex="-1"><span class="tab-t">Player Stats</span><span class="tab-s">PPR player desk</span></button>
   <button class="tab" role="tab" id="tab-props" aria-controls="proposals" aria-selected="false" tabindex="-1"><span class="tab-t">Rule Changes</span><span class="tab-s">Propose &amp; vote</span></button>
+  <button class="tab" role="tab" id="tab-bets" aria-controls="betting" aria-selected="false" tabindex="-1"><span class="tab-t">Betting</span><span class="tab-s">Points, not money</span></button>
 </nav>
 
 <div class="tab-pane" id="paper" role="tabpanel" aria-labelledby="tab-paper">
@@ -1103,6 +1104,9 @@ footer b{color:var(--honolulu);font-weight:600}
 <details class="rc-admin" id="rc-admin" hidden><summary>Commissioner</summary><div id="rc-admin-body" class="rc-body"></div></details>
 <script type="application/json" id="po-data"><!--POTEAMS--></script>
 <script type="application/json" id="rc-presets"><!--RCPRESETS--></script>
+</div>
+<div class="tab-pane" id="betting" role="tabpanel" aria-labelledby="tab-bets" hidden>
+<!--BETS-->
 </div>
 
 <footer>

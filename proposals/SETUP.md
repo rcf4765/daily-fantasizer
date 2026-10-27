@@ -28,3 +28,10 @@ Changing `Code.gs` later: paste the new version, then **Deploy ▸ Manage deploy
 ## Suggestions and auto-apply (2026-10-26)
 
 `PRESETS` in `Code.gs` lists the one-tap suggestions (same ids as `rules_presets.json`). When one passes, the "Apply rule changes" GitHub Action sets it in ESPN the next Tuesday and the League Rulebook on the tab shows whether it's live. After changing `Code.gs`, redeploy: open the Sheet ▸ Extensions ▸ Apps Script, paste, save, then **Deploy ▸ Manage deployments ▸ ✏️ edit ▸ Version: New version ▸ Deploy**. The web app URL stays the same.
+
+## Betting (added 2026-10-27)
+
+The same web app records bets for the Betting tab. After pasting the new `Code.gs`:
+1. Save, then **Run ▸ setup** once and approve the new permission (it now fetches the week's board from the league website to check each bet's odds and lock time).
+2. **Deploy ▸ Manage deployments ▸ ✏️ edit ▸ Version: New version ▸ Deploy.** The URL stays the same.
+Bets land in a new **Bets** tab of the Sheet. `BETTING = false` at the top switches betting off; `MAX_STAKE`, `MAX_LEGS` and `MAX_WIN` set the limits (keep them equal to `bets.py`).

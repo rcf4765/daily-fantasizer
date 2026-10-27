@@ -263,6 +263,27 @@ def espn_kdst(cur):
 NFLFIX = {"LA": "LAR", "WAS": "WSH", "JAC": "JAX", "LVR": "LV", "OAK": "LV", "SD": "LAC", "STL": "LAR"}
 
 
+def game_lines(rows):
+    """Every regular-season game with kickoff (UTC), score and the closing/current betting lines nflverse carries
+    (moneylines, spread, total and their odds). Used by bets.py for the Betting tab's NFL markets and to settle them."""
+    from zoneinfo import ZoneInfo
+    et, out = ZoneInfo("America/New_York"), []
+    n = lambda v: None if v in (None, "", "NA") else float(v)
+    for x in rows:
+        try:
+            ko = datetime.datetime.strptime(x["gameday"] + " " + (x.get("gametime") or "13:00"), "%Y-%m-%d %H:%M").replace(tzinfo=et)
+        except ValueError:
+            continue
+        out.append({"id": x["game_id"], "week": int(x["week"]), "kickoff": ko.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "home": NFLFIX.get(x["home_team"], x["home_team"]), "away": NFLFIX.get(x["away_team"], x["away_team"]),
+                    "hs": n(x.get("home_score")), "as": n(x.get("away_score")),
+                    "spread": n(x.get("spread_line")), "total": n(x.get("total_line")),
+                    "hml": n(x.get("home_moneyline")), "aml": n(x.get("away_moneyline")),
+                    "hso": n(x.get("home_spread_odds")), "aso": n(x.get("away_spread_odds")),
+                    "oo": n(x.get("over_odds")), "uo": n(x.get("under_odds"))})
+    return out
+
+
 def nfl_schedule():
     """team -> {week: "OPP" (away) or "vs OPP"... kept simple: {"opp": OPP, "home": bool}} for every REG week; byes = weeks missing."""
     urls = ["https://github.com/nflverse/nfldata/raw/master/data/games.csv",
@@ -282,7 +303,7 @@ def nfl_schedule():
                 sched.setdefault(a, {})[w] = {"opp": h, "home": False}
             weeks = sorted({int(x["week"]) for x in rows})
             byes = {t: [w for w in weeks if w not in g] for t, g in sched.items()}
-            save("nfl_schedule.json", {"season": SEASON, "weeks": weeks, "teams": sched, "byes": byes})
+            save("nfl_schedule.json", {"season": SEASON, "weeks": weeks, "teams": sched, "byes": byes, "games": game_lines(rows)})
             return
         except Exception as e:
             print("schedule failed:", u, e)

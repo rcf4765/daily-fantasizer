@@ -10,6 +10,11 @@
  *  - Proposals close after WINDOW_DAYS, or as soon as the result
  *    can no longer change (PASS yes votes, or enough no votes that PASS is out of reach).
  *
+ * Betting (added 2026-10-26, a side game; ESPN scores never change): a signed-in team places slips of 1..MAX_LEGS
+ * legs from the week's board (LINES_URL, published by the paper). The server takes every leg's odds and lock time from
+ * that file, never from the page; rejects locked legs, both sides of one market, and stakes over MAX_STAKE for the week.
+ * A slip can be cancelled until its first leg locks. Grading happens in the paper's pipeline (bets.py).
+ *
  * Setup and redeploy steps: proposals/SETUP.md in the repo.
  */
 var TEAMS = 12;             // ESPN team ids 1..12
@@ -25,6 +30,9 @@ var PRESETS = {  // one-tap suggestions; must match rules_presets.json in the re
   'half-ppr': { category: 'Scoring', title: "Half-point PPR" },
   'harder-veto': { category: 'Rules', title: "Harder to veto trades" }
 };
+var BETTING = true;
+var MAX_STAKE = 50, MAX_LEGS = 6, MAX_WIN = 150;
+var LINES_URL = 'https://rcf4765.github.io/daily-fantasizer/bets/lines';   // + week + '.json'
 // SHA-256 of the commissioner code (the code itself is never stored here).
 var ADMIN_HASH = 'be856db5f99b95913f7842695800cfe73f40782ef7380103aad8ff10179aad09';
 
@@ -32,6 +40,7 @@ var SHEETS = {
   Teams: ['team', 'keyHash', 'claimedAt'],
   Proposals: ['id', 'team', 'category', 'title', 'details', 'createdAt', 'deadline', 'status', 'closedAt', 'preset'],
   Votes: ['proposal', 'team', 'choice', 'at'],
+  Bets: ['id', 'week', 'team', 'stake', 'legs', 'dec', 'win', 'placedAt', 'status'],
   Log: ['at', 'action', 'team', 'detail']
 };
 
@@ -94,6 +103,45 @@ function handle(r) {
       log('propose', team, id + ' ' + title);
       return { ok: true, id: id };
     }
+    case 'bet': {
+      if (!BETTING) return fail('Betting is closed.');
+      if (!owns(team, r.key)) return fail('This phone is not signed in to that team.');
+      var week = parseInt(r.week, 10), stake = Math.round(Number(r.stake) * 100) / 100;
+      if (!(week >= 1 && week <= 18)) return fail('Unknown week.');
+      if (!(stake >= 1)) return fail('Stake at least 1 point.');
+      var ids = (r.legs || []).map(String);
+      if (!ids.length || ids.length > MAX_LEGS) return fail('A slip has 1 to ' + MAX_LEGS + ' legs.');
+      var board = lines(week);
+      if (!board) return fail('The week ' + week + ' board isn’t posted.');
+      var t = Date.now(), seen = {}, legs = [], dec = 1;
+      for (var i = 0; i < ids.length; i++) {
+        var L = board[ids[i]];
+        if (!L) return fail('One of those lines is no longer on the board. Refresh and try again.');
+        if (t >= Date.parse(L.lock)) return fail(L.desc + ' is locked: that game has started.');
+        if (seen[L.mk]) return fail('Only one side of each market per slip.');
+        seen[L.mk] = 1;
+        legs.push({ id: ids[i], desc: L.desc, odds: L.odds, lock: L.lock });
+        dec *= L.odds > 0 ? 1 + L.odds / 100 : 1 + 100 / Math.abs(L.odds);
+      }
+      var used = bets().filter(function (b) { return b.team === team && b.week === week && b.status !== 'cancelled'; })
+        .reduce(function (s, b) { return s + b.stake; }, 0);
+      if (used + stake > MAX_STAKE) return fail('That’s over your ' + MAX_STAKE + ' points for week ' + week + ' (' + (MAX_STAKE - used) + ' left).');
+      var win = Math.min(MAX_WIN, Math.round(stake * (dec - 1) * 100) / 100);
+      var id = 'B' + (bets().length + 1);
+      sheet('Bets').appendRow([id, week, team, stake, JSON.stringify(legs), Math.round(dec * 10000) / 10000, win, now(), 'open']);
+      log('bet', team, id + ' wk' + week + ' ' + stake);
+      return { ok: true, id: id };
+    }
+    case 'cancelbet': {
+      if (!owns(team, r.key)) return fail('This phone is not signed in to that team.');
+      var row = findRow('Bets', 0, String(r.bet)), b = bets().filter(function (x) { return x.id === String(r.bet); })[0];
+      if (row < 1 || !b || b.team !== team) return fail('No such bet.');
+      if (b.status !== 'open') return fail('That bet can’t be cancelled.');
+      if (b.legs.some(function (l) { return Date.now() >= Date.parse(l.lock); })) return fail('A leg has already started.');
+      sheet('Bets').getRange(row, 9).setValue('cancelled');
+      log('cancelbet', team, b.id);
+      return { ok: true };
+    }
     case 'admin': {
       if (!r.code || sha(String(r.code).trim().toUpperCase()) !== ADMIN_HASH) return fail('Wrong commissioner code.');
       if (r.op === 'check') return { ok: true };
@@ -135,7 +183,9 @@ function state() {
   var votes = rows('Votes').map(function (v) { return { proposal: String(v[0]), team: Number(v[1]), choice: v[2], at: v[3] }; });
   return {
     ok: true,
-    rules: { teams: TEAMS, pass: PASS, windowDays: WINDOW_DAYS, categories: CATEGORIES, maxOpen: MAX_OPEN_PER_TEAM, presets: Object.keys(PRESETS) },
+    rules: { teams: TEAMS, pass: PASS, windowDays: WINDOW_DAYS, categories: CATEGORIES, maxOpen: MAX_OPEN_PER_TEAM, presets: Object.keys(PRESETS),
+             betting: BETTING, maxStake: MAX_STAKE, maxLegs: MAX_LEGS, maxWin: MAX_WIN },
+    bets: bets(),
     claims: rows('Teams').map(function (t) { return { team: Number(t[0]), at: t[2] }; }),
     proposals: proposals().map(function (p) {
       p.votes = votes.filter(function (v) { return v.proposal === p.id; }).map(function (v) { return { team: v.team, choice: v.choice, at: v.at }; });
@@ -156,6 +206,31 @@ function proposals() {
     return { id: String(r[0]), team: Number(r[1]), category: r[2], title: String(r[3]), details: String(r[4]),
       createdAt: iso(r[5]), deadline: iso(r[6]), status: r[7], closedAt: iso(r[8]), preset: String(r[9] || '') };
   });
+}
+function bets() {
+  return rows('Bets').map(function (r) {
+    var legs = []; try { legs = JSON.parse(r[4]); } catch (e) {}
+    return { id: String(r[0]), week: Number(r[1]), team: Number(r[2]), stake: Number(r[3]), legs: legs, dec: Number(r[5]),
+      win: Number(r[6]), placedAt: iso(r[7]), status: String(r[8]) };
+  });
+}
+/** The week's board from the paper's website, indexed by leg id: odds, lock time, market key, description. */
+function lines(week) {
+  var res = UrlFetchApp.fetch(LINES_URL + week + '.json', { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) return null;
+  var B = JSON.parse(res.getContentText()), ix = {};
+  ['nfl', 'league', 'props'].forEach(function (g) {
+    (B[g] || []).forEach(function (ev) {
+      var who = ev.name || ev.title;
+      ev.markets.forEach(function (mk) {
+        mk.sel.forEach(function (s) {
+          ix[s.id] = { odds: Number(s.odds), lock: ev.lock, mk: ev.id + '|' + mk.m,
+            desc: (g === 'props' ? who + ' ' : '') + s.name + (g === 'props' ? ' (' + mk.label.toLowerCase() + ')' : mk.m === 'tot' ? ' · ' + who : '') };
+        });
+      });
+    });
+  });
+  return ix;
 }
 function proposal(id) { return proposals().filter(function (p) { return p.id === String(id); })[0]; }
 function tallies() {
