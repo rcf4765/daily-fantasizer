@@ -225,8 +225,8 @@ def build(short_names, week=None):
         lists = (f'<div class="rw"><h3>Running hot</h3><p class="note-s">Scoring more than his volume supports. Sell-high watch.</p>{li(hot, "up")}</div>'
                  f'<div class="rw"><h3>Running cold</h3><p class="note-s">Volume is there, points aren\'t yet. Buy-low watch.</p>{li(cold, "dn")}</div>')
         out.append(sec("ps-volume", "Volume vs. Scoring", "The regression watch",
-                       f'{controls}<div class="vs-grid"><div>{chart}</div><div class="rw-col">{lists}</div></div>'
-                       f'<p class="note-s">Hover or tap a dot for the player; search to find anyone; tap a hot/cold name to spot him on the chart. Expected points come from a fit of PPR points per game on targets, carries and air yards per game across every player at the position with 3+ games. {len(cand)} RB/WR/TE plotted (3+ games, 4+ expected PPR/g); the hot and cold lists use the 70 with the most volume.</p>'))
+                       f'{controls}<div class="vs-solo">{chart}</div>'
+                       f'<p class="note-s">Hover or tap a dot for the player; search to find anyone; Expected points come from a fit of PPR points per game on targets, carries and air yards per game across every player at the position with 3+ games. {len(cand)} RB/WR/TE plotted (3+ games, 4+ expected PPR/g). Above the dashed line = scoring more than his volume supports (sell-high watch); below it = volume not cashing in yet (buy-low watch).</p>'))
 
     # ---------- 3/4/5. next week: projections, start/sit, rankings ----------
     N = d.next
@@ -652,6 +652,7 @@ tr.avail{background:color-mix(in srgb,var(--hi) 22%,transparent)}
 .tr{font-family:var(--mono);font-size:.8rem;white-space:nowrap}
 .tr.up,b.up,.up{color:var(--honolulu)}.tr.dn,b.dn,.dn{color:var(--red)}.tr.eq{color:var(--muted)}
 /* volume vs scoring */
+.vs-solo{max-width:760px;margin:0 auto;width:100%}
 .vs-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:28px;align-items:start}
 .vs-wrap{display:grid;grid-template-columns:22px minmax(0,1fr);gap:4px}
 .vs-wrap .sc-y{grid-row:1}

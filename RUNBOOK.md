@@ -270,3 +270,7 @@ Position Kings was folded into Points by Position, which is now one full-width s
 - **Roster Radar**: three views, Weeks 1–N · Week N+1 · Rest of season. Week N+1 (added 2026-10-26) scores each slot from that week's blended projection (zero on a bye or when ruled out), kickers and defenses from ESPN's projection
 - **Moves**: Matchmaker · On the Block · Trade Desk (only with a completed trade) · Waivers (order set by the user 2026-10-26)
 A link to any original section id opens its tab. Sections that are missing in a week simply have no button. The tab is ~40% shorter. Weeks 5 and 6 were regrouped in place.
+
+## Volume vs. Scoring without hot/cold lists (user, 2026-10-26)
+
+The Running hot / Running cold lists are gone; the scatter stands alone (centered, max 760px). The biggest over- and under-performers keep their name labels on the chart, and the note explains above the line = sell-high, below = buy-low. Don't add the lists back.
