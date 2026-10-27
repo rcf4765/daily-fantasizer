@@ -155,15 +155,26 @@ scoreboard = f'''<div class="chart" role="img" aria-label="Week {W} scores by te
 POS = ["QB", "RB", "WR", "TE", "FLEX", "D/ST", "K"]
 posd = {t: {p: sum(max(s[3], 0) for s in TF[t]["starters"] if s[2] == p) for p in POS} for t in TF}
 pmx = max(sum(posd[t].values()) for t in TF)
+best_pos = {p: max(TF, key=lambda t: posd[t][p]) for p in POS}
+lgpos = {p: sum(posd[t][p] for t in TF) / NT for p in POS}
+POS_FIT = ("<script>(function(){var segs=document.querySelectorAll('.pr-bar .ps'),tip=document.querySelector('.pos-tip'),cur=null;"
+           "function fit(){segs.forEach(function(x){if(!x.dataset.p)x.dataset.p=x.textContent;x.textContent=x.dataset.p;if(x.scrollWidth>x.clientWidth+1)x.textContent=''})}"
+           "function show(x){if(!tip)return;cur=x;var t=x.closest('.pr').querySelector('.br-name span');tip.textContent=(t?t.textContent+': ':'')+x.dataset.tip;tip.hidden=false;"
+           "var r=x.getBoundingClientRect(),w=tip.offsetWidth;tip.style.left=Math.max(8,Math.min(r.left+r.width/2-w/2,document.documentElement.clientWidth-w-8))+scrollX+'px';tip.style.top=(r.top+scrollY-tip.offsetHeight-6)+'px'}"
+           "function hide(){if(tip)tip.hidden=true;cur=null}"
+           "segs.forEach(function(x){x.addEventListener('mouseenter',function(){show(x)});x.addEventListener('mouseleave',hide);x.addEventListener('focus',function(){show(x)});x.addEventListener('blur',hide);"
+           "x.addEventListener('click',function(e){e.stopPropagation();cur===x?hide():show(x)})});"
+           "document.addEventListener('click',function(){if(cur)hide()});addEventListener('scroll',function(){if(cur)hide()},{passive:true});"
+           "fit();addEventListener('resize',fit)})()</script>")  # labels that don't fit are dropped; tap or hover a segment for its points  # drop a label that doesn't fit its segment
+# Points by Position + Position Kings in one section (user, 2026-10-26): the kings row doubles as the color key,
+# and each king's segment is outlined in his team's bar
 prow = []
 for t in sorted(TF, key=lambda t: -TF[t]["week_pts"]):
-    segs = "".join(f'<span class="ps ps-{i}" style="width:{posd[t][p]/pmx*100:.2f}%" title="{p} {posd[t][p]:.1f}">{p if posd[t][p]/pmx > .07 else ""}</span>' for i, p in enumerate(POS))
-    prow.append(f'<div class="pr"><span class="br-name">{lg(t)}<span>{esc(SHORT[t])}</span></span><span class="pr-bar">{segs}</span></div>')
-lgpos = {p: sum(posd[t][p] for t in TF) / NT for p in POS}
-best_pos = {p: max(TF, key=lambda t: posd[t][p]) for p in POS}
+    segs = "".join(f'<span class="ps ps-{i}{" king" if best_pos[p] == t and posd[t][p] > 0 else ""}" style="width:{posd[t][p]/pmx*100:.2f}%" data-tip="{p} · {posd[t][p]:.1f} pts{" · best in the league" if best_pos[p] == t and posd[t][p] > 0 else ""}" tabindex="0">{p if posd[t][p]/pmx > .07 else ""}</span>' for i, p in enumerate(POS))
+    prow.append(f'<div class="pr"><span class="br-name">{lg(t)}<span>{esc(SHORT[t])}</span></span><span class="pr-bar">{segs}</span><span class="pr-v num">{sum(posd[t].values()):.1f}</span></div>')
 poslegend = "".join(f'<span><i class="sw ps-{i}"></i>{p} <em class="num">avg {lgpos[p]:.1f}</em></span>' for i, p in enumerate(POS))
-positions = f'<div class="pos">{"".join(prow)}<div class="legend">{poslegend}</div></div>'
-poskings = "".join(f'<div class="pk"><span class="pk-p">{p}</span>{lg(best_pos[p], "lg-sm")}<b class="num">{posd[best_pos[p]][p]:.1f}</b><span>{esc(SHORT[best_pos[p]])}</span></div>' for p in POS)
+positions = f'<div class="pos">{"".join(prow)}<div class="legend">{poslegend}<span><i class="sw sw-king"></i>Best at that slot</span></div></div><div class="pos-tip" hidden></div>' + POS_FIT
+poskings = ""
 
 # ---------- games ----------
 game_cards = []

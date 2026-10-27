@@ -138,8 +138,26 @@ p{margin:0} figure{margin:0}
 
 /* positions */
 .pos{display:grid;gap:6px}
+.pk2-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:14px}
+.pk2{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto auto auto;column-gap:6px;row-gap:2px;padding:0 8px 8px;background:var(--paper);align-items:center}
+.pk2 i{grid-column:1/-1;height:6px;margin:0 -8px 6px}
+.pk2-p{grid-column:1/-1;font-family:var(--mono);font-size:.66rem;font-weight:600;letter-spacing:.08em}
+.pk2 .lg{width:26px;height:26px}
+.pk2 b{font-size:1.2rem;line-height:1}
+.pk2-t{grid-column:1/-1;font-size:.74rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk2 em{grid-column:1/-1;font-style:normal;font-size:.62rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:3px;margin-top:3px}
+.pr{grid-template-columns:minmax(110px,150px) minmax(0,1fr) 52px!important;gap:10px}
+.pos{gap:4px}
+.pr-v{font-size:.8rem;text-align:right}
+.ps.king{box-shadow:inset 0 0 0 2.5px var(--ink);position:relative}
+.pr-bar .ps{color:#fff!important;font-family:Consolas,"Cascadia Mono","IBM Plex Mono",Menlo,monospace;font-weight:400;font-size:.62rem;letter-spacing:.02em;white-space:nowrap;cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,.7),0 0 1px rgba(0,0,0,.6)}
+.pr-bar .ps:hover,.pr-bar .ps:focus-visible{filter:brightness(1.12);outline:none}
+.ps.king{box-shadow:inset 0 0 0 2px var(--ink)}
+.sw.sw-king{background:transparent;box-shadow:inset 0 0 0 2px var(--ink)}
+.pos-tip{position:absolute;z-index:40;background:var(--ink);color:var(--sheet);font:600 .78rem var(--mono);padding:5px 9px;border-radius:3px;pointer-events:none;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+.pos-tip[hidden]{display:none}
 .pr{display:grid;grid-template-columns:minmax(110px,150px) minmax(0,1fr);gap:10px;align-items:center}
-.pr-bar{display:flex;height:20px;gap:1px}
+.pr-bar{display:flex;height:16px;gap:1px;overflow:hidden}
 .ps{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.6rem;overflow:hidden;color:#fff}
 .ps-0{background:var(--blue)}.ps-1{background:var(--honolulu)}.ps-2{background:var(--blue-2)}
 .ps-3{background:var(--hi);color:#151a24}.ps-4{background:var(--honolulu-2);color:#151a24}.ps-5{background:var(--silver);color:#151a24}.ps-6{background:var(--muted)}
@@ -591,7 +609,10 @@ footer b{color:var(--honolulu);font-weight:600}
   .honor{grid-template-columns:auto minmax(0,1fr)}
   .honor .big{grid-column:1/-1}
   .br,.br-grid{grid-template-columns:96px minmax(0,1fr) 54px;gap:6px}
-  .pr{grid-template-columns:96px minmax(0,1fr);gap:6px}
+  .pr{grid-template-columns:96px minmax(0,1fr) 44px!important;gap:6px}
+  .pk2-row{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .pr-bar .ps{font-size:.46rem;letter-spacing:0}
+  .pr-bar{height:14px}
   .hr{grid-template-columns:96px repeat(var(--nw),minmax(34px,1fr)) 44px}
   .br-val em{display:none}
   .axis .tick.near-m{visibility:hidden}
@@ -971,15 +992,9 @@ footer b{color:var(--honolulu);font-weight:600}
   <div class="games"><!--GAMES--></div>
 </section>
 
-<section class="twocol">
-  <div class="sec" id="positions">
-    <div class="sec-head"><h2>Points by Position</h2><span class="kicker">Starters only</span></div>
-    <!--POSITIONS-->
-  </div>
-  <div class="sec">
-    <div class="sec-head"><h2>Position Kings</h2><span class="kicker">Week {{WEEK}} best at each slot</span></div>
-    <div class="pk-grid"><!--POSKINGS--></div>
-  </div>
+<section class="sec" id="positions">
+  <div class="sec-head"><h2>Points by Position</h2><span class="kicker">Starters only · tap or hover a segment for its points</span></div>
+  <!--POSITIONS-->
 </section>
 
 <!--HONOR-->
@@ -1426,7 +1441,7 @@ abbr.ac:hover{text-decoration-style:solid}
   var TEAMS=/^(ARI|ATL|BAL|BUF|CAR|CHI|CIN|CLE|DAL|DEN|DET|GB|HOU|IND|JAX|KC|LV|LAC|LAR|LA|MIA|MIN|NE|NO|NYG|NYJ|PHI|PIT|SF|SEA|TB|TEN|WSH|WAS)$/;
   var keys=Object.keys(G).sort(function(a,b){return b.length-a.length}).map(function(k){return k.replace(/[\/]/g,'\\/')});
   var RX=new RegExp('(^|[^A-Za-z0-9/])((?:QB|RB|WR|TE)\\d{1,3}|'+keys.join('|')+')(?![A-Za-z0-9])','g');
-  var SKIP='script,style,svg,button,select,option,input,textarea,a,abbr,label.vs-find,h1,.masthead,.lk-head h3,.pn b,.gl-tip,[contenteditable],.tabs,.lk-views,.vd,.lk-lc';
+  var SKIP='script,style,svg,button,select,option,input,textarea,a,abbr,label.vs-find,h1,.masthead,.lk-head h3,.pn b,.gl-tip,[contenteditable],.tabs,.lk-views,.vd,.lk-lc,.pr-bar,.pk2-p';
   function mean(t){var m=/^(QB|RB|WR|TE)(\d+)$/.exec(t);if(m)return 'No. '+m[2]+' '+POSN[m[1]]+' (rank at the position)';return G[t]}
   function walk(root){
     if(!root||root.nodeType!==1||(root.closest&&root.closest(SKIP)))return;
