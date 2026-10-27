@@ -258,15 +258,15 @@ SCRIPT = r"""<script>
   function grid(title,items){return '<div class="lk-blk"><h4>'+title+(DV>1&&title!=='Usage'?' <small>per game</small>':'')+'</h4><div class="lk-g">'+items.map(function(x){return '<span'+(x[2]?' title="'+e(x[2])+'"':'')+'><em>'+x[0]+'</em><b class="num">'+x[1]+'</b></span>'}).join('')+'</div></div>'}
   // classic numbered route tree (user, 2026-10-26); routes are estimated from each target's depth and side
   var RT={wr:[
-      ['9','Fade','M200 165 L200 38',[200,20,'middle']],
-      ['7','Corner','M200 165 L118 84',[112,72,'end']],
-      ['8','Post','M200 165 L282 84',[288,72,'start']],
-      ['5','Out','M200 165 L78 165',[64,169,'end']],
-      ['6','Dig','M200 165 L322 165',[336,169,'start']],
-      ['3','Comeback','M200 165 L126 228',[118,242,'end']],
-      ['4','Curl','M200 165 L274 228',[282,242,'start']],
-      ['1','Flat','M200 292 L92 292',[76,296,'end']],
-      ['2','Slant','M200 334 L284 272',[292,290,'start']]],
+      ['9','Fade','M200 140 L200 42',[200,28,'middle']],
+      ['7','Corner','M200 140 L112 80',[110,64,'middle']],
+      ['8','Post','M200 140 L288 80',[290,64,'middle']],
+      ['6','Dig','M200 186 L330 186',[338,190,'start']],
+      ['3','Comeback','M200 186 L130 220',[122,226,'end']],
+      ['5','Out','M200 252 L80 252',[72,256,'end']],
+      ['4','Curl','M200 226 Q218 236 254 258',[262,244,'start']],
+      ['2','Slant','M200 320 L298 266',[306,286,'start']],
+      ['1','Flat','M200 300 L84 300',[76,298,'end']]],
     rb:[
       ['SE','Seam','M200 350 L200 40',[200,22,'middle']],
       ['WH','Wheel','M200 350 Q108 350 100 280 L100 64',[100,52,'middle']],
@@ -282,7 +282,7 @@ SCRIPT = r"""<script>
     s+='<defs><marker id="ah-on" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="2.7" markerHeight="2.7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah-on"/></marker>'+
       '<marker id="ah-off" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah-off"/></marker></defs>';
     if(kind==='rb')s+='<line x1="20" x2="380" y1="292" y2="292" class="los"/><text x="380" y="286" class="tl" text-anchor="end">LOS</text><path d="M200 350 L200 200" class="stem"/>';
-    else s+='<line x1="20" x2="380" y1="355" y2="355" class="los"/><text x="380" y="349" class="tl" text-anchor="end">LOS</text><path d="M200 355 L200 165" class="stem"/>';
+    else s+='<line x1="20" x2="380" y1="330" y2="330" class="los"/><text x="380" y="324" class="tl" text-anchor="end">LOS</text><path d="M200 340 L200 140" class="stem"/>';
     R.slice().sort(function(a,b){return ((rt[a[0]]||[0])[0])-((rt[b[0]]||[0])[0])}).forEach(function(r){
       var t=rt[r[0]]||[0,0,0],on=t[0]>0,w=on?2.6+6*t[0]/mx:1.4;
       s+='<path d="'+r[2]+'" class="rt'+(on?'':' off')+'" style="stroke-width:'+w.toFixed(1)+'" marker-end="url(#ah-'+(on?'on':'off')+')"><title>'+r[1]+(kind==='wr'?' ('+r[0]+')':'')+': '+t[0]+(qb?' throws, ':' targets, ')+t[1]+' caught, '+t[2]+' yds</title></path>';
@@ -291,7 +291,7 @@ SCRIPT = r"""<script>
       s+='<text x="'+L[0]+'" y="'+L[1]+'" text-anchor="'+L[2]+'" class="rl'+(on?'':' off')+'">'+r[1]+(kind==='wr'?' ('+r[0]+')':'')+'</text>'+
         (on?'<text x="'+L[0]+'" y="'+(L[1]+13)+'" text-anchor="'+L[2]+'" class="rn">'+(DV===1?t[0]:(t[0]/DV).toFixed(1))+' · '+Math.round(t[1]/t[0]*100)+'%</text>':'');
     });
-    s+='<circle cx="200" cy="'+(kind==='rb'?350:355)+'" r="9" class="org"/></svg>';
+    s+='<circle cx="200" cy="'+(kind==='rb'?350:340)+'" r="9" class="org"/></svg>';
     var list=R.slice().sort(function(a,b){return ((rt[b[0]]||[0])[0])-((rt[a[0]]||[0])[0])}).map(function(r){var t=rt[r[0]]||[0,0,0];
       return '<span'+(t[0]?'':' class="off"')+'><em>'+r[1]+(kind==='wr'?' <small>'+r[0]+'</small>':'')+'</em><i style="width:'+(t[0]/mx*100).toFixed(0)+'%"></i><b class="num">'+(DV===1?t[0]:(t[0]/DV).toFixed(1))+'<small> · '+(t[0]?Math.round(t[1]/t[0]*100)+'%':'–')+'</small></b></span>'}).join('');
     return '<div class="lk-treew">'+s+'<div class="lk-dep"><div class="kicker">'+(qb?'Throws':'Targets')+(DV>1?' per game':'')+' by route · catch rate</div>'+list+
