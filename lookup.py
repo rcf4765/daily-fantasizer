@@ -387,6 +387,9 @@ SCRIPT = r"""<script>
     var played=!isW||!!wkv;
     if(!played){h+='<p class="lk-none">'+(lw&&lw[1]==='BYE'?'Bye week: no game.':'He didn\'t play in week '+VIEW+'.')+'</p>';card.innerHTML=h;return}
     var gl=isW?['Opponent',e(lw[1]||'')]:['Games',g];
+    // route tree sits above Usage (user, 2026-10-26)
+    var tr=isW?(p.pos==='QB'?wkv.prt:wkv.rt):(p.pos==='QB'?p.prt:p.rt);
+    h+='<div class="lk-blk"><h4>'+(p.pos==='QB'?'Passing tree':'Route tree')+' <small>'+(p.pos==='QB'?'which routes his throws went to':p.pos==='RB'?'running back routes, from his targets':'from his targets')+' · '+(isW?'week '+VIEW:VIEW==='A'?'per game, weeks 1–'+D.W:'weeks 1–'+D.W)+'</small></h4>'+tree(tr||{},p.pos==='RB'?'rb':'wr',p.pos==='QB')+'</div>';
     if(p.pos==='QB')h+=grid('Usage',[gl,['Snap %',pc(u[0])],[isW?'Pass att':'Pass att / g',isW?n(t.att):f((t.att||0)/g)],[isW?'Dropbacks':'Dropbacks / g',isW?n((t.att||0)+(t.sk||0)):f(((t.att||0)+(t.sk||0))/g)],[isW?'Carries':'Carries / g',isW?n(t.car):f((t.car||0)/g)]]);
     else h+=grid('Usage',[gl,['Snap %',pc(u[0])],['Target share',pc(u[1],1)],['Air-yd share',p.pos==='RB'||p.pos==='QB'?'–':pc(u[2],1)],['WOPR',u[3]==null?'–':f(u[3],2),'Weighted opportunity: 1.5 × target share + 0.7 × air-yards share'],[isW?'Targets':'Targets / g',isW?n(u[4]):f(u[4])],[isW?'Touches':'Touches / g',isW?n(u[5]):f(u[5])]]);
     var c=t.car||0;
@@ -408,8 +411,6 @@ SCRIPT = r"""<script>
       h+=receiving(p,t,true);
       if(c)h+=grid('Rushing',[['Carries',n(c)],['Rush yards',n(t.uy||0)],['Rush TD',n(t.utd||0)],['Yds after contact',n(t.yaco||0)]]);
     }
-    var tr=isW?(p.pos==='QB'?wkv.prt:wkv.rt):(p.pos==='QB'?p.prt:p.rt);
-    h+='<div class="lk-blk"><h4>'+(p.pos==='QB'?'Passing tree':'Route tree')+' <small>'+(p.pos==='QB'?'which routes his throws went to':p.pos==='RB'?'running back routes, from his targets':'from his targets')+' · '+(isW?'week '+VIEW:VIEW==='A'?'per game, weeks 1–'+D.W:'weeks 1–'+D.W)+'</small></h4>'+tree(tr||{},p.pos==='RB'?'rb':'wr',p.pos==='QB')+'</div>';
     if(!isW)h+=glog(p);
     card.innerHTML=h;
   }

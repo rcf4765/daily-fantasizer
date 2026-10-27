@@ -419,8 +419,8 @@ def build(short_names, week=None):
         season = (f'<div class="twocol2"><div><h3>Underrated all season</h3><div class="tbl-wrap"><table class="pst sm">{th}<tbody>{"".join(trow(a) for a in under)}</tbody></table></div></div>'
                   f'<div><h3>Overrated all season</h3><div class="tbl-wrap"><table class="pst sm">{th}<tbody>{"".join(trow(a) for a in over)}</tbody></table></div></div></div>')
         out.append(sec("ps-variance", "Rankings vs. Actuals", f"Weeks {min(graded)}–{lw} graded",
-                       f'<div class="rum-stats rs5">{tiles}</div>{bv}{season}'
-                       f'<p class="note-s">Every week\'s consensus PPR ranks (top 60 WR, 48 RB, 24 QB, 24 TE) graded against where each player actually finished at his position (look up any player above for his week-by-week grades). Variance = actual points minus projected points; rank arrows read ranked → finished. Underrated/overrated lists need 3+ graded weeks.</p>'))
+                       f'<div class="rum-stats rs5">{tiles}</div>{bv}'
+                       f'<p class="note-s">Every week\'s consensus PPR ranks (top 60 WR, 48 RB, 24 QB, 24 TE) graded against where each player actually finished at his position (look up any player above for his week-by-week grades). Variance = actual points minus projected points; rank arrows read ranked → finished.</p>'))
 
     # Trend Lines and Defense Matchups (desk.py, added 2026-10-19): slotted after Player Lookup and Start/Sit
     import desk
@@ -447,6 +447,9 @@ def build(short_names, week=None):
             if h.startswith(f'<section class="sec" id="{id_}"'):
                 secs[id_] = h; out.remove(h); break
     out.extend(secs[i] for i in ORDER if i in secs)
+    # Player Stats in tabbed groups (user, 2026-10-26): Player Trends, Rankings & Matchups, Compare Players
+    import combine as _cmb
+    out = [_cmb.group_inplace("\n".join(out), _cmb.PS_GROUPS)]
     out.append(SCRIPT)
     out.append(desk.SCRIPT)
     out.append(lookup.SCRIPT)

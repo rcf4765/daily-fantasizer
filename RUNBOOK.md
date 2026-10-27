@@ -274,3 +274,14 @@ A link to any original section id opens its tab. Sections that are missing in a 
 ## Volume vs. Scoring without hot/cold lists (user, 2026-10-26)
 
 The Running hot / Running cold lists are gone; the scatter stands alone (centered, max 760px). The biggest over- and under-performers keep their name labels on the chart, and the note explains above the line = sell-high, below = buy-low. Don't add the lists back.
+
+## Player Stats in tabbed groups (user, 2026-10-26)
+
+`players.build` hands the finished sections to `combine.group_inplace` with `combine.PS_GROUPS`, so the midweek `--patch` keeps the layout:
+- **Player Data** (unchanged; the route tree sits above Usage on every card)
+- **Player Trends**: Volume vs. Scoring · Steady or Streaky
+- **Trend Lines** (on its own, user's choice)
+- **Rankings & Matchups**: Rankings (Week N+1 / Rest of season switch) · Projections · Defense Matchups
+- **Compare Players**: Start / Sit · Face-Off
+- **Rankings vs. Actuals**: accuracy tiles and last week's beat/missed lists. The Underrated / Overrated all season lists were removed (user, 2026-10-26); don't add them back.
+Every original section id is kept, so links to them open the right tab.

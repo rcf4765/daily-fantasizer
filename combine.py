@@ -49,6 +49,7 @@ CSS = """<style>
 JS = """<script>
 (function(){
   document.querySelectorAll('.cmb').forEach(function(g){
+    if(g._open)return;
     var bs=g.querySelectorAll('.cmb-sw button'),ps=g.querySelectorAll('.cmb-p');
     function open(k){bs.forEach(function(b){b.setAttribute('aria-selected',b.dataset.k===k?'true':'false')});
       ps.forEach(function(p){p.hidden=p.id!==k});window.dispatchEvent(new Event('resize'))}
@@ -122,6 +123,40 @@ def combine(html):
     i = html.rfind("</body>")
     i = i if i >= 0 else len(html)
     return html[:i] + "<!--cmb-->" + CSS + JS + html[i:]
+
+
+PS_GROUPS = [
+    ("ps-trends", "Player Trends", "Volume and consistency", [
+        ("ps-volume", "Volume vs. Scoring"), ("ps-steady", "Steady or Streaky")]),
+    ("ps-ranks", "Rankings & Matchups", "Next week, rest of season and who they face", [
+        ("ps-next", "Rankings"), ("ps-proj", "Projections"), ("ps-defense", "Defense Matchups")]),
+    ("ps-compare", "Compare Players", "Two players, head to head", [
+        ("ps-startsit", "Start / Sit"), ("ps-faceoff", "Face-Off")]),
+]
+
+
+def group_inplace(html, groups):
+    """Generic version for a pane that carries its own styles (Player Stats, user 2026-10-26): each group takes the
+    place of its first section; the others are pulled in as tabs. Adds the tab CSS/JS once (marker <!--cmbps-->)."""
+    for gid, title, kick, items in groups:
+        panels, buttons, slot = [], [], None
+        for id_, label in items:
+            sp = _find(html, id_)
+            if not sp:
+                continue
+            el = html[sp[0]:sp[1]]
+            mark = f"<!--slot:{gid}-->" if slot is None else ""
+            slot = slot or mark
+            html = html[:sp[0]] + mark + html[sp[1]:]
+            panels.append(_panel(el, id_, not panels))
+            buttons.append(f'<button type="button" role="tab" data-k="{id_}" aria-selected="{"true" if len(buttons) == 0 else "false"}">{label}</button>')
+        if panels:
+            g = (f'<section class="sec cmb" id="{gid}"><div class="sec-head"><h2>{title}</h2><span class="kicker">{kick}</span></div>'
+                 f'<div class="cmb-sw" role="tablist" aria-label="{title}">{"".join(buttons)}</div>{"".join(panels)}</section>')
+            html = html.replace(slot, g, 1)
+    if "<!--cmbps-->" not in html:
+        html += "<!--cmbps-->" + CSS + JS
+    return html
 
 
 if __name__ == "__main__":
