@@ -2068,9 +2068,8 @@ table.lk-gl td,table.lk-gl th{padding:5px 6px;white-space:nowrap}
       :'<b class="num">'+f(p.ppg)+'</b><span>PPR / game<br><em>'+(p.prk?p.pos+p.prk+' at the position':'fewer than 2 games')+'</em></span>';
     var h='<div class="lk-head"><div><span class="kicker">'+e(p.pos)+' · '+e(p.tm)+' · '+g+' game'+(g===1?'':'s')+(p.bye?' · bye wk '+p.bye:'')+'</span>'+
       '<h3>'+e(p.n)+inj+'</h3>'+owner(p)+'</div><div class="lk-big">'+big+'</div></div>';
-    // view tabs: whole season, per-game average, each week
-    h+='<div class="lk-views" role="group" aria-label="Which weeks"><button type="button" class="pt" data-v="S" aria-pressed="'+(VIEW==='S')+'">Season</button><button type="button" class="pt" data-v="A" aria-pressed="'+(VIEW==='A')+'">Average</button>'+
-      p.lg.map(function(x){var played=!!p.wk[x[0]];return '<button type="button" class="pt'+(played?'':' nog')+'" data-v="'+x[0]+'" aria-pressed="'+(String(VIEW)===String(x[0]))+'" title="'+(played?'Week '+x[0]+' '+e(x[1]||''):x[1]==='BYE'?'Bye':'No game')+'">Wk '+x[0]+'</button>'}).join('')+'</div>';
+    // view tabs: whole season, per-game average; single weeks are picked by tapping a bar below (user, 2026-10-27: no Wk tabs)
+    h+='<div class="lk-views" role="group" aria-label="Which weeks"><button type="button" class="pt" data-v="S" aria-pressed="'+(VIEW==='S')+'">Season</button><button type="button" class="pt" data-v="A" aria-pressed="'+(VIEW==='A')+'">Average</button></div>';
     if(isW){
       var beat=lw&&lw[2]!=null&&lw[3]!=null?lw[2]-lw[3]:null;
       h+='<div class="lk-tiles">'+tile('Week '+VIEW+' PPR',lw&&lw[2]!=null?f(lw[2]):'–',lw&&lw[1]?e(lw[1]==='BYE'?'bye week':lw[1]):'')+
@@ -2087,7 +2086,7 @@ table.lk-gl td,table.lk-gl th{padding:5px 6px;white-space:nowrap}
     }
     // graded weeks
     var G=p.gr;
-    h+='<div class="lk-blk"><h4>Week by week · graded</h4>'+weeks(p)+
+    h+='<div class="lk-blk"><h4>Week by week · graded <small>tap a week to see just that game</small></h4>'+weeks(p)+
       '<div class="lk-gs">'+(G[0]?'<span><em>Graded weeks</em><b class="num">'+G[0]+'</b></span><span><em>Avg rank</em><b class="num">'+p.pos+Math.round(G[1])+'</b></span><span><em>Avg finish</em><b class="num">'+p.pos+Math.round(G[2])+'</b></span>'+
         '<span><em>Spots vs rank</em><b class="num '+(G[3]>=0?'up':'dn')+'">'+(G[3]>0?'+':'')+f(G[3])+'</b></span>':'<span><em>Graded weeks</em><b class="num">0</b></span>')+
         '<span><em>Pts vs proj</em><b class="num '+(G[4]==null?'':G[4]>=0?'up':'dn')+'">'+(G[4]==null?'–':(G[4]>0?'+':'')+f(G[4]))+'</b></span></div>'+
@@ -2129,7 +2128,7 @@ table.lk-gl td,table.lk-gl th{padding:5px 6px;white-space:nowrap}
   }
   card.addEventListener('click',function(ev){var b=ev.target.closest('[data-v]');if(!b||!CUR)return;
     var v=b.dataset.v;VIEW=(v==='S'||v==='A')?v:+v;show(CUR);
-    var nb=card.querySelector('.lk-views [data-v="'+v+'"]');if(nb)nb.focus({preventScroll:true});});
+    var nb=card.querySelector('[data-v="'+v+'"]');if(nb)nb.focus({preventScroll:true});});
   pick(D.def);q.value='';
 })();
 </script>
