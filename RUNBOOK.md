@@ -266,7 +266,7 @@ Position Kings was folded into Points by Position, which is now one full-width s
 `combine.py` (called at the end of `render.py`) regroups the tab; every chart, caption and section id is kept, only the big titles move into a blue tab switch:
 - **Standings**: Power Rankings · Playoff Odds · Full Table (the Pecking Order; button and table hidden on phones as before)
 - **Season Scoring**: Heat Map · Floor & Ceiling · Good or Lucky?
-- **Managers**: Report Card · Bench Shame · One-Man Show
-- **Roster Radar** (unchanged)
-- **Moves**: Waivers · Trade Desk (only with a completed trade) · On the Block · Matchmaker
+- **Managers**: Bench Shame · One-Man Show · Report Card (order set by the user 2026-10-26)
+- **Roster Radar**: three views, Weeks 1–N · Week N+1 · Rest of season. Week N+1 (added 2026-10-26) scores each slot from that week's blended projection (zero on a bye or when ruled out), kickers and defenses from ESPN's projection
+- **Moves**: Matchmaker · On the Block · Trade Desk (only with a completed trade) · Waivers (order set by the user 2026-10-26)
 A link to any original section id opens its tab. Sections that are missing in a week simply have no button. The tab is ~40% shorter. Weeks 5 and 6 were regrouped in place.

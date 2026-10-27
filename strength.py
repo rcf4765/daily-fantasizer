@@ -27,7 +27,7 @@ SLOTS = ["QB", "RB1", "RB2", "WR1", "WR2", "TE", "FLEX", "D/ST", "K"]
 ELIG = {"QB": ["QB"], "RB1": ["RB"], "RB2": ["RB"], "WR1": ["WR"], "WR2": ["WR"], "TE": ["TE"], "FLEX": ["RB", "WR", "TE"],
         "D/ST": ["D/ST"], "K": ["K"]}
 Q, DEP = 0.75, 0.25
-MODES = [("season", "Weeks 1–{W}"), ("ros", "Rest of season")]
+MODES = [("season", "Weeks 1–{W}"), ("next", "Week {N}"), ("ros", "Rest of season")]
 esc = lambda s: html.escape(str(s))
 
 
@@ -57,7 +57,7 @@ def _kdst(W):
         names = [n for n in tot if pos[n] == ps]
         mu[ps] = sum(tot[n][0] for n in names) / max(1, sum(tot[n][1] for n in names))
     season = lambda n, ps: (tot[n][0] + 2 * mu[ps]) / (tot[n][1] + 2) if n in tot else mu[ps]
-    rosv = {}
+    rosv, nextv = {}, {}
     kf = "data/players/espn_kdst.json"
     if os.path.exists(kf):
         KD = json.load(open(kf))
@@ -66,9 +66,13 @@ def _kdst(W):
             pos[x["name"]] = x["pos"]
             if x.get("owner"):
                 owner[x["owner"]].append(x["name"])
+            nv = x.get("proj", {}).get(str(W + 1))
+            if nv is not None:
+                nextv[x["name"]] = nv  # 0 = bye
             fut = [v for w, v in x.get("proj", {}).items() if int(w) > W and v > 0]
             if fut:
                 rosv[x["name"]] = sum(fut) / len(fut)
+    _kdst.nextv = nextv
     return {t: [(n, pos[n], season(n, pos[n]), rosv.get(n, season(n, pos[n]))) for n in ns] for t, ns in owner.items()}
 
 
@@ -118,12 +122,22 @@ def compute(short, W):
     shortI = {int(k): v for k, v in short.items()}
     P = [p for p in d.P if p.get("owner")]
     KD = _kdst(W)
+    KDN = getattr(_kdst, "nextv", {})
+    # next week (user, 2026-10-26): blended week W+1 projection, zero on a bye or when ruled out
+    rawp = raw_proj(W)
+    sch = json.load(open("data/players/nfl_schedule.json")) if os.path.exists("data/players/nfl_schedule.json") else {}
+    byes = sch.get("byes", {})
+    def nxt(p):
+        if (W + 1) in byes.get(p["team"], []) or p.get("inj") in ("OUT", "INJURY_RESERVE", "SUSPENSION"):
+            return 0.0
+        v = proj_for(d, p, W + 1, rawp)
+        return v if v is not None else p["ros"]
     teams = sorted(shortI)
     res = {}  # mode -> team -> list of (slot, starter, sval, backup, bval, raw)
-    for mode, val in (("season", lambda p: p["ppg"]), ("ros", lambda p: p["ros"])):
+    for mode, val in (("season", lambda p: p["ppg"]), ("next", nxt), ("ros", lambda p: p["ros"])):
         res[mode] = {}
         for t in teams:
-            pool = [(p["name"], p["pos"], val(p)) for p in P if p["owner"] == t] + [(n, ps, sv if mode == "season" else rv) for n, ps, sv, rv in KD.get(t, [])]
+            pool = [(p["name"], p["pos"], val(p)) for p in P if p["owner"] == t] + [(n, ps, sv if mode == "season" else KDN.get(n, rv) if mode == "next" else rv) for n, ps, sv, rv in KD.get(t, [])]
             pool.sort(key=lambda x: -x[2])
             used, start = set(), {}
             for s in SLOTS:
@@ -196,18 +210,19 @@ def build(short, W):
             lists += f'<div class="rd-list m-{mode}">' + "".join(
                 f'<span class="rd-s">{s}</span><span class="rd-p">{nm(r[1])}<small>{"backup " + esc(r[3]) if r[3] else "no backup"}</small></span>'
                 f'<b class="num">{sc[i]}</b>' for i, (s, r) in enumerate(zip(SLOTS, rows))) + '</div>'
-        aria = "; ".join(f"{lab.format(W=W)}: " + ", ".join(f"{s} {v}" for s, v in zip(SLOTS, score[mode][t])) for mode, lab in MODES)
+        aria = "; ".join(f"{lab.format(W=W, N=W + 1)}: " + ", ".join(f"{s} {v}" for s, v in zip(SLOTS, score[mode][t])) for mode, lab in MODES)
         cards.append(f'<article class="rd-card"><div class="rd-h"><i class="lg lg-{t} lg-sm" aria-hidden="true"></i><h3>{esc(short[t])}</h3></div>'
                      f'<p class="rd-sum">{sums}</p>'
                      f'<svg class="rd-svg" viewBox="0 0 240 240" role="img" aria-label="{esc(short[t])} lineup strength. {esc(aria)}">{frame_}{shapes}</svg>'
                      f'<details class="rd-more"><summary>Lineup</summary>{lists}</details></article>')
-    btns = "".join(f'<button type="button" class="pt" data-m="{m}" aria-pressed="{str(i == 0).lower()}">{esc(l.format(W=W))}</button>' for i, (m, l) in enumerate(MODES))
+    btns = "".join(f'<button type="button" class="pt" data-m="{m}" aria-pressed="{str(i == 0).lower()}">{esc(l.format(W=W, N=W + 1))}</button>' for i, (m, l) in enumerate(MODES))
     return (f'<section class="sec rd" id="roster-radar" data-m="season"><div class="sec-head"><h2>Roster Radar</h2>'
             f'<span class="kicker">Lineup strength by slot · 50 = league average</span></div>'
             f'<div class="rd-bar"><div class="rd-tg" role="group" aria-label="Time frame">{btns}</div>'
             f'<span class="rd-key"><i class="sw-team"></i>Team <i class="sw-avg"></i>League average <i class="sw-max"></i>Best in league</span></div>'
             f'<div class="rd-grid">{"".join(cards)}</div>'
             f'<p class="note-s"><span class="m-season">Weeks 1–{W}: current rosters, scored on PPR points per game so far (a player&#39;s full season counts, wherever he played it). </span>'
+            f'<span class="m-next">Week {W + 1}: each player&#39;s blended projection for that game (zero on a bye or when ruled out); kickers and defenses use ESPN&#39;s projection. </span>'
             f'<span class="m-ros">Rest of season: consensus rankings turned into points per game using this season&#39;s scoring at each rank. </span>'
             f'Best player fills each slot, FLEX takes the best RB/WR/TE left. Each slot is 75% the starter and 25% his first backup. '
             f'Kickers and defenses: season points per game in the weeks 1–{W} view, ESPN&#39;s projections for the coming weeks in the rest-of-season view. Hover a dot or open Lineup for the players.</p>'

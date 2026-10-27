@@ -6,9 +6,9 @@ section keeps its id (so links still land), its charts and its caption; only its
 
   Standings       Power Rankings · Playoff Odds · Full table (the Pecking Order; desktop only, as before)
   Season Scoring  Heat Map · Floor & Ceiling · Good or Lucky?
-  Managers        Report Card · Bench Hall of Shame · One-Man Show
+  Managers        Bench Hall of Shame · One-Man Show · Report Card
   Roster Radar    (unchanged)
-  Moves           Waiver Wire MVP · Trade Desk (when there is a completed trade) · On the Block · Matchmaker
+  Moves           Matchmaker · On the Block · Trade Desk (when there is a completed trade) · Waiver Wire MVP
 
 Idempotent: a page that already has <!--cmb--> is returned unchanged. A section missing that week just has no button;
 a group with no sections is left out.
@@ -23,9 +23,9 @@ GROUPS = [
     ("lg-scoring", "Season Scoring", "Every team's weeks, range and luck", [
         ("heat", "Heat Map"), ("floor-ceiling", "Floor & Ceiling"), ("luck", "Good or Lucky?")]),
     ("lg-managers", "Managers", "Grades, bench blunders and one-man teams", [
-        ("report-card", "Report Card"), ("bench-shame", "Bench Shame"), ("one-man-show", "One-Man Show")]),
+        ("bench-shame", "Bench Shame"), ("one-man-show", "One-Man Show"), ("report-card", "Report Card")]),
     ("lg-moves", "Moves", "Pickups, trades and trade ideas", [
-        ("waiver-mvp", "Waivers"), ("trades", "Trade Desk"), ("trading-block", "On the Block"), ("matchmaker", "Matchmaker")]),
+        ("matchmaker", "Matchmaker"), ("trading-block", "On the Block"), ("trades", "Trade Desk"), ("waiver-mvp", "Waivers")]),
 ]
 ANCHOR_BEFORE = "roster-radar"  # Standings, Scoring and Managers go before Roster Radar; Moves after it
 
