@@ -4,7 +4,8 @@ week's points, up to 50").
 A side game. ESPN scores are never touched; the paper shows a "with bets" score and standings next to the real ones.
 
 Rules (user's choices, 2026-10-26)
-- Each team may stake up to MAX_STAKE (50) of its week-N points in total that week, across any number of slips.
+- Each team may stake up to MAX_STAKE (5; was 50 until the user cut it on 2026-10-27) of its week-N points in total
+  that week, across any number of slips.
 - A slip is 1..MAX_LEGS legs (a parlay when 2+). Sportsbook odds: favorites pay less, long shots and parlays more.
   Win = the slip's profit is added to that week's score (capped at MAX_WIN); loss = the stake is subtracted.
   A pushed or voided leg drops out of the parlay; a slip with nothing left is a push (0).
@@ -29,7 +30,7 @@ Files
 import datetime, html, json, math, os, re
 from collections import defaultdict
 
-MAX_STAKE, MAX_LEGS, MAX_WIN = 50, 6, 150
+MAX_STAKE, MAX_LEGS, MAX_WIN = 5, 6, 150
 VIG = 1.05
 POS = ("QB", "RB", "WR", "TE")
 TD_PRIOR = {"QB": 0.12, "RB": 0.45, "WR": 0.35, "TE": 0.25}
@@ -591,7 +592,7 @@ SCRIPT = r"""<script>
       h+=slip.map(function(id){var x=IX[id];return '<div class="bk-leg"><div><b>'+e(x.s.name)+'</b><small>'+e(x.mk.label)+' · '+e(evname(x))+'</small></div><span class="num">'+od(x.s.odds)+'</span><button type="button" class="bk-x" data-x="'+e(id)+'" aria-label="Remove">×</button></div>'}).join('');
       var lf=left();
       h+='<div class="bk-stake"><label for="bk-st">Stake (points) · '+lf+' left this week</label><input id="bk-st" type="number" inputmode="decimal" min="1" max="'+lf+'" step="1" placeholder="0" value="'+e(stake)+'">'+
-        '<div class="bk-chips">'+[5,10,25].map(function(v){return '<button type="button" data-c="'+v+'">'+v+'</button>'}).join('')+'<button type="button" data-c="'+lf+'">Max</button></div></div>'+
+        '<div class="bk-chips">'+[1,2,3].map(function(v){return '<button type="button" data-c="'+v+'">'+v+'</button>'}).join('')+'<button type="button" data-c="'+lf+'">Max</button></div></div>'+
         '<div class="bk-win"><span>To win</span><b class="num">+'+(Math.round(win*10)/10)+'</b></div>';
       var can=API&&betsOn()&&m&&st>=1&&st<=lf&&!busy;
       h+='<button type="button" class="bk-place" id="bk-place"'+(can?'':' disabled')+'>'+(busy?'Placing…':!m?'Sign in to bet':!betsOn()?'Betting not open yet':st>lf?'Over your '+R.stake+' pts':'Place bet')+'</button>';

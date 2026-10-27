@@ -31,7 +31,7 @@ var PRESETS = {  // one-tap suggestions; must match rules_presets.json in the re
   'harder-veto': { category: 'Rules', title: "Harder to veto trades" }
 };
 var BETTING = true;
-var MAX_STAKE = 50, MAX_LEGS = 6, MAX_WIN = 150;
+var MAX_STAKE = 5, MAX_LEGS = 6, MAX_WIN = 150;
 var LINES_URL = 'https://rcf4765.github.io/daily-fantasizer/bets/lines';   // + week + '.json'
 // SHA-256 of the commissioner code (the code itself is never stored here).
 var ADMIN_HASH = 'be856db5f99b95913f7842695800cfe73f40782ef7380103aad8ff10179aad09';
