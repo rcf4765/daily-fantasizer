@@ -257,46 +257,120 @@ def _relevant(p):
     return bool(p.get("owner")) or (rr and rr <= {"QB": 32, "RB": 60, "WR": 72, "TE": 32}[p["pos"]]) or p["ppg"] >= 6
 
 
+def _allowed(d, W):
+    """Defense -> PPR per game allowed to each position (QB, RB, WR, TE), weeks 1..W, and the league averages."""
+    sch = _sched()
+    if not sch:
+        return {}, [0, 0, 0, 0]
+    T = sch["teams"]
+    allow = defaultdict(lambda: defaultdict(float)); games = defaultdict(set)
+    for p in d.P:
+        for w in d.games(p):
+            if w > W:
+                continue
+            o = (T.get(p["team"], {}).get(str(w)) or {}).get("opp")
+            if o:
+                allow[o][p["pos"]] += p["act"][w]["pts"]; games[o].add(w)
+    dv = {o: [allow[o][ps] / len(games[o]) for ps in POS] for o in allow if games[o]}
+    avg = [sum(v[i] for v in dv.values()) / len(dv) for i in range(4)] if dv else [0, 0, 0, 0]
+    return dv, avg
+
+
+PLAYOFFS = (15, 16, 17)
+
+
 def faceoff(d, W, short, own_team):
+    """Player Face-Off (user, 2026-10-27): type any two players; short term, long term and usage side by side,
+    with a verdict for each horizon and a roster call (who to grab off waivers, who to drop)."""
     import strength as S
+    import lookup as L
     S.ros_values(d)
     rawp = S.raw_proj(W)
-    sch = _sched(); byes = (sch or {}).get("byes", {})
+    sch = _sched() or {}; byes = sch.get("byes", {}); T = sch.get("teams", {})
+    dv, avg = _allowed(d, W)
+    soft = {}  # (defense, pos index) -> rank, 1 = gives up the most
+    for i in range(4):
+        for r, o in enumerate(sorted(dv, key=lambda o: -dv[o][i]), 1):
+            soft[(o, i)] = r
+    ndef = len(dv)
+    adv = L.adv_totals(d, W)
     nxt = W + 1
+    r1 = lambda x, n=1: None if x is None else round(x, n)
     rows = []
     for p in d.P:
         if p["g"] < 1 or not _relevant(p):
             continue
-        pj = S.proj_for(d, p, nxt, rawp)
-        if nxt in byes.get(p["team"], []) or p.get("inj") in ("OUT", "INJURY_RESERVE"):
-            pj = 0.0
+        pi = POS.index(p["pos"])
+        out = p.get("inj") in ("OUT", "INJURY_RESERVE")
+        pj = []
+        for w in (nxt, nxt + 1):
+            v = S.proj_for(d, p, w, rawp)
+            if w in byes.get(p["team"], []) or (out and w == nxt):
+                v = 0.0
+            pj.append(r1(v))
         g = [w for w in d.games(p) if w <= W]
         pts = [p["act"][w]["pts"] for w in g]
-        rows.append([p["name"], p["pos"], p["team"], p.get("owner") or 0, round(p["ppg"], 1), round(p["l3"], 1),
-                     None if pj is None else round(pj, 1), round(p["ros"], 1), p.get("ros_rank") or 0,
-                     round(p["tgt_g"], 1), round(p["tch_g"], 1), None if p["ts"] is None else round(p["ts"] * 100),
-                     None if p["snap"] is None else round(p["snap"] * 100), round(max(pts), 1) if pts else 0, round(min(pts), 1) if pts else 0,
-                     p.get("inj", "ACTIVE")])
+        # next opponent: points his position scores against them vs. league average
+        o = (T.get(p["team"], {}).get(str(nxt)) or {})
+        mu = None
+        if o.get("opp") and o["opp"] in dv and avg[pi]:
+            mu = [("" if o.get("home") else "@") + o["opp"], round(dv[o["opp"]][pi] / avg[pi] * 100), soft[(o["opp"], pi)]]
+        # fantasy playoffs (weeks 15-17): average softness of the three opponents, byes flagged
+        po, pv = [], []
+        for w in PLAYOFFS:
+            x = (T.get(p["team"], {}).get(str(w)) or {})
+            if x.get("opp"):
+                po.append(("" if x.get("home") else "@") + x["opp"])
+                if x["opp"] in dv and avg[pi]:
+                    pv.append(dv[x["opp"]][pi] / avg[pi])
+            else:
+                po.append("BYE")
+        bye = [w for w in byes.get(p["team"], []) if w > W]
+        t = adv.get(p["key"], {})
+        rz = (t.get("rzt") or 0) + (t.get("rzc") or 0)
+        sd = (sum((x - sum(pts) / len(pts)) ** 2 for x in pts) / len(pts)) ** .5 if pts else None
+        u = d.use.get(p["key"], {})
+        wopr = [u[w].get("wopr") for w in g if w in u and u[w].get("wopr") is not None]
+        ros = d.ros_by.get(p["key"]) or {}
+        rr = ros.get("pos_rank") or ""
+        rows.append({
+            "n": p["name"], "k": p["key"], "pos": p["pos"], "tm": p["team"], "o": p.get("owner") or 0, "inj": p.get("inj", "ACTIVE"),
+            "rp": r1(p.get("own_pct"), 0), "g": len(g),
+            # short term
+            "p1": pj[0], "p2": pj[1], "l3": r1(p["l3"]), "mu": mu,
+            "ts3": None if p["ts_l3"] is None else r1(p["ts_l3"] * 100), "sn3": None if p["snap_l3"] is None else r1(p["snap_l3"] * 100, 0),
+            # long term
+            "ros": r1(p.get("ros")), "rr": int("".join(c for c in str(rr) if c.isdigit()) or 0), "ppg": r1(p["ppg"]),
+            "xp": r1(p.get("xp")), "po": po, "pv": round(sum(pv) / len(pv) * 100) if pv else None, "bye": bye[0] if bye else 0,
+            "hi": r1(max(pts)) if pts else 0, "lo": r1(min(pts)) if pts else 0, "sd": r1(sd),
+            # usage (season)
+            "ts": None if p["ts"] is None else r1(p["ts"] * 100), "sn": None if p["snap"] is None else r1(p["snap"] * 100, 0),
+            "ays": None if p["ays"] is None else r1(p["ays"] * 100), "wopr": r1(sum(wopr) / len(wopr), 2) if wopr else None,
+            "tg": r1(p["tgt_g"]), "tch": r1(p["tch_g"]), "rz": r1(rz / len(g)) if g else None,
+        })
     if len(rows) < 2:
         return ""
-    rows.sort(key=lambda r: (r[3] == 0, r[3], -r[7]))
-    mine = sorted([r for r in rows if r[3] == own_team and r[1] in ("RB", "WR", "TE")], key=lambda r: -r[7])
-    # default: the owner team's two closest RB/WR/TE by rest-of-season value outside its top three (a real FLEX-type call)
+    rows.sort(key=lambda r: (r["o"] == 0, r["o"], POS.index(r["pos"]), -(r["ros"] or 0)))
+    # default: the owner team's weakest RB/WR/TE (drop candidate) against the best free agent at his position by rest of season
+    mine = [r for r in rows if r["o"] == own_team and r["pos"] in ("RB", "WR", "TE") and r["inj"] not in ("INJURY_RESERVE",)]
     pair = None
-    if len(mine) >= 2:
-        playing = [r for r in mine if r[6]]  # skip byes and players ruled out for next week
-        mine = playing if len(playing) >= 2 else mine
-        cands = mine[2:] if len(mine) >= 4 else mine
-        pair = min(((a, b) for i, a in enumerate(cands) for b in cands[i + 1:]), key=lambda ab: abs(ab[0][7] - ab[1][7]), default=None)
-    data = {"teams": {str(k): v for k, v in short.items()}, "p": rows, "nxt": nxt,
-            "def": [pair[0][0], pair[1][0]] if pair else [rows[0][0], rows[1][0]]}
+    if mine:
+        weak = min(mine, key=lambda r: r["ros"] or 0)
+        fa = [r for r in rows if not r["o"] and r["pos"] == weak["pos"]]
+        if fa:
+            pair = [max(fa, key=lambda r: r["ros"] or 0)["k"], weak["k"]]
+    data = {"teams": {str(k): v for k, v in short.items()}, "p": rows, "nxt": nxt, "nd": ndef,
+            "def": pair or [rows[0]["k"], rows[1]["k"]]}
     body = (f'<div class="fo"><div class="fo-pick"><label><span class="kicker">Player A</span><select id="fo-a"></select></label><span class="fo-vs">vs.</span>'
             f'<label><span class="kicker">Player B</span><select id="fo-b"></select></label></div>'
-            f'<div class="fo-head" id="fo-head"></div><div class="fo-rows" id="fo-rows"></div><div class="fo-sum" id="fo-sum"></div></div>'
+            f'<div class="fo-head" id="fo-head"></div><div class="fo-call" id="fo-call" aria-live="polite"></div><div class="fo-rows" id="fo-rows"></div></div>'
             f'<script type="application/json" id="fo-data">{json.dumps(data, separators=(",", ":")).replace("</", "<\\/")}</script>'
-            f'<p class="note-s">Any two players who matter: rostered, ranked or scoring 6+ PPR per game. Week {nxt} projection is the blended number (zero on a bye or ruled out). '
-            f'Rest of season = his consensus ranking turned into points per game. Floor and ceiling = his worst and best game so far.</p>')
-    return sec("ps-faceoff", "Player Face-Off", "Any two players, stat by stat", body)
+            f'<p class="note-s">Type any part of a name, a team name, or “FA” for free agents. Players who matter are listed: rostered, ranked or scoring 6+ PPR per game. '
+            f'<b>Short term</b> = weeks {nxt}–{nxt + 1}: blended projections (zero on a bye or ruled out) and how many points his position scores against his week {nxt} opponent '
+            f'(100 = league average). <b>Long term</b>: rest of season = his consensus ranking turned into points per game; expected = what his targets, carries and air yards '
+            f'usually score (above it = running hot, below = due); playoffs = his weeks {PLAYOFFS[0]}–{PLAYOFFS[-1]} opponents vs. his position. '
+            f'<b>Usage</b> is season-long, with the last-3-games trend. Rostered % is ESPN-wide.</p>')
+    return sec("ps-faceoff", "Player Face-Off", "Type two players · waiver or drop, now and later", body)
 
 
 def steady(d, W, short):
@@ -365,33 +439,136 @@ def sections2(d, W, short_names, own_team):
 
 SCRIPT += r"""<script>
 (function(){
-  /* Player Face-Off */
+  /* Type-to-search player boxes (user, 2026-10-27): turns a <select> into a search box. The select stays as the
+     value holder, so the scripts that read it (Start / Sit, Face-Off) don't change. Matches any part of the name,
+     the team's name, the NFL team or position; "FA" lists free agents. */
+  function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[.'’]/g,'')}
+  function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
+  window.dfCombo=function(sel){
+    if(!sel||sel.dataset.combo)return;sel.dataset.combo=1;
+    var items=[].map.call(sel.options,function(o){var g=o.parentNode.tagName==='OPTGROUP'?o.parentNode.label:'';
+      var m=o.textContent.match(/^(.*?) \((\w+), (\w+)\)(.*)$/)||[0,o.textContent,'','',''];
+      return {v:o.value,n:m[1],pos:m[2],tm:m[3],x:m[4],g:g,s:norm(m[1]+' '+m[2]+' '+m[3]+' '+g+(g==='Free agents'?' fa':''))}});
+    var box=document.createElement('div');box.className='cb';
+    var inp=document.createElement('input');inp.type='search';inp.className='cb-in';inp.autocomplete='off';inp.spellcheck=false;
+    inp.setAttribute('role','combobox');inp.setAttribute('aria-expanded','false');inp.setAttribute('aria-autocomplete','list');
+    inp.placeholder='Type a player, team or “FA”';
+    var lid=sel.id+'-list',ul=document.createElement('ul');ul.className='cb-list';ul.id=lid;ul.setAttribute('role','listbox');ul.hidden=true;inp.setAttribute('aria-controls',lid);
+    var lab=sel.closest('label');if(lab){var k=lab.querySelector('.kicker');if(k)inp.setAttribute('aria-label',k.textContent)}
+    sel.hidden=true;sel.tabIndex=-1;sel.after(box);box.appendChild(inp);box.appendChild(ul);
+    var hits=[],cur=-1;
+    function label(){var it=items.filter(function(i){return i.v===sel.value})[0];inp.value=it?it.n:''}
+    function render(){var q=norm(inp.value).trim().split(/\s+/).filter(Boolean);
+      hits=items.filter(function(i){return q.every(function(w){return i.s.indexOf(w)>=0})});
+      // names that start with what was typed come first
+      if(q.length){var f=q[0];hits.sort(function(a,b){var x=norm(a.n),y=norm(b.n);var sa=x.indexOf(f)===0||x.indexOf(' '+f)>=0?0:1,sb=y.indexOf(f)===0||y.indexOf(' '+f)>=0?0:1;return sa-sb})}
+      hits=hits.slice(0,30);cur=hits.length?0:-1;
+      ul.innerHTML=hits.length?hits.map(function(i,j){return '<li role="option" id="'+lid+'-'+j+'" data-j="'+j+'"'+(j===cur?' aria-selected="true"':'')+'><b>'+e(i.n)+'</b><small>'+e(i.pos)+' · '+e(i.tm)+e(i.x)+'</small><em>'+(i.g==='Free agents'?'FA':e(i.g))+'</em></li>'}).join(''):'<li class="cb-none">No player matches</li>';
+      open(true)}
+    function open(on){ul.hidden=!on;inp.setAttribute('aria-expanded',on?'true':'false');if(!on)inp.removeAttribute('aria-activedescendant')}
+    function mark(){[].forEach.call(ul.children,function(li,j){if(j===cur){li.setAttribute('aria-selected','true');li.scrollIntoView({block:'nearest'});inp.setAttribute('aria-activedescendant',lid+'-'+j)}else li.removeAttribute('aria-selected')})}
+    function choose(j){var it=hits[j];if(!it)return;sel.value=it.v;open(false);label();inp.blur();sel.dispatchEvent(new Event('change'))}
+    inp.addEventListener('focus',function(){inp.select();render()});
+    inp.addEventListener('input',render);
+    inp.addEventListener('keydown',function(ev){
+      if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ev.preventDefault();if(ul.hidden)render();if(!hits.length)return;cur=(cur+(ev.key==='ArrowDown'?1:-1)+hits.length)%hits.length;mark()}
+      else if(ev.key==='Enter'){ev.preventDefault();choose(cur)}
+      else if(ev.key==='Escape'){open(false);label();inp.blur()}});
+    ul.addEventListener('pointerdown',function(ev){ev.preventDefault()});
+    ul.addEventListener('click',function(ev){var li=ev.target.closest('li[data-j]');if(li)choose(+li.dataset.j)});
+    inp.addEventListener('blur',function(){setTimeout(function(){open(false);label()},120)});
+    sel.addEventListener('change',label);label();
+  };
+})();
+(function(){
+  /* Player Face-Off (user, 2026-10-27): short term, long term, usage; a verdict per horizon and a roster call */
   var el=document.getElementById('fo-data'); if(!el)return;
-  var D=JSON.parse(el.textContent),P=D.p,T=D.teams,by={};P.forEach(function(r){by[r[0]]=r});
-  var A=document.getElementById('fo-a'),B=document.getElementById('fo-b'),H=document.getElementById('fo-head'),R=document.getElementById('fo-rows'),S=document.getElementById('fo-sum');
-  [A,B].forEach(function(sel){var groups={};P.forEach(function(r){var g=r[3]?T[r[3]]:'Free agents';(groups[g]=groups[g]||[]).push(r)});
+  var D=JSON.parse(el.textContent),P=D.p,T=D.teams,by={};P.forEach(function(r){by[r.k]=r});
+  var A=document.getElementById('fo-a'),B=document.getElementById('fo-b'),H=document.getElementById('fo-head'),R=document.getElementById('fo-rows'),C=document.getElementById('fo-call');
+  [A,B].forEach(function(sel){var groups={};P.forEach(function(r){var g=r.o?T[r.o]:'Free agents';(groups[g]=groups[g]||[]).push(r)});
     Object.keys(groups).forEach(function(g){var og=document.createElement('optgroup');og.label=g;
-      groups[g].forEach(function(r){var o=document.createElement('option');o.value=r[0];o.textContent=r[0]+' ('+r[1]+', '+r[2]+')';og.appendChild(o)});sel.appendChild(og)})});
+      groups[g].forEach(function(r){var o=document.createElement('option');o.value=r.k;o.textContent=r.n+' ('+r.pos+', '+r.tm+')';og.appendChild(o)});sel.appendChild(og)})});
   A.value=D.def[0];B.value=D.def[1];
-  function e(s){return String(s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
-  // [label, index, higher is better?, format]
-  var M=[['PPR per game',4,1,'f'],['Last 3 games',5,1,'f'],['Week '+D.nxt+' projection',6,1,'p'],['Rest of season, pts/g',7,1,'f'],['ROS position rank',8,-1,'r'],
-         ['Ceiling (best game)',13,1,'f'],['Floor (worst game)',14,1,'f'],['Targets per game',9,1,'f'],['Touches per game',10,1,'f'],['Target share',11,1,'%'],['Snap share',12,1,'%']];
-  function fmt(v,f){if(v==null)return '–';if(f==='r')return v?'#'+v:'–';if(f==='%')return v+'%';if(f==='p'&&v===0)return 'no game';return v.toFixed(1)}
-  function side(r){var inj=(r[15]&&r[15]!=='ACTIVE'&&r[15]!=='NORMAL')?' <span class="inj">'+e(r[15].replace('_',' ').toLowerCase())+'</span>':'';
-    return '<span class="kicker">'+e(r[1])+' · '+e(r[2])+'</span><b>'+e(r[0])+inj+'</b><span class="fo-own">'+(r[3]?'<i class="lg lg-'+r[3]+' lg-sm"></i>'+e(T[r[3]]):'<span class="own fa">FA</span>')+'</span>'}
-  function draw(){var a=by[A.value],b=by[B.value];if(!a||!b)return;
+  function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
+  function f1(v){return v==null?'–':(+v).toFixed(1)}
+  function arrow(now,season){if(now==null||season==null)return '';var d=now-season;return d>=2?' <span class="fo-tr up" title="Last 3 games: '+now+'%">▲</span>':d<=-2?' <span class="fo-tr dn" title="Last 3 games: '+now+'%">▼</span>':''}
+  // [label, value(r) for comparing, text(r), higher better (1) / lower (-1) / no winner (0), help]
+  var nx=D.nxt;
+  var G=[
+   ['Short term · weeks '+nx+'–'+(nx+1),[
+    ['Week '+nx+' projection',function(r){return r.p1},function(r){return r.p1===0?'no game':f1(r.p1)},1],
+    ['Week '+(nx+1)+' projection',function(r){return r.p2},function(r){return r.p2===0?'no game':f1(r.p2)},1],
+    ['Next 2 weeks',function(r){return r.p1==null&&r.p2==null?null:(r.p1||0)+(r.p2||0)},function(r){return r.p1==null&&r.p2==null?'–':f1((r.p1||0)+(r.p2||0))},1],
+    ['Last 3 games, PPR/g',function(r){return r.l3},function(r){return f1(r.l3)},1],
+    ['Week '+nx+' matchup',function(r){return r.mu?r.mu[1]:null},function(r){return r.mu?r.mu[1]+' <small>'+e(r.mu[0])+'</small>':(r.p1===0?'bye':'–')},1,'Points his position scores against this defense, 100 = league average'],
+    ['Target share, last 3',function(r){return r.ts3},function(r){return r.ts3==null?'–':r.ts3.toFixed(1)+'%'},1],
+    ['Snap share, last 3',function(r){return r.sn3},function(r){return r.sn3==null?'–':r.sn3+'%'},1]]],
+   ['Long term · rest of season',[
+    ['Rest of season, pts/g',function(r){return r.ros},function(r){return f1(r.ros)},1],
+    ['ROS position rank',function(r){return r.rr||null},function(r){return r.rr?r.pos+r.rr:'unranked'},-1],
+    ['PPR per game',function(r){return r.ppg},function(r){return f1(r.ppg)+' <small>'+r.g+' g</small>'},1],
+    ['Expected PPR/g',function(r){return r.xp},function(r){if(r.xp==null)return '–';var d=r.ppg-r.xp;return f1(r.xp)+' <small class="'+(d>=0?'hot':'due')+'">'+(d>=1?'running hot':d<=-1?'due to bounce':'on pace')+'</small>'},1,'What his targets, carries and air yards usually score'],
+    ['Playoff matchups',function(r){return r.pv},function(r){return (r.pv==null?'–':r.pv)+' <small>'+r.po.map(e).join(' ')+'</small>'},1,'Weeks 15–17 opponents vs. his position, 100 = average'],
+    ['Bye still to come',function(r){return null},function(r){return r.bye?'week '+r.bye:'done'},0],
+    ['Ceiling (best game)',function(r){return r.hi},function(r){return f1(r.hi)},1],
+    ['Floor (worst game)',function(r){return r.lo},function(r){return f1(r.lo)},1],
+    ['Week-to-week swing',function(r){return r.g>=3?r.sd:null},function(r){return r.g>=3?'±'+f1(r.sd):'–'},-1,'Lower = steadier']]],
+   ['Usage · season',[
+    ['Target share',function(r){return r.ts},function(r){return r.ts==null?'–':r.ts.toFixed(1)+'%'+arrow(r.ts3,r.ts)},1],
+    ['Snap share',function(r){return r.sn},function(r){return r.sn==null?'–':r.sn+'%'+arrow(r.sn3,r.sn)},1],
+    ['Air-yard share',function(r){return r.pos==='QB'?null:r.ays},function(r){return r.ays==null||r.pos==='QB'?'–':r.ays.toFixed(1)+'%'},1],
+    ['WOPR',function(r){return r.wopr},function(r){return r.wopr==null?'–':r.wopr.toFixed(2)},1,'Weighted opportunity: 1.5 × target share + 0.7 × air-yard share'],
+    ['Targets per game',function(r){return r.tg},function(r){return f1(r.tg)},1],
+    ['Touches per game',function(r){return r.tch},function(r){return f1(r.tch)},1],
+    ['Red-zone looks / g',function(r){return r.rz},function(r){return f1(r.rz)},1,'Red-zone targets + carries per game']]]];
+  function side(r){var inj=(r.inj&&r.inj!=='ACTIVE'&&r.inj!=='NORMAL')?' <span class="inj">'+e(r.inj.replace('_',' ').toLowerCase())+'</span>':'';
+    return '<span class="kicker">'+e(r.pos)+' · '+e(r.tm)+'</span><b>'+e(r.n)+inj+'</b><span class="fo-own">'+(r.o?'<i class="lg lg-'+r.o+' lg-sm"></i>'+e(T[r.o]):'<span class="own fa">FA</span>')+
+      (r.rp!=null?'<small>'+r.rp+'% rostered</small>':'')+'</span>'}
+  function last(n){return n.split(' ').filter(function(w){return !/^(jr\.?|sr\.?|ii|iii|iv)$/i.test(w)}).pop()}
+  function draw(){var a=by[A.value],b=by[B.value];if(!a||!b)return;var same=a.k===b.k;
     H.innerHTML='<div class="fo-ha">'+side(a)+'</div><span class="fo-hv">vs.</span><div class="fo-hb">'+side(b)+'</div>';
-    var h='',wa=0,wb=0;
-    M.forEach(function(m){var va=a[m[1]],vb=b[m[1]],f=m[3];
-      var ca=(f==='r')?(va||999):(va==null?-1:va),cb=(f==='r')?(vb||999):(vb==null?-1:vb);
-      var aw=a[0]!==b[0]&&(m[2]>0?ca>cb:ca<cb),bw=a[0]!==b[0]&&(m[2]>0?cb>ca:cb<ca);if(aw)wa++;if(bw)wb++;
-      var mx=Math.max(ca,cb,0.1),la=f==='r'?(va?Math.max(6,100-va*1.6):0):Math.max(0,ca)/mx*100,lb=f==='r'?(vb?Math.max(6,100-vb*1.6):0):Math.max(0,cb)/mx*100;
-      h+='<div class="fo-r"><span class="fo-a'+(aw?' win':'')+'"><b class="num">'+fmt(va,f)+'</b><i style="width:'+la.toFixed(1)+'%"></i></span><span class="fo-m">'+m[0]+'</span>'+
-         '<span class="fo-b'+(bw?' win':'')+'"><i style="width:'+lb.toFixed(1)+'%"></i><b class="num">'+fmt(vb,f)+'</b></span></div>'});
+    var h='',score=[];
+    G.forEach(function(g){var wa=0,wb=0,rows='';
+      g[1].forEach(function(m){var va=m[1](a),vb=m[1](b),dir=m[3];
+        var aw=!same&&dir&&va!=null&&vb!=null&&(dir>0?va>vb:va<vb),bw=!same&&dir&&va!=null&&vb!=null&&(dir>0?vb>va:vb<va);
+        if(dir&&va!=null&&vb==null&&!same)aw=true;if(dir&&vb!=null&&va==null&&!same)bw=true;
+        if(aw)wa++;if(bw)wb++;
+        var la=0,lb=0;if(dir>0&&va!=null&&vb!=null){var mx=Math.max(va,vb,0.1);la=Math.max(0,va)/mx*100;lb=Math.max(0,vb)/mx*100}
+        else if(dir<0&&va!=null&&vb!=null){var mn=Math.max(Math.min(va,vb),0.1);la=mn/Math.max(va,0.1)*100;lb=mn/Math.max(vb,0.1)*100}
+        rows+='<div class="fo-r"'+(m[4]?' title="'+e(m[4])+'"':'')+'><span class="fo-a'+(aw?' win':'')+'"><b class="num">'+m[2](a)+'</b>'+(dir?'<i style="width:'+la.toFixed(1)+'%"></i>':'')+'</span><span class="fo-m">'+m[0]+(m[4]?' <abbr title="'+e(m[4])+'">?</abbr>':'')+'</span>'+
+           '<span class="fo-b'+(bw?' win':'')+'">'+(dir?'<i style="width:'+lb.toFixed(1)+'%"></i>':'')+'<b class="num">'+m[2](b)+'</b></span></div>'});
+      score.push([wa,wb]);
+      h+='<div class="fo-g"><div class="fo-gh"><span class="'+(wa>wb?'win':'')+'">'+wa+'</span><h4>'+g[0]+'</h4><span class="'+(wb>wa?'win':'')+'">'+wb+'</span></div>'+rows+'</div>'});
     R.innerHTML=h;
-    S.innerHTML='<span class="'+(wa>wb?'win':'')+'"><b class="num">'+wa+'</b>categories won</span><span class="fo-sv">'+(wa===wb?'Dead even':(wa>wb?e(a[0]):e(b[0]))+' takes it')+'</span><span class="'+(wb>wa?'win':'')+'"><b class="num">'+wb+'</b>categories won</span>';}
+    if(same){C.innerHTML='<p>Pick two different players.</p>';return}
+    // verdicts: short term = next two weeks' projected points; long term = rest-of-season points per game
+    var sa=(a.p1||0)+(a.p2||0),sb=(b.p1||0)+(b.p2||0),la=a.ros||0,lb=b.ros||0;
+    var sw=Math.abs(sa-sb)<1.5?null:(sa>sb?a:b),lw=Math.abs(la-lb)<0.5?null:(la>lb?a:b);
+    function v(t,w,d,u){return '<div class="fo-v"><span class="kicker">'+t+'</span><b>'+(w?e(last(w.n)):'Toss-up')+'</b><small>'+(w?'by '+d.toFixed(1)+' '+u:'within '+(u==='pts'?'1.5 points':'half a point a game'))+'</small></div>'}
+    var call='';
+    var fa=!a.o&&b.o?a:!b.o&&a.o?b:null,kept=fa?(fa===a?b:a):null;
+    if(fa){
+      var dL=(fa.ros||0)-(kept.ros||0),dS=((fa.p1||0)+(fa.p2||0))-((kept.p1||0)+(kept.p2||0)),F=e(fa.n),K=e(kept.n),f=e(last(fa.n)),k=e(last(kept.n));
+      var now=dS>=1.5?'better the next two weeks too':dS>-1.5?'about even the next two weeks':'';
+      if(dL>=1&&dS>-1.5)call='<b>Grab '+F+', drop '+K+'.</b> '+f+' is worth '+dL.toFixed(1)+' more points a game the rest of the way and '+now+'.';
+      else if(dL>=1)call='<b>Stash '+F+'</b> if you have the room. '+k+' is the better play the next two weeks, but '+f+' should be worth '+dL.toFixed(1)+' more a game after that.';
+      else if(dL>-1){
+        if(dS>=3)call='<b>Fine to swap for the short term.</b> '+f+' projects '+dS.toFixed(1)+' more the next two weeks and the rest of the season is close.';
+        else call='<b>Close call, lean '+(dL>=0?f:k)+'.</b> They\'re within a point a game over the rest of the season; '+(dS>=1.5?f+' has the better next two weeks':dS<=-1.5?k+' has the better next two weeks':'the next two weeks are even')+'. Check the usage trend before dropping anyone.';
+      }
+      else if(dS>=3)call='<b>Streamer only.</b> '+f+' projects '+dS.toFixed(1)+' more the next two weeks, but '+k+' is worth '+(-dL).toFixed(1)+' more a game over the season. Don\'t drop '+k+' for him unless you need the points now.';
+      else call='<b>Keep '+K+'.</b> '+f+' isn\'t an upgrade: '+(-dL).toFixed(1)+' fewer points a game the rest of the way.';
+      if(fa.rp!=null&&fa.rp>=50&&dL>=1)call+=' He\'s rostered in '+fa.rp+'% of ESPN leagues, so claim him before someone else does.';
+    } else if(!a.o&&!b.o){
+      call=lw?'<b>If you add one, take '+e(lw.n)+'</b>'+(sw&&sw!==lw?' for the long run; '+e(last(sw.n))+' is the better one-week stream.':'.'):'<b>Toss-up</b> between the two free agents.';
+    } else {
+      call=lw&&(sw===lw||!sw)?'<b>'+e(lw.n)+'</b> is the better hold, now and later.':lw&&sw?'<b>'+e(sw.n)+'</b> for the next two weeks, <b>'+e(lw.n)+'</b> for the rest of the season.':sw?'<b>'+e(sw.n)+'</b> for the next two weeks; long term it\'s close.':'<b>Too close to call.</b>';
+    }
+    call=call.replace(/\.(<\/b>)?\./g,'.$1');
+    C.innerHTML='<div class="fo-vs2">'+v('Short term',sw,Math.abs(sa-sb),'pts')+v('Long term',lw,Math.abs(la-lb),'pts/g')+'</div><p class="fo-say">'+call+'</p>';
+  }
   A.addEventListener('change',draw);B.addEventListener('change',draw);draw();
+  [A,B,document.getElementById('ss-a'),document.getElementById('ss-b')].forEach(function(s){if(s)window.dfCombo(s)});
 })();
 (function(){
   /* Steady or Streaky: same hover/tap card behaviour as Volume vs. Scoring */
@@ -468,8 +645,34 @@ CSS += r"""
 .fo-a,.fo-b{display:flex;align-items:center;gap:8px}.fo-a{flex-direction:row-reverse}
 .fo-a i,.fo-b i{display:block;height:12px;max-width:70%;background:var(--silver)}
 .fo-a.win i{background:var(--blue)}.fo-b.win i{background:var(--ink)}
-.fo-a b,.fo-b b{font-size:.9rem;font-weight:400;min-width:56px}.fo-a b{text-align:left}.fo-b b{text-align:right}
+.fo-a b,.fo-b b{font-size:.9rem;font-weight:400;flex:0 0 96px;width:96px;overflow-wrap:anywhere}.fo-a b{text-align:left}.fo-b b{text-align:right;margin-left:auto}
 .fo-a.win b,.fo-b.win b{font-weight:700}
+.fo-g{display:grid;margin-top:6px}
+.fo-gh{display:grid;grid-template-columns:40px 1fr 40px;align-items:center;border-bottom:3px solid var(--rule);padding:4px 0}
+.fo-gh h4{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;text-align:center;margin:0}
+.fo-gh span{font-family:var(--display);font-weight:900;font-size:1.3rem;color:var(--muted)}.fo-gh span:last-child{text-align:right}
+.fo-gh span.win{color:var(--blue)}
+.fo-m abbr{text-decoration:none;border:1px solid var(--line);border-radius:50%;padding:0 4px;font-size:.55rem;cursor:help}
+.fo-a b small,.fo-b b small{font-family:var(--mono);font-size:.62rem;font-weight:400;color:var(--muted);display:block;line-height:1.2;white-space:normal}
+.fo-a b small.hot{color:var(--red)}.fo-a b small.due,.fo-b b small.due{color:var(--blue)}.fo-b b small.hot{color:var(--red)}
+.fo-tr{font-size:.7rem;font-weight:700}.fo-tr.up{color:var(--blue)}.fo-tr.dn{color:var(--red)}
+.fo-own small{font-family:var(--mono);font-size:.62rem}
+.fo-call{display:grid;gap:8px;border:3px solid var(--rule);border-top:8px solid var(--honolulu);padding:10px 14px;background:var(--sheet)}
+.fo-vs2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fo-v{display:grid;gap:1px}.fo-v b{font-family:var(--display);font-weight:900;font-size:1.5rem;text-transform:uppercase;line-height:1.05}
+.fo-v small{font-family:var(--mono);font-size:.66rem;color:var(--muted)}
+.fo-say{margin:0;font-size:.95rem;line-height:1.4}
+/* type-to-search player box (user, 2026-10-27) */
+.cb{position:relative;min-width:0}
+.cb-in{font:inherit;font-size:.95rem;padding:8px 10px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);width:100%;min-width:0;border-radius:0;-webkit-appearance:none;appearance:none}
+.cb-in:focus{outline:3px solid var(--hi);outline-offset:0}
+.cb-list{position:absolute;z-index:30;left:0;right:0;top:100%;margin:2px 0 0;padding:0;list-style:none;max-height:300px;overflow-y:auto;background:var(--sheet);border:2px solid var(--rule);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.cb-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--line)}
+.cb-list li b{font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb-list li small{grid-column:1;font-family:var(--mono);font-size:.62rem;color:var(--muted)}
+.cb-list li em{grid-column:2;grid-row:1/span 2;align-self:center;font-style:normal;font-family:var(--mono);font-size:.62rem;color:var(--muted);text-align:right;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cb-list li[aria-selected="true"],.cb-list li:hover{background:var(--paper)}
+.cb-list li.cb-none{cursor:default;color:var(--muted);font-size:.85rem}
 .fo-sum{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;border-top:3px solid var(--rule);padding-top:8px}
 .fo-sum span{display:grid;font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .fo-sum span:first-child{text-align:right}
@@ -495,8 +698,11 @@ CSS += r"""
 .st-bars{display:flex;align-items:flex-end;gap:3px;height:34px;border-bottom:1px solid var(--line)}
 .st-bars i{display:block;flex:1;background:var(--blue);min-height:2px}
 @media (max-width:760px){
-  .fo-r{grid-template-columns:minmax(0,1fr) 92px minmax(0,1fr);gap:6px}.fo-m{font-size:.54rem;letter-spacing:.02em}.fo-a b,.fo-b b{font-size:.78rem;min-width:40px}
+  .fo-r{grid-template-columns:minmax(0,1fr) 92px minmax(0,1fr);gap:6px}.fo-m{font-size:.54rem;letter-spacing:.02em}.fo-a b,.fo-b b{font-size:.78rem;flex:0 0 60px;width:60px}
   .fo-head{padding:9px}.fo-own{font-size:.68rem}.fo-pick{gap:6px}.fo-pick select{font-size:.8rem;padding:6px}
+  .fo-pick{grid-template-columns:1fr;gap:4px}.fo-pick .fo-vs{padding:0;font-size:1rem}.cb-in{font-size:16px}
+  .fo-v b{font-size:1.15rem}.fo-say{font-size:.88rem}.fo-call{padding:9px 10px}.fo-gh h4{font-size:.6rem}
+  .fo-own{flex-wrap:wrap;gap:2px 6px}.fo-ha .fo-own{justify-content:flex-end}
   .st{aspect-ratio:1.05}.st .q{font-size:.52rem}
 }
 """

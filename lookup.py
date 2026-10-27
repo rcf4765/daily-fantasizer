@@ -569,3 +569,18 @@ table.lk-gl td,table.lk-gl th{padding:5px 6px;white-space:nowrap}
 
 }
 """
+
+
+def adv_totals(d, W):
+    """key -> season totals from the advanced stats (red-zone targets/carries etc.), weeks 1..W; used by Player Face-Off."""
+    A = {}
+    for a in _load("adv.json") or []:
+        k = norm(a["name"]) + "|" + a["pos"]
+        if k in A and d.by.get(k) and d.by[k]["team"] != TEAMFIX.get(a["team"], a["team"]):
+            continue
+        A[k] = a
+    out = {}
+    for k, a in A.items():
+        aw = {int(w): v for w, v in a["wk"].items() if int(w) <= W}
+        out[k] = _agg(aw, list(aw))[0]
+    return out
