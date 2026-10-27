@@ -1,4 +1,4 @@
-# sha256 of the approved pipeline files (graphics-first design, approved 2026-10-13 with the week 5 edition; Upsets & Heartbreakers Roster Radar, League & Teams tab and the final 2026-10-19 sections; Rule Changes tab 2026-10-21; Player Lookup 2026-10-26).
+# sha256 of the approved pipeline files. FINAL VERSION locked by the user 2026-10-27 (five tabs: This Week's Paper, League & Teams, Player Stats, Rule Changes, Betting; reference docs/week7.html).
 # league.json changes when lore is added; data/trades.json, trade_block.json and schedule.json change weekly. Regenerate after intentional changes.
 8fb57787be9543a8d399bf78792595cdc9f0708806daba875ca4e19b2c2cf50f  extract.js
 2978def423d24bed739a9bda1c23ad5de5790b4d3e6fab9283f26d943f255cc8  extract_logos.js
