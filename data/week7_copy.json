@@ -1,0 +1,158 @@
+{
+ "week": 7,
+ "hero": {
+  "winner": 12,
+  "loser": 10,
+  "big": "11–0",
+  "label": "all-play record, beat every team"
+ },
+ "lead": {
+  "kicker": "Page one",
+  "headline": "Bedazzled Balls Alone at the Top",
+  "deck": "Fourth straight win, and now the league's only one-loss team.",
+  "paragraphs": [
+   "{T12} got −1.0 from the Chiefs D/ST and 3.0 from Butker. The other seven starters carried it anyway.",
+   "Now 920.14 points for, most in the league, 10.60 ahead of {S8}. {S10}'s three-game win streak ends at 3–4."
+  ]
+ },
+ "sidebar": [
+  {
+   "style": "hi",
+   "kicker": "Strange but true",
+   "title": "The Defense Led the Team",
+   "viz": {
+    "type": "bars",
+    "rows": [
+     {
+      "label": "Bucs D/ST",
+      "value": 28.0,
+      "alt": true
+     },
+     {
+      "label": "McCaffrey",
+      "value": 22.0
+     },
+     {
+      "label": "Fannin",
+      "value": 13.1
+     },
+     {
+      "label": "Purdy",
+      "value": 12.02
+     }
+    ]
+   },
+   "text": "The {S2} defense, projected for 4.6, scored 28.0 and outscored every Doughboy, bench included. Purdy managed 12.02."
+  }
+ ],
+ "recaps": {
+  "12-10": {
+   "headline": "See Page One",
+   "text": "Pony's Maye, Loveland and London combined for 66.94. Not nearly enough."
+  },
+  "8-11": {
+   "headline": "Pollard Goes Off",
+   "text": "Tony Pollard 36.5 from the flex, top player in the league. Burden added 23.7."
+  },
+  "7-4": {
+   "headline": "Blowout of the Week",
+   "text": "Stevenson 22.5, Jeanty 21.6. Bruisers' Nico Collins: 2.6 on a 16.7 projection."
+  },
+  "9-6": {
+   "headline": "Travis Rides the Pickup",
+   "text": "Javonte Williams 21.5, new add Kirk Cousins 20.4. IDK went 1–10 in all-play."
+  },
+  "3-5": {
+   "headline": "First Win, Week Seven",
+   "text": "McBride 27.1, Jacobs 20.1, Skattebo 19.1 on a 7.8 projection. Bo Nix 26.18 sat."
+  },
+  "1-2": {
+   "headline": "Chimpanzini Makes It Three",
+   "text": "Zay Flowers 27.7 on a 15.2 projection. Taylor 19.0, Gordon 17.3. Perfect lineup."
+  }
+ },
+ "honor": {
+  "team": 12,
+  "big": "0.00",
+  "big_label": "pts left on bench",
+  "kicker": "Manager of the week",
+  "title": "Big Bedazzled Balls",
+  "text": "Aida was one of five perfect lineups this week, and the only one above 142.28. Started Jameson Williams on a 10.8 projection; he scored 26.1."
+ },
+ "blotter": [
+  {
+   "team": 2,
+   "title": "Benched the wrong receiver",
+   "text": "Tee Higgins 26.8 sat. Garrett Wilson 4.6 started."
+  },
+  {
+   "team": 11,
+   "title": "Benched the better back",
+   "text": "Judkins 23.4 sat, Derrick Henry 5.9 started."
+  },
+  {
+   "team": 10,
+   "title": "Flex malpractice",
+   "text": "Coker 1.9 started over Emanuel Wilson 18.5."
+  },
+  {
+   "team": 6,
+   "title": "Zero at QB, again",
+   "text": "Lamar Jackson, projected for zero, started for a second straight week."
+  }
+ ],
+ "missing": [
+  {
+   "team": 1,
+   "player": "Isaiah Likely",
+   "text": "Tight end, loosely involved."
+  },
+  {
+   "team": 9,
+   "player": "Justin Jefferson",
+   "text": "Team won. No search party."
+  },
+  {
+   "team": 6,
+   "player": "Sam LaPorta",
+   "text": "One of two IDK starters under 3."
+  },
+  {
+   "team": 10,
+   "player": "Dominic Zvada",
+   "text": "One point. From a kicker."
+  }
+ ],
+ "pecking_notes": {
+  "12": "Only one-loss team. Won four straight.",
+  "8": "Pollard 36.5 from the flex.",
+  "1": "Three straight wins.",
+  "5": "Season low, 0–11 all-play.",
+  "2": "Two straight losses.",
+  "7": "Biggest win of the week.",
+  "11": "Third-unluckiest team in the league.",
+  "9": "Cousins pickup paid off.",
+  "10": "Lost by 28.34 to first place.",
+  "4": "Four straight losses.",
+  "6": "Three straight losses.",
+  "3": "First win of the season."
+ },
+ "forecast_blurbs": {
+  "3-6": "Three combined wins between them.",
+  "1-5": "Two points. Closest line of the week.",
+  "10-9": "Travis favored by 11.5.",
+  "4-2": "Biggest spread of the week.",
+  "11-12": "First place vs most points allowed.",
+  "8-7": "Two 5–2 teams. One leaves 5–3."
+ },
+ "upsets": {
+  "3-5": {
+   "headline": "Even 8D Beat CeeDeez",
+   "text": "{S3} was 0–6 and started three players projected for zero. Still won. {S5} posted a season-low 76.82, went 0–11 in all-play and started Breece Hall and Egbuka at zero."
+  },
+  "7-4": {
+   "headline": "Four Straight Ls, Zero Excuses",
+   "text": "{S4} started every right guy and still lost by 36.72. Fourth straight loss, now 1–6. {S7} rode Smith-Njigba's 31.3 to 5–2 like it was a ring ceremony."
+  }
+ }
+}
