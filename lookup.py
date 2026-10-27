@@ -480,8 +480,8 @@ CSS = r"""
 .lk-views .pt[aria-pressed="true"]{background:var(--honolulu);border-color:var(--honolulu);color:#fff;opacity:1}
 .lk-none{font-family:var(--display);font-size:1.6rem;font-weight:800;text-transform:uppercase;color:var(--muted)}
 /* week by week */
-.lk-wk{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:6px;align-items:end}
-.lk-w{appearance:none;background:none;border:0;padding:2px 0;font:inherit;color:inherit;cursor:pointer;display:grid;gap:2px;text-align:center;min-width:0}
+.lk-wk{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:6px;align-items:start}
+.lk-w{appearance:none;background:none;border:0;padding:2px 0;font:inherit;color:inherit;cursor:pointer;display:grid;grid-template-rows:auto auto auto auto;align-content:start;gap:2px;text-align:center;min-width:0}
 .lk-w:hover .lk-bar{background-color:var(--paper)}
 .lk-w.sel{outline:2px solid var(--honolulu);outline-offset:1px}
 .lk-w:focus-visible{outline:3px solid var(--hi)}
@@ -492,9 +492,9 @@ CSS = r"""
 .lk-bar u{position:absolute;left:4%;right:4%;height:0;border-top:3px solid var(--hi);text-decoration:none}
 .lk-dnp{position:absolute;bottom:4px;left:0;right:0;font-family:var(--mono);font-size:.62rem;color:var(--muted);text-transform:uppercase}
 .lk-wl{font-family:var(--mono);font-size:.7rem;font-weight:600;display:grid}
-.lk-wl small{font-weight:400;font-size:.58rem;color:var(--muted)}
-.lk-rf{font-size:.62rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lk-vp{font-size:.7rem;font-weight:600;min-height:1em}
+.lk-wl small{font-weight:400;font-size:.58rem;color:var(--muted);min-height:1.3em}
+.lk-rf{font-size:.62rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:1.3em;line-height:1.3}
+.lk-vp{font-size:.7rem;font-weight:600;height:1.3em;line-height:1.3}
 .lk-gs{display:flex;flex-wrap:wrap;gap:6px 22px;padding-top:4px}
 .lk-gs span{display:grid}
 .lk-gs em{font-style:normal;font-family:var(--mono);font-size:.56rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
