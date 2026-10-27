@@ -20,10 +20,11 @@ so the card carries all of their numbers too:
 - QB: completions/attempts, comp %, yards, YPA, TDs, INTs, sacks, air yards, intended air yards per throw,
   YAC on his completions, CPOE, pressure %, bad-throw %, drops by his receivers, time to throw, aggressiveness,
   passing first downs, plus his rushing (carries, yards, TDs, yards before/after contact).
-- Route tree: every target's depth (behind the line, 0-9, 10-19, 20+ air yards) and side (left, middle, right)
-  from the play-by-play, drawn as routes fanning out from the line of scrimmage; line width = targets. Real route
-  types (slant, go, out...) are not public for this season (nflverse participation data stops at 2024), so the
-  tree shows where his targets went, not the route called. QBs get the same tree for their throws.
+- Route tree (user, 2026-10-26: the classic numbered tree): WR/TE get 1 Flat, 2 Slant, 3 Comeback, 4 Curl, 5 Out,
+  6 Dig, 7 Corner, 8 Post, 9 Fade; RBs get Screen, Swing, Flat, Angle, Out, Wheel, Seam; QBs get the WR tree for
+  their throws. Line width = targets, label = targets and catch rate, unused routes dashed grey. The route run isn't
+  public for this season (nflverse participation stops at 2024), so each target's route is estimated from its air
+  yards and side of the field (fetch_players._route has the cutoffs); the page says so.
 - Game log: one row per week.
 
 Data: data/players/espn_players.json (fantasy points, projections, owner), usage.json, fp_week*.json, fp_ros.json,
@@ -115,7 +116,7 @@ def section(d, W, short, own_team):
                     wt[k] = act[ek]
             uw = u.get(w, {})
             wv[str(w)] = {"t": {k: (round(v, 2) if isinstance(v, float) else v) for k, v in wt.items() if v},
-                          "tr": wtr.get("tree", {}), "ptr": wtr.get("ptree", {}),
+                          "tr": wtr.get("tree", {}), "ptr": wtr.get("ptree", {}), "rt": wtr.get("rts", {}), "prt": wtr.get("prts", {}),
                           "u": [r1(uw["snap"] * 100, 0) if uw.get("snap") is not None else None,
                                 r1(uw["ts"] * 100, 1) if uw.get("ts") is not None else None,
                                 r1(uw["ays"] * 100, 1) if uw.get("ays") is not None else None,
@@ -138,7 +139,7 @@ def section(d, W, short, own_team):
                   r1(p["ays"] * 100, 1) if p["ays"] is not None else None, r1(sum(wopr) / len(wopr), 2) if wopr else None,
                   r1(p["tgt_g"]), r1(p["tch_g"])],
             "t": {k: (round(v, 2) if isinstance(v, float) else v) for k, v in tot.items() if v},
-            "tr": tree.get("tree", {}), "ptr": tree.get("ptree", {}),
+            "tr": tree.get("tree", {}), "ptr": tree.get("ptree", {}), "rt": tree.get("rts", {}), "prt": tree.get("prts", {}),
             "gr": [len(gr), r1(sum(x[4] for x in gr) / len(gr), 1) if gr else None, r1(sum(x[5] for x in gr) / len(gr), 1) if gr else None,
                    r1(sum(x[4] - x[5] for x in gr) / len(gr), 1) if gr else None,
                    r1(sum(x[2] - x[3] for x in gp) / len(gp), 1) if gp else None],
@@ -177,7 +178,7 @@ def _agg(aw, weeks):
     for w in weeks:
         v = aw.get(w, {})
         for k, x in v.items():
-            if k in ("tree", "ptree"):
+            if k in ("tree", "ptree", "rts", "prts"):
                 for z, t in x.items():
                     c = tree.setdefault(k, {}).setdefault(z, [0, 0, 0])
                     for i in range(3):
@@ -255,32 +256,46 @@ SCRIPT = r"""<script>
   function n(x){x=x||0;return DV===1?i0(x):f(x/DV)}
   function tile(lbl,val,sub,cls){return '<div class="lk-t'+(cls?' '+cls:'')+'"><em>'+lbl+'</em><b class="num">'+val+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</div>'}
   function grid(title,items){return '<div class="lk-blk"><h4>'+title+(DV>1&&title!=='Usage'?' <small>per game</small>':'')+'</h4><div class="lk-g">'+items.map(function(x){return '<span'+(x[2]?' title="'+e(x[2])+'"':'')+'><em>'+x[0]+'</em><b class="num">'+x[1]+'</b></span>'}).join('')+'</div></div>'}
-  var ZD={B:'Behind the line',S:'Short (0–9)',M:'Intermediate (10–19)',D:'Deep (20+)'},ZS={L:'left',M:'middle',R:'right'};
-  function tree(tr,qb){
-    var keys=Object.keys(tr);if(!keys.length)return '<p class="note-s">No targets charted yet.</p>';
-    var mx=Math.max.apply(null,keys.map(function(z){return tr[z][0]})),tot=keys.reduce(function(s,z){return s+tr[z][0]},0);
-    var X={L:42,M:120,R:198},Y={D:30,M:82,S:128,B:178},LOS=152,ox=120,oy=qb?206:LOS;
-    var s='<svg viewBox="0 0 240 222" class="lk-tree" role="img" aria-label="'+(qb?'Where his throws went':'Where his targets went')+'">';
-    s+='<rect x="2" y="4" width="236" height="214" rx="3" class="tf"/>';
-    [[10,'20+'],[56,'10'],[104,'0']].forEach(function(r){s+='<line x1="2" x2="238" y1="'+r[0]+'" y2="'+r[0]+'" class="tg"/>'});
-    s+='<line x1="80" x2="80" y1="4" y2="218" class="tg dash"/><line x1="160" x2="160" y1="4" y2="218" class="tg dash"/>';
-    s+='<line x1="2" x2="238" y1="'+LOS+'" y2="'+LOS+'" class="los"/>';
-    s+='<text x="236" y="20" class="tl" text-anchor="end">20+</text><text x="236" y="66" class="tl" text-anchor="end">10–19</text><text x="236" y="114" class="tl" text-anchor="end">0–9</text><text x="236" y="'+(LOS-4)+'" class="tl" text-anchor="end">LOS</text>';
-    keys.sort(function(a,b){return tr[a][0]-tr[b][0]}).forEach(function(z){
-      var t=tr[z],cx=X[z[1]],cy=Y[z[0]],w=1.4+6*t[0]/mx,op=.35+.65*t[0]/mx;
-      // stem straight up, then break toward the zone (a route), or flat out for screens
-      var sx=ox+(cx-ox)*.18,sy=z[0]==='B'?oy:Math.max(cy+(oy-cy)*.45,cy+14);
-      var d=z[0]==='B'?'M'+ox+' '+oy+' Q'+(ox+(cx-ox)*.6)+' '+(oy+4)+' '+cx+' '+cy:'M'+ox+' '+oy+' L'+sx+' '+sy+' L'+cx+' '+cy;
-      s+='<path d="'+d+'" class="rt" style="stroke-width:'+w.toFixed(1)+';opacity:'+op.toFixed(2)+'"><title>'+ZD[z[0]]+' '+ZS[z[1]]+': '+t[0]+(qb?' throws, ':' targets, ')+t[1]+' caught, '+t[2]+' yds</title></path>';
+  // classic numbered route tree (user, 2026-10-26); routes are estimated from each target's depth and side
+  var RT={wr:[
+      ['9','Fade','M200 165 L200 38',[200,20,'middle']],
+      ['7','Corner','M200 165 L118 84',[112,72,'end']],
+      ['8','Post','M200 165 L282 84',[288,72,'start']],
+      ['5','Out','M200 165 L78 165',[64,169,'end']],
+      ['6','Dig','M200 165 L322 165',[336,169,'start']],
+      ['3','Comeback','M200 165 L126 228',[118,242,'end']],
+      ['4','Curl','M200 165 L274 228',[282,242,'start']],
+      ['1','Flat','M200 292 L92 292',[76,296,'end']],
+      ['2','Slant','M200 334 L284 272',[292,290,'start']]],
+    rb:[
+      ['SE','Seam','M200 350 L200 40',[200,22,'middle']],
+      ['WH','Wheel','M200 350 Q108 350 100 280 L100 64',[100,52,'middle']],
+      ['OU','Out','M200 200 L328 200',[342,204,'start']],
+      ['AN','Angle','M200 350 L272 296 L176 214',[168,206,'end']],
+      ['FL','Flat','M200 268 L90 268',[74,272,'end']],
+      ['SW','Swing','M200 350 Q128 358 90 322',[82,330,'end']],
+      ['SC','Screen','M200 350 L252 340 L290 318',[298,322,'start']]]};
+  function tree(rt,kind,qb){
+    var R=RT[kind],tot=0,mx=0;R.forEach(function(r){var t=(rt[r[0]]||[0])[0];tot+=t;if(t>mx)mx=t});
+    if(!tot)return '<p class="note-s">No '+(qb?'throws':'targets')+' charted yet.</p>';
+    var s='<svg viewBox="0 0 400 372" class="lk-tree" role="img" aria-label="'+(qb?'Route tree of his throws':'His route tree')+'">';
+    s+='<defs><marker id="ah-on" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="2.7" markerHeight="2.7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah-on"/></marker>'+
+      '<marker id="ah-off" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah-off"/></marker></defs>';
+    if(kind==='rb')s+='<line x1="20" x2="380" y1="292" y2="292" class="los"/><text x="380" y="286" class="tl" text-anchor="end">LOS</text><path d="M200 350 L200 200" class="stem"/>';
+    else s+='<line x1="20" x2="380" y1="355" y2="355" class="los"/><text x="380" y="349" class="tl" text-anchor="end">LOS</text><path d="M200 355 L200 165" class="stem"/>';
+    R.slice().sort(function(a,b){return ((rt[a[0]]||[0])[0])-((rt[b[0]]||[0])[0])}).forEach(function(r){
+      var t=rt[r[0]]||[0,0,0],on=t[0]>0,w=on?2.6+6*t[0]/mx:1.4;
+      s+='<path d="'+r[2]+'" class="rt'+(on?'':' off')+'" style="stroke-width:'+w.toFixed(1)+'" marker-end="url(#ah-'+(on?'on':'off')+')"><title>'+r[1]+(kind==='wr'?' ('+r[0]+')':'')+': '+t[0]+(qb?' throws, ':' targets, ')+t[1]+' caught, '+t[2]+' yds</title></path>';
     });
-    keys.forEach(function(z){var t=tr[z],cx=X[z[1]],cy=Y[z[0]];
-      s+='<g class="rz"><circle cx="'+cx+'" cy="'+cy+'" r="11"/><text x="'+cx+'" y="'+(cy+3.5)+'" text-anchor="middle"'+(DV>1?' style="font-size:8px"':'')+'>'+(DV===1?t[0]:(t[0]/DV).toFixed(1))+'</text><title>'+ZD[z[0]]+' '+ZS[z[1]]+': '+t[0]+(qb?' throws, ':' targets, ')+t[1]+' caught, '+t[2]+' yds</title></g>'});
-    s+='<circle cx="'+ox+'" cy="'+oy+'" r="4.5" class="org"/>';
-    s+='</svg>';
-    // share by depth
-    var dep={B:0,S:0,M:0,D:0},cat={B:0,S:0,M:0,D:0};keys.forEach(function(z){dep[z[0]]+=tr[z][0];cat[z[0]]+=tr[z][1]});
-    var bars=['D','M','S','B'].map(function(k){return '<span><em>'+{D:'Deep 20+',M:'10–19',S:'0–9',B:'Behind'}[k]+'</em><i style="width:'+(tot?dep[k]/tot*100:0).toFixed(0)+'%"></i><b class="num">'+(DV===1?dep[k]:(dep[k]/DV).toFixed(1))+'<small> · '+(dep[k]?Math.round(cat[k]/dep[k]*100)+'%':'–')+'</small></b></span>'}).join('');
-    return '<div class="lk-treew">'+s+'<div class="lk-dep"><div class="kicker">'+(qb?'Throws':'Targets')+(DV>1?' per game':'')+' by depth · catch rate</div>'+bars+'</div></div>';
+    R.forEach(function(r){var t=rt[r[0]]||[0,0,0],L=r[3],on=t[0]>0;
+      s+='<text x="'+L[0]+'" y="'+L[1]+'" text-anchor="'+L[2]+'" class="rl'+(on?'':' off')+'">'+r[1]+(kind==='wr'?' ('+r[0]+')':'')+'</text>'+
+        (on?'<text x="'+L[0]+'" y="'+(L[1]+13)+'" text-anchor="'+L[2]+'" class="rn">'+(DV===1?t[0]:(t[0]/DV).toFixed(1))+' · '+Math.round(t[1]/t[0]*100)+'%</text>':'');
+    });
+    s+='<circle cx="200" cy="'+(kind==='rb'?350:355)+'" r="9" class="org"/></svg>';
+    var list=R.slice().sort(function(a,b){return ((rt[b[0]]||[0])[0])-((rt[a[0]]||[0])[0])}).map(function(r){var t=rt[r[0]]||[0,0,0];
+      return '<span'+(t[0]?'':' class="off"')+'><em>'+r[1]+(kind==='wr'?' <small>'+r[0]+'</small>':'')+'</em><i style="width:'+(t[0]/mx*100).toFixed(0)+'%"></i><b class="num">'+(DV===1?t[0]:(t[0]/DV).toFixed(1))+'<small> · '+(t[0]?Math.round(t[1]/t[0]*100)+'%':'–')+'</small></b></span>'}).join('');
+    return '<div class="lk-treew">'+s+'<div class="lk-dep"><div class="kicker">'+(qb?'Throws':'Targets')+(DV>1?' per game':'')+' by route · catch rate</div>'+list+
+      '<p class="note-s">Routes are estimated from where each '+(qb?'throw':'target')+' went (air yards and side of the field); the NFL doesn\'t publish the route run.</p></div></div>';
   }
   function weeks(p){
     var L=p.lg,mx=Math.max.apply(null,L.map(function(x){return Math.max(x[2]||0,x[3]||0)}).concat([10]));
@@ -383,8 +398,8 @@ SCRIPT = r"""<script>
       h+=receiving(p,t,true);
       if(c)h+=grid('Rushing',[['Carries',n(c)],['Rush yards',n(t.uy||0)],['Rush TD',n(t.utd||0)],['Yds after contact',n(t.yaco||0)]]);
     }
-    var tr=isW?(p.pos==='QB'?wkv.ptr:wkv.tr):(p.pos==='QB'?p.ptr:p.tr);
-    h+='<div class="lk-blk"><h4>'+(p.pos==='QB'?'Passing tree':'Route tree')+' <small>'+(p.pos==='QB'?'where his throws went':'where his targets went')+' · '+(isW?'week '+VIEW:VIEW==='A'?'per game, weeks 1–'+D.W:'weeks 1–'+D.W)+'</small></h4>'+tree(tr,p.pos==='QB')+'</div>';
+    var tr=isW?(p.pos==='QB'?wkv.prt:wkv.rt):(p.pos==='QB'?p.prt:p.rt);
+    h+='<div class="lk-blk"><h4>'+(p.pos==='QB'?'Passing tree':'Route tree')+' <small>'+(p.pos==='QB'?'which routes his throws went to':p.pos==='RB'?'running back routes, from his targets':'from his targets')+' · '+(isW?'week '+VIEW:VIEW==='A'?'per game, weeks 1–'+D.W:'weeks 1–'+D.W)+'</small></h4>'+tree(tr||{},p.pos==='RB'?'rb':'wr',p.pos==='QB')+'</div>';
     if(!isW)h+=glog(p);
     card.innerHTML=h;
   }
@@ -470,18 +485,23 @@ CSS = r"""
 .lk-key i{display:inline-block;width:10px;height:10px}
 .lk-key .k-up{background:var(--blue)}.lk-key .k-dn{background:var(--red)}.lk-key .k-pj{height:0;border-top:3px solid var(--hi)}
 /* route tree */
-.lk-treew{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:20px;align-items:center}
-.lk-tree{width:100%;height:auto;display:block}
-.lk-tree .tf{fill:color-mix(in srgb,var(--honolulu) 7%,var(--sheet));stroke:var(--rule);stroke-width:1.5}
-.lk-tree .tg{stroke:var(--line);stroke-width:1}.lk-tree .tg.dash{stroke-dasharray:3 4}
-.lk-tree .los{stroke:var(--honolulu);stroke-width:2}
-.lk-tree .tl{font-family:var(--mono);font-size:7.5px;fill:var(--muted)}
+.lk-treew{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:24px;align-items:center}
+.lk-tree{width:100%;height:auto;display:block;background:color-mix(in srgb,var(--honolulu) 6%,var(--sheet));border:1.5px solid var(--rule)}
+.lk-tree .los{stroke:var(--honolulu);stroke-width:1.5;stroke-dasharray:6 5}
+.lk-tree .tl{font-family:var(--mono);font-size:9px;fill:var(--muted)}
+.lk-tree .stem{stroke:var(--ink);stroke-width:2.5;fill:none}
 .lk-tree .rt{fill:none;stroke:var(--blue);stroke-linecap:round;stroke-linejoin:round}
-.lk-tree .rz circle{fill:var(--sheet);stroke:var(--ink);stroke-width:1.5}
-.lk-tree .rz text{font-family:var(--mono);font-size:9.5px;font-weight:600;fill:var(--ink)}
+.lk-tree .rt.off{stroke:var(--silver);stroke-dasharray:4 4}
+.lk-tree .ah-on{fill:var(--blue)}.lk-tree .ah-off{fill:var(--silver)}
+.lk-tree .rl{font-family:var(--display);font-weight:800;font-size:15px;fill:var(--ink);text-transform:uppercase}
+.lk-tree .rl.off{fill:var(--muted);font-weight:600}
+.lk-tree .rn{font-family:var(--mono);font-size:11px;font-weight:600;fill:var(--blue)}
 .lk-tree .org{fill:var(--ink)}
 .lk-dep{display:grid;gap:8px;max-width:460px}
-.lk-dep span{display:grid;grid-template-columns:72px minmax(0,1fr) 84px;align-items:center;gap:8px}
+.lk-dep span{display:grid;grid-template-columns:90px minmax(0,1fr) 84px;align-items:center;gap:8px}
+.lk-dep span.off{opacity:.45}
+.lk-dep em small{font-size:.56rem;color:var(--muted);margin-left:2px}
+.lk-dep .note-s{margin-top:4px}
 .lk-dep em{font-style:normal;font-family:var(--mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .lk-dep i{display:block;height:10px;background:var(--blue);min-width:2px}
 .lk-dep b{font-size:.9rem}.lk-dep b small{font-size:.66rem;color:var(--muted);font-weight:400}
@@ -521,7 +541,7 @@ table.lk-gl td,table.lk-gl th{padding:5px 6px;white-space:nowrap}
   .lk-wk{gap:3px}
   .lk-rf{font-size:.5rem}
   .lk-treew{grid-template-columns:minmax(0,1fr)}
-  .lk-tree{max-width:300px;margin:0 auto}
+  .lk-tree{max-width:420px;margin:0 auto}
   .lk-log .tbl-wrap{display:none!important}
   .lk-lc{display:block}
 

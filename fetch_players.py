@@ -289,6 +289,34 @@ def nfl_schedule():
     print("schedule unavailable; keeping the previous file if any")
 
 
+# Estimated route for a target (user, 2026-10-26: draw the classic numbered route tree). The NFL doesn't publish
+# the route run this season, so each target is assigned from its air yards and the side it was thrown to:
+#   WR/TE (and QB throws): 1 Flat (behind the line, or 0-4 yds outside) · 2 Slant (0-9 middle) · 5 Out (5-12 outside)
+#   3 Comeback (13-19 outside) · 4 Curl (10-14 middle) · 6 Dig (15-19 middle) · 8 Post (20+ middle)
+#   7 Corner (20-29 outside) · 9 Fade/Go (30+ outside)
+#   RB: SC Screen (behind the line, middle) · SW Swing (behind the line, outside) · FL Flat (0-4 outside)
+#   AN Angle (0-9 middle) · OU Out (5-12 outside) · WH Wheel (13+ outside) · SE Seam (10+ middle)
+def _route(ay, loc, rb=False):
+    try:
+        a = float(ay)
+    except (TypeError, ValueError):
+        return None
+    if loc not in ("left", "middle", "right"):
+        return None
+    mid = loc == "middle"
+    if rb:
+        if a < 0:
+            return "SC" if mid else "SW"
+        if mid:
+            return "AN" if a < 10 else "SE"
+        return "FL" if a < 5 else "OU" if a < 13 else "WH"
+    if a < 0:
+        return "1"
+    if mid:
+        return "2" if a < 10 else "4" if a < 15 else "6" if a < 20 else "8"
+    return "1" if a < 5 else "5" if a < 13 else "3" if a < 20 else "7" if a < 30 else "9"
+
+
 # zones for the route/target tree: depth band x side of the field (play-by-play air_yards, pass_location)
 def _zone(ay, loc):
     try:
@@ -390,6 +418,10 @@ def advanced():
                         continue
                     t = wk(pid, w).setdefault(key, {})
                     a = t.setdefault(z, [0, 0, 0]); a[0] += 1; a[1] += int(c); a[2] += int(yds or 0)
+                    rt = _route(x.get("air_yards"), x.get("pass_location"), rb=(key == "tree" and P[pid]["pos"] == "RB"))
+                    if rt:
+                        t = wk(pid, w).setdefault("rts" if key == "tree" else "prts", {})
+                        a = t.setdefault(rt, [0, 0, 0]); a[0] += 1; a[1] += int(c); a[2] += int(yds or 0)
                 rid = x.get("receiver_player_id")
                 if rid in P and yl is not None:
                     d = wk(rid, w)
