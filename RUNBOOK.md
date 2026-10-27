@@ -145,7 +145,7 @@ Automatic (no copy), built by `strength.py` from `data/players/*.json` (current 
 
 ## Tabs and the Player Stats tab (added 2026-10-19 at the user's request)
 
-`template.html` has a tab bar under the masthead, styled as folder tabs (user, 2026-10-19: easier to tell apart): the selected tab is solid royal blue with a yellow base line, the other is outlined on paper; each has a small subtitle ("Week N edition", "PPR player desk"); on phones the two split the width. Tabs: **This Week's Paper** (`#paper`), **League & Teams** (`#league`, added 2026-10-19) and **Player Stats** (`#player-stats`); each tab and every section inside it is linkable, and the tab script opens whichever tab holds the linked section. Any link with `data-tab="…"` (the paper's League & Teams card, the phone jump menu) switches tabs. On phones the paper's "Jump to" menu lists only paper sections plus links to the other two tabs; League & Teams has its own section links in its hero.
+`template.html` has a tab bar under the masthead, styled as folder tabs (user, 2026-10-19: easier to tell apart): the selected tab is solid royal blue with a yellow base line, the other is outlined on paper; each has a small subtitle ("Week N edition", "PPR player desk"); on phones the two split the width. Tabs: **This Week's Paper** (`#paper`), **League & Teams** (`#league`, added 2026-10-19) and **Player Stats** (`#player-stats`); each tab and every section inside it is linkable, and the tab script opens whichever tab holds the linked section. Any link with `data-tab="…"` (e.g. the paper's League & Teams card) switches tabs. The paper's phone "Jump to" menu was removed (user, 2026-10-27); don't add it back.
 
 **Player Stats is automatic (no copy) and follows the edition week** (user, 2026-10-19): the week N edition shows stats and grading through week N and looks ahead to week N+1 (projections, start/sit, rankings). `render.py` passes N; the midweek refresh passes the newest edition's N (`players.py --week N --patch …`), so it never jumps ahead of the paper. Its CSS ships inside the tab (in `players.CSS`, written into the pane), not in `template.html`, so a midweek `--patch` also carries style changes. `template.html` also has a `<meta name="viewport">` (added 2026-10-19) so the league site uses the phone layout on phones. `render.py` fills `<!--PLAYERSTATS-->` with `players.build()` from `data/players/*.json`; the pane sits between `<!--PS-->` and `<!--/PS-->` so it can be swapped in place. Sections, all PPR:
 1. **Player Lookup** (replaced Current Data, 2026-10-26): see "Player Lookup" below.
@@ -171,9 +171,9 @@ Also Trend Lines, Steady or Streaky, Player Face-Off and Defense Matchups (see "
 
 ## Phone layout (ported to the pipeline 2026-10-19 at the user's request)
 
-The phone layout was first hand-tuned in the Claude copy of the week 5 paper; it now lives in the pipeline so the league site (one link for desktop and phone) and every future edition get it. On phones (≤760px, or touch screens ≤1100px) every table becomes stacked cards, the heat map squeezes to fit, a "Jump to" menu sits under the tabs, a "Back to top" button appears, and long Player Stats lists start at the top 10 with a "Show all" button. Desktop is unchanged.
+The phone layout was first hand-tuned in the Claude copy of the week 5 paper; it now lives in the pipeline so the league site (one link for desktop and phone) and every future edition get it. On phones (≤760px, or touch screens ≤1100px) every table becomes stacked cards, the heat map squeezes to fit, a "Back to top" button appears, and long Player Stats lists start at the top 10 with a "Show all" button. Desktop is unchanged.
 - `mobile.py`: `tag()` gives every table `mcards` (+ `has-own`, `sN` on Player Stats tables) and every `<td>` its role (`c-rk`, `c-name`, `c-own`, `c-wide`, `c-key`, `data-tail`) and a `data-label` from its column header. `render.py` runs it on the finished page; `players.build()` runs it on the Player Stats pane so midweek `--patch` refreshes keep the cards. It holds `PHONE_CSS`, `JUMP_NAV` and `PHONE_JS` as the reference copies of what's in `template.html`.
-- `template.html`: the phone CSS (end of the main style), the jump menu (`{{NEXTWEEK}}` forecast label; links to sections missing that week hide themselves), `id="blotter"` on the Police Blotter section, and the phone scripts after the page.
+- `template.html`: the phone CSS (end of the main style), `id="blotter"` on the Police Blotter section, and the phone scripts after the page.
 - Verified: the week 5 rebuild matches the hand-tuned Claude copy table for table (all 20 tables identical).
 
 ## Unofficial previews (added 2026-10-19)
@@ -253,7 +253,7 @@ User: "clean the page up so it looks visually appealing, give some suggestions l
 
 ## No section-link menus (user, 2026-10-26)
 
-The League & Teams and Player Stats heroes no longer have the row of section links (`.lg-jump`, `.ps-jump`); don't add them back. The paper's phone "Jump to" menu is unchanged.
+The League & Teams and Player Stats heroes no longer have the row of section links (`.lg-jump`, `.ps-jump`); don't add them back. The paper's phone "Jump to" menu was removed too (user, 2026-10-27).
 
 ## Week at a Glance folded into The Scoreboard (user, 2026-10-26)
 
@@ -296,7 +296,7 @@ Every original section id is kept, so links to them open the right tab.
 - **Player Stats**: Player Data (search + team tabs; Season / Average / Wk tabs; route tree above Usage) → Player Trends (Volume vs. Scoring without hot/cold lists · Steady or Streaky) → Trend Lines → Rankings & Matchups (Rankings with Week N+1 / Rest of season switch · Projections · Defense Matchups) → Compare Players (Start / Sit · Face-Off) → Rankings vs. Actuals (no Underrated / Overrated lists) → link card to Rule Changes. No section-link menu in the hero.
 - **Rule Changes**: hero with live counts → Your Team → On the Floor → Suggestion Box → League Rulebook → Commissioner (collapsed).
 - **Betting** (fifth tab; see "Betting tab" below): hero → market tabs (Player props · Our league · NFL games) with the bet slip → Bets on the Board → Week N Payouts → With-Bets Standings. A side game; ESPN scores never change.
-- **Never add back**: The Wire, What If?, Boom or Bust, the Power Rankings Over Time line chart, Margin Map, Risers & Fallers, Waiver Targets, Current Data, the "Every graded player" table, the separate Week at a Glance chart, Position Kings tiles, the second sidebar box, hero section-link menus, Running hot / cold lists, Underrated / Overrated lists, memes, trade rumors, the Player Stats source/"Updated" footnote, the Tyler Adams announcement.
+- **Never add back**: The Wire, What If?, Boom or Bust, the Power Rankings Over Time line chart, Margin Map, Risers & Fallers, Waiver Targets, Current Data, the "Every graded player" table, the separate Week at a Glance chart, Position Kings tiles, the second sidebar box, hero section-link menus, Running hot / cold lists, Underrated / Overrated lists, memes, trade rumors, the Player Stats source/"Updated" footnote, the Tyler Adams announcement, the paper's phone "Jump to" menu.
 
 
 ## Betting tab (fifth tab, user 2026-10-26/27; a side game)

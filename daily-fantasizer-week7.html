@@ -755,9 +755,6 @@ footer b{color:var(--honolulu);font-weight:600}
   .rum-stats.rs5 .rs.hot{grid-column:1/-1}
 
   /* ---- less scrolling, fewer taps ---- */
-  .m-jump{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
-  .m-jump .kicker{grid-column:1/-1;margin-bottom:2px}
-  .m-jump a{font-family:var(--mono);font-size:.6rem;letter-spacing:.03em;text-transform:uppercase;text-align:center;color:var(--ink);text-decoration:none;border:1.5px solid var(--rule);padding:7px 2px;background:var(--sheet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .m-top{position:fixed;right:14px;bottom:18px;z-index:20;width:46px;height:46px;border-radius:50%;border:2px solid var(--rule);background:var(--ink);color:var(--sheet);font:600 .62rem var(--mono);letter-spacing:.06em;display:none;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.25)}
   .m-top.show{display:grid}
   section[id],div.sec[id]{scroll-margin-top:12px}
@@ -982,7 +979,6 @@ footer b{color:var(--honolulu);font-weight:600}
 
 <div class="tab-pane" id="paper" role="tabpanel" aria-labelledby="tab-paper">
 
-<nav class="m-jump" style="display:none" aria-label="Jump to section"><span class="kicker">Jump to</span><a href="#games">Scoreboard</a><a href="#positions">Positions</a><a href="#blotter">Blotter</a><a href="#forecast">Wk 8 forecast</a><a href="#matchup">Matchup</a><a href="#league" data-tab="league">League &amp; teams →</a><a href="#player-stats" data-tab="player-stats">Player stats →</a></nav>
 
 <div class="tiles" aria-label="Week 7 by the numbers"><div class="tile"><span class="tile-k">League average</span><b class="num">110.2</b><span class="tile-s"><span>points per team</span></span></div><div class="tile"><span class="tile-k">High score</span><b class="num">147.78</b><span class="tile-s"><i class="lg lg-12 " aria-hidden="true"></i><span>Bedazzled Balls</span></span></div><div class="tile"><span class="tile-k">Low score</span><b class="num">76.82</b><span class="tile-s"><i class="lg lg-5 " aria-hidden="true"></i><span>CeeDeez Nuts</span></span></div><div class="tile"><span class="tile-k">Top player</span><b class="num">36.5</b><span class="tile-s"><i class="lg lg-8 " aria-hidden="true"></i><span>Tony Pollard</span></span></div><div class="tile"><span class="tile-k">Left on benches</span><b class="num">126.64</b><span class="tile-s"><span>across all 12 teams</span></span></div><div class="tile"><span class="tile-k">Perfect lineups</span><b class="num">5</b><span class="tile-s"><i class="lg lg-1 " aria-hidden="true"></i><i class="lg lg-4 " aria-hidden="true"></i><i class="lg lg-8 " aria-hidden="true"></i><i class="lg lg-9 " aria-hidden="true"></i><i class="lg lg-12 " aria-hidden="true"></i><span>4 of them won</span></span></div></div>
 
@@ -2702,8 +2698,6 @@ table.bk-tbl td.n,table.bk-tbl th.n{text-align:right;font-family:var(--mono)}
 (function(){
   var mq=window.matchMedia&&matchMedia('(max-width:760px), (pointer:coarse) and (max-width:1100px)'); if(!mq||!mq.matches)return;
   var top=document.querySelector('.m-top'); top.style.display='';
-  document.querySelectorAll('.m-jump a').forEach(function(a){var h=a.getAttribute('href').slice(1);
-    if(!a.dataset.tab&&!document.getElementById(h))a.remove();});
   addEventListener('scroll',function(){top.classList.toggle('show',scrollY>innerHeight*1.5)},{passive:true});
   top.addEventListener('click',function(){scrollTo({top:0,behavior:'smooth'})});
   document.querySelectorAll('.tabs .tab').forEach(function(b){b.addEventListener('click',function(){scrollTo({top:0})})});
