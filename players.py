@@ -438,8 +438,9 @@ def build(short_names, week=None):
     after("ps-startsit", extra.get("defense")); after("ps-startsit", extra.get("faceoff"))
     # Reading order (user, 2026-10-19: "order the pages so the data makes sense as you scroll"):
     # season so far -> next week -> rest of season -> how the rankings did
-    ORDER = ["ps-lookup", "ps-volume", "ps-steady", "ps-trend",
-             "ps-next", "ps-proj", "ps-defense", "ps-startsit", "ps-faceoff",
+    # Compare Players moved up to sit right after Player Data (user, 2026-10-27)
+    ORDER = ["ps-lookup", "ps-startsit", "ps-faceoff", "ps-volume", "ps-steady", "ps-trend",
+             "ps-next", "ps-proj", "ps-defense",
              "ps-variance"]
     secs = {}
     for h in list(out):

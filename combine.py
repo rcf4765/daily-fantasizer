@@ -126,12 +126,12 @@ def combine(html):
 
 
 PS_GROUPS = [
+    ("ps-compare", "Compare Players", "Two players, head to head", [
+        ("ps-startsit", "Start / Sit"), ("ps-faceoff", "Face-Off")]),
     ("ps-trends", "Player Trends", "Volume and consistency", [
         ("ps-volume", "Volume vs. Scoring"), ("ps-steady", "Steady or Streaky")]),
     ("ps-ranks", "Rankings & Matchups", "Next week, rest of season and who they face", [
         ("ps-next", "Rankings"), ("ps-proj", "Projections"), ("ps-defense", "Defense Matchups")]),
-    ("ps-compare", "Compare Players", "Two players, head to head", [
-        ("ps-startsit", "Start / Sit"), ("ps-faceoff", "Face-Off")]),
 ]
 
 
