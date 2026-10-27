@@ -365,11 +365,11 @@ def faceoff(d, W, short, own_team):
             f'<label><span class="kicker">Player B</span><select id="fo-b"></select></label></div>'
             f'<div class="fo-head" id="fo-head"></div><div class="fo-call" id="fo-call" aria-live="polite"></div><div class="fo-rows" id="fo-rows"></div></div>'
             f'<script type="application/json" id="fo-data">{json.dumps(data, separators=(",", ":")).replace("</", "<\\/")}</script>'
-            f'<p class="note-s">Type any part of a name, a team name, or “FA” for free agents. Players who matter are listed: rostered, ranked or scoring 6+ PPR per game. '
+            f'<details class="fo-how"><summary>How this works</summary><p class="note-s">Type any part of a name, a team name, or “FA” for free agents. Players who matter are listed: rostered, ranked or scoring 6+ PPR per game. '
             f'<b>Short term</b> = weeks {nxt}–{nxt + 1}: blended projections (zero on a bye or ruled out) and how many points his position scores against his week {nxt} opponent '
             f'(100 = league average). <b>Long term</b>: rest of season = his consensus ranking turned into points per game; expected = what his targets, carries and air yards '
             f'usually score (above it = running hot, below = due); playoffs = his weeks {PLAYOFFS[0]}–{PLAYOFFS[-1]} opponents vs. his position. '
-            f'<b>Usage</b> is season-long, with the last-3-games trend. Rostered % is ESPN-wide.</p>')
+            f'<b>Usage</b> is season-long, with the last-3-games trend. Rostered % is ESPN-wide.</p></details>')
     return sec("ps-faceoff", "Player Face-Off", "Type two players · waiver or drop, now and later", body)
 
 
@@ -521,12 +521,14 @@ SCRIPT += r"""<script>
     ['Targets per game',function(r){return r.tg},function(r){return f1(r.tg)},1],
     ['Touches per game',function(r){return r.tch},function(r){return f1(r.tch)},1],
     ['Red-zone looks / g',function(r){return r.rz},function(r){return f1(r.rz)},1,'Red-zone targets + carries per game']]]];
-  function side(r){var inj=(r.inj&&r.inj!=='ACTIVE'&&r.inj!=='NORMAL')?' <span class="inj">'+e(r.inj.replace('_',' ').toLowerCase())+'</span>':'';
-    return '<span class="kicker">'+e(r.pos)+' · '+e(r.tm)+'</span><b>'+e(r.n)+inj+'</b><span class="fo-own">'+(r.o?'<i class="lg lg-'+r.o+' lg-sm"></i>'+e(T[r.o]):'<span class="own fa">FA</span>')+
-      (r.rp!=null?'<small>'+r.rp+'% rostered</small>':'')+'</span>'}
+  function side(r,c){var inj=(r.inj&&r.inj!=='ACTIVE'&&r.inj!=='NORMAL')?'<span class="inj">'+e(r.inj.replace('_',' ').toLowerCase())+'</span>':'';
+    return '<div class="fo-card fo-c'+c+'"><div class="fo-crest">'+(r.o?'<i class="lg lg-'+r.o+' lg-md"></i>':'<span class="fo-fa">FA</span>')+'</div>'+
+      '<div class="fo-id"><span class="fo-tag">'+e(r.pos)+' · '+e(r.tm)+'</span><b class="fo-nm">'+e(r.n)+'</b>'+inj+
+      '<span class="fo-own">'+(r.o?e(T[r.o]):'Free agent')+'</span>'+
+      (r.rp!=null?'<span class="fo-rp" title="Rostered in '+r.rp+'% of ESPN leagues"><i style="width:'+Math.min(100,r.rp)+'%"></i></span><small class="fo-rpt">'+r.rp+'% rostered on ESPN</small>':'')+'</div></div>'}
   function last(n){return n.split(' ').filter(function(w){return !/^(jr\.?|sr\.?|ii|iii|iv)$/i.test(w)}).pop()}
   function draw(){var a=by[A.value],b=by[B.value];if(!a||!b)return;var same=a.k===b.k;
-    H.innerHTML='<div class="fo-ha">'+side(a)+'</div><span class="fo-hv">vs.</span><div class="fo-hb">'+side(b)+'</div>';
+    H.innerHTML=side(a,'a')+'<span class="fo-hv">vs</span>'+side(b,'b');
     var h='',score=[];
     G.forEach(function(g){var wa=0,wb=0,rows='';
       g[1].forEach(function(m){var va=m[1](a),vb=m[1](b),dir=m[3];
@@ -535,16 +537,20 @@ SCRIPT += r"""<script>
         if(aw)wa++;if(bw)wb++;
         var la=0,lb=0;if(dir>0&&va!=null&&vb!=null){var mx=Math.max(va,vb,0.1);la=Math.max(0,va)/mx*100;lb=Math.max(0,vb)/mx*100}
         else if(dir<0&&va!=null&&vb!=null){var mn=Math.max(Math.min(va,vb),0.1);la=mn/Math.max(va,0.1)*100;lb=mn/Math.max(vb,0.1)*100}
-        rows+='<div class="fo-r"'+(m[4]?' title="'+e(m[4])+'"':'')+'><span class="fo-a'+(aw?' win':'')+'"><b class="num">'+m[2](a)+'</b>'+(dir?'<i style="width:'+la.toFixed(1)+'%"></i>':'')+'</span><span class="fo-m">'+m[0]+(m[4]?' <abbr title="'+e(m[4])+'">?</abbr>':'')+'</span>'+
-           '<span class="fo-b'+(bw?' win':'')+'">'+(dir?'<i style="width:'+lb.toFixed(1)+'%"></i>':'')+'<b class="num">'+m[2](b)+'</b></span></div>'});
+        rows+='<div class="fo-r'+(dir?'':' fo-nb')+'"'+(m[4]?' title="'+e(m[4])+'"':'')+'><span class="fo-a'+(aw?' win':'')+'"><b class="num">'+m[2](a)+'</b>'+(dir?'<span class="fo-t"><i style="width:'+la.toFixed(1)+'%"></i></span>':'')+'</span>'+
+           '<span class="fo-m">'+m[0]+(m[4]?' <abbr title="'+e(m[4])+'">?</abbr>':'')+'</span>'+
+           '<span class="fo-b'+(bw?' win':'')+'">'+(dir?'<span class="fo-t"><i style="width:'+lb.toFixed(1)+'%"></i></span>':'')+'<b class="num">'+m[2](b)+'</b></span></div>'});
       score.push([wa,wb]);
-      h+='<div class="fo-g"><div class="fo-gh"><span class="'+(wa>wb?'win':'')+'">'+wa+'</span><h4>'+g[0]+'</h4><span class="'+(wb>wa?'win':'')+'">'+wb+'</span></div>'+rows+'</div>'});
+      var tot=wa+wb||1,gt=g[0].split(' · ');
+      h+='<div class="fo-g"><div class="fo-gh"><h4>'+gt[0]+(gt[1]?' <small>'+gt[1]+'</small>':'')+'</h4>'+
+         '<div class="fo-sc"><b class="fo-sa'+(wa>wb?' win':'')+'">'+wa+'</b><span class="fo-split"><i class="fo-sa" style="width:'+(wa/tot*100).toFixed(1)+'%"></i><i class="fo-sb" style="width:'+(wb/tot*100).toFixed(1)+'%"></i></span><b class="fo-sb'+(wb>wa?' win':'')+'">'+wb+'</b></div>'+
+         '</div>'+rows+'</div>'});
     R.innerHTML=h;
     if(same){C.innerHTML='<p>Pick two different players.</p>';return}
     // verdicts: short term = next two weeks' projected points; long term = rest-of-season points per game
     var sa=(a.p1||0)+(a.p2||0),sb=(b.p1||0)+(b.p2||0),la=a.ros||0,lb=b.ros||0;
     var sw=Math.abs(sa-sb)<1.5?null:(sa>sb?a:b),lw=Math.abs(la-lb)<0.5?null:(la>lb?a:b);
-    function v(t,w,d,u){return '<div class="fo-v"><span class="kicker">'+t+'</span><b>'+(w?e(last(w.n)):'Toss-up')+'</b><small>'+(w?'by '+d.toFixed(1)+' '+u:'within '+(u==='pts'?'1.5 points':'half a point a game'))+'</small></div>'}
+    function v(t,w,d,u){return '<div class="fo-v '+(w?(w===a?'fo-wa':'fo-wb'):'fo-wt')+'"><span class="fo-vk">'+t+'</span><b>'+(w?e(last(w.n)):'Toss-up')+'</b><small>'+(w?'by '+d.toFixed(1)+' '+u:'within '+(u==='pts'?'1.5 points':'half a point a game'))+'</small></div>'}
     var call='';
     var fa=!a.o&&b.o?a:!b.o&&a.o?b:null,kept=fa?(fa===a?b:a):null;
     if(fa){
@@ -565,7 +571,9 @@ SCRIPT += r"""<script>
       call=lw&&(sw===lw||!sw)?'<b>'+e(lw.n)+'</b> is the better hold, now and later.':lw&&sw?'<b>'+e(sw.n)+'</b> for the next two weeks, <b>'+e(lw.n)+'</b> for the rest of the season.':sw?'<b>'+e(sw.n)+'</b> for the next two weeks; long term it\'s close.':'<b>Too close to call.</b>';
     }
     call=call.replace(/\.(<\/b>)?\./g,'.$1');
-    C.innerHTML='<div class="fo-vs2">'+v('Short term',sw,Math.abs(sa-sb),'pts')+v('Long term',lw,Math.abs(la-lb),'pts/g')+'</div><p class="fo-say">'+call+'</p>';
+    var plain=call.replace(/<[^>]+>/g,''),tag=/^Grab/.test(plain)?['Grab','go']:/^Stash/.test(plain)?['Stash','go']:/^Fine to swap/.test(plain)?['Swap','go']:/^Streamer/.test(plain)?['Stream','mid']:
+      /^Keep/.test(plain)?['Keep','stop']:/^Close call/.test(plain)?['Close call','mid']:/^If you add/.test(plain)?['Add','go']:/^(Toss|Too close)/.test(plain)?['Toss-up','mid']:['Hold','mid'];
+    C.innerHTML='<div class="fo-vs2">'+v('Short term',sw,Math.abs(sa-sb),'pts')+v('Long term',lw,Math.abs(la-lb),'pts/g')+'</div><div class="fo-say"><span class="fo-pill '+tag[1]+'">'+tag[0]+'</span><p>'+call+'</p></div>';
   }
   A.addEventListener('change',draw);B.addEventListener('change',draw);draw();
   [A,B,document.getElementById('ss-a'),document.getElementById('ss-b')].forEach(function(s){if(s)window.dfCombo(s)});
@@ -628,40 +636,71 @@ SCRIPT += r"""<script>
 </script>"""
 
 CSS += r"""
-/* Player Face-Off */
-.fo{display:grid;gap:12px}
+/* Player Face-Off (restyled 2026-10-27): A in Honolulu blue, B in slate; bars grow out from the middle */
+.fo{--fa:var(--honolulu);--fb:var(--muted);display:grid;gap:14px}
 .fo-pick{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:end}
 .fo-pick label{display:grid;gap:4px;min-width:0}
-.fo-pick select{font:inherit;font-size:.95rem;padding:7px 10px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);width:100%}
-.fo-vs,.fo-hv{font-family:var(--display);font-weight:900;font-size:1.3rem;color:var(--muted);padding-bottom:6px;text-align:center}
-.fo-head{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;padding:12px 14px;border:3px solid var(--rule);background:radial-gradient(var(--dot) 1.2px,transparent 1.4px) 0 0/8px 8px,var(--sheet)}
-.fo-ha,.fo-hb{display:grid;gap:3px;min-width:0}.fo-ha{text-align:right;justify-items:end}
-.fo-head b{font-family:var(--display);font-weight:900;font-size:clamp(1.2rem,3vw,1.9rem);text-transform:uppercase;line-height:1}
-.fo-head b .inj{font-family:var(--mono);font-size:.6rem;vertical-align:middle;margin-left:4px}
-.fo-own{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
-.fo-rows{display:grid}
-.fo-r{display:grid;grid-template-columns:minmax(0,1fr) 150px minmax(0,1fr);gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line)}
-.fo-m{font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
-.fo-a,.fo-b{display:flex;align-items:center;gap:8px}.fo-a{flex-direction:row-reverse}
-.fo-a i,.fo-b i{display:block;height:12px;max-width:70%;background:var(--silver)}
-.fo-a.win i{background:var(--blue)}.fo-b.win i{background:var(--ink)}
-.fo-a b,.fo-b b{font-size:.9rem;font-weight:400;flex:0 0 96px;width:96px;overflow-wrap:anywhere}.fo-a b{text-align:left}.fo-b b{text-align:right;margin-left:auto}
-.fo-a.win b,.fo-b.win b{font-weight:700}
-.fo-g{display:grid;margin-top:6px}
-.fo-gh{display:grid;grid-template-columns:40px 1fr 40px;align-items:center;border-bottom:3px solid var(--rule);padding:4px 0}
-.fo-gh h4{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;text-align:center;margin:0}
-.fo-gh span{font-family:var(--display);font-weight:900;font-size:1.3rem;color:var(--muted)}.fo-gh span:last-child{text-align:right}
-.fo-gh span.win{color:var(--blue)}
-.fo-m abbr{text-decoration:none;border:1px solid var(--line);border-radius:50%;padding:0 4px;font-size:.55rem;cursor:help}
-.fo-a b small,.fo-b b small{font-family:var(--mono);font-size:.62rem;font-weight:400;color:var(--muted);display:block;line-height:1.2;white-space:normal}
-.fo-a b small.hot{color:var(--red)}.fo-a b small.due,.fo-b b small.due{color:var(--blue)}.fo-b b small.hot{color:var(--red)}
-.fo-tr{font-size:.7rem;font-weight:700}.fo-tr.up{color:var(--blue)}.fo-tr.dn{color:var(--red)}
-.fo-own small{font-family:var(--mono);font-size:.62rem}
-.fo-call{display:grid;gap:8px;border:3px solid var(--rule);border-top:8px solid var(--honolulu);padding:10px 14px;background:var(--sheet)}
+.fo-pick label:first-child .cb-in{border-left:6px solid var(--fa)}
+.fo-pick label:last-child .cb-in{border-left:6px solid var(--fb)}
+.fo-vs{font-family:var(--display);font-weight:900;font-size:1.1rem;color:var(--muted);padding-bottom:9px;text-align:center}
+.fo-head{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:stretch}
+.fo-hv{align-self:center;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--rule);color:var(--sheet);font-family:var(--display);font-weight:900;font-size:.95rem;text-transform:uppercase}
+.fo-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;padding:14px;background:var(--sheet);border:2px solid var(--line);min-width:0}
+.fo-ca{border-top:8px solid var(--fa)}.fo-cb{border-top:8px solid var(--fb);grid-template-columns:minmax(0,1fr) auto;text-align:right}
+.fo-cb .fo-crest{order:2}.fo-cb .fo-id{justify-items:end}
+.fo-crest .lg-md{width:52px;height:52px}
+.fo-fa{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--hi);color:var(--hi-ink);font-family:var(--mono);font-weight:700;font-size:.85rem}
+.fo-id{display:grid;gap:3px;min-width:0}
+.fo-tag{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fo-nm{font-family:var(--display);font-weight:900;font-size:clamp(1.15rem,2.6vw,1.75rem);text-transform:uppercase;line-height:1;overflow-wrap:anywhere}
+.fo-ca .fo-nm{color:var(--fa)}
+.fo-id .inj{justify-self:start;font-family:var(--mono);font-size:.6rem}.fo-cb .fo-id .inj{justify-self:end}
+.fo-own{font-size:.82rem;color:var(--ink);font-weight:600}
+.fo-rp{display:block;width:100%;max-width:150px;height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:3px}
+.fo-rp i{display:block;height:100%;background:var(--fa);border-radius:3px}.fo-cb .fo-rp i{background:var(--fb);margin-left:auto}
+.fo-rpt{font-family:var(--mono);font-size:.6rem;color:var(--muted)}
+/* verdict */
+.fo-call{display:grid;gap:12px;padding:14px;background:var(--sheet);border:3px solid var(--rule)}
 .fo-vs2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.fo-v{display:grid;gap:1px}.fo-v b{font-family:var(--display);font-weight:900;font-size:1.5rem;text-transform:uppercase;line-height:1.05}
+.fo-v{display:grid;gap:2px;padding:10px 12px;border-left:6px solid var(--line);background:var(--paper)}
+.fo-v.fo-wa{border-color:var(--fa)}.fo-v.fo-wb{border-color:var(--fb)}
+.fo-vk{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.fo-v b{font-family:var(--display);font-weight:900;font-size:1.5rem;text-transform:uppercase;line-height:1.05}
+.fo-v.fo-wa b{color:var(--fa)}.fo-v.fo-wt b{color:var(--muted)}
 .fo-v small{font-family:var(--mono);font-size:.66rem;color:var(--muted)}
-.fo-say{margin:0;font-size:.95rem;line-height:1.4}
+.fo-say{display:flex;gap:10px;align-items:flex-start}
+.fo-say p{margin:0;font-size:.98rem;line-height:1.45}
+.fo-pill{flex:none;font-family:var(--mono);font-weight:700;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;margin-top:2px;white-space:nowrap}
+.fo-pill.go{background:var(--blue);color:var(--blue-ink)}.fo-pill.mid{background:var(--hi);color:var(--hi-ink)}.fo-pill.stop{background:var(--rule);color:var(--sheet)}
+/* groups */
+.fo-rows{display:grid;gap:18px}
+.fo-g{display:grid}
+.fo-gh{display:grid;gap:8px;padding-bottom:8px;border-bottom:3px solid var(--rule);margin-bottom:2px}
+.fo-gh h4{font-family:var(--display);font-weight:900;font-size:1.15rem;text-transform:uppercase;margin:0;text-align:center;letter-spacing:.01em}
+.fo-gh h4 small{display:block;font-family:var(--mono);font-weight:400;font-size:.62rem;letter-spacing:.08em;color:var(--muted);margin-top:2px}
+.fo-sc{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.fo-sc b{font-family:var(--display);font-weight:900;font-size:1.25rem;min-width:24px;text-align:center;color:var(--muted)}
+.fo-sc b.fo-sa.win{color:var(--fa)}.fo-sc b.fo-sb.win{color:var(--ink)}
+.fo-split{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--line);gap:2px}
+.fo-split i{display:block;height:100%}.fo-split i.fo-sa{background:var(--fa)}.fo-split i.fo-sb{background:var(--fb)}
+/* rows */
+.fo-r{display:grid;grid-template-columns:minmax(0,1fr) 150px minmax(0,1fr);gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.fo-m{font-family:var(--mono);font-size:.64rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:center;line-height:1.3}
+.fo-m abbr{text-decoration:none;border:1px solid var(--line);border-radius:50%;padding:0 4px;font-size:.55rem;cursor:help}
+.fo-a,.fo-b{display:flex;align-items:center;gap:8px;min-width:0}
+.fo-t{flex:1;display:flex;height:10px;background:var(--paper);border-radius:5px;overflow:hidden;min-width:0}
+.fo-a .fo-t{justify-content:flex-end}
+.fo-t i{display:block;height:100%;border-radius:5px;background:var(--silver)}
+.fo-a.win .fo-t i{background:var(--fa);opacity:1}.fo-b.win .fo-t i{background:var(--fb);opacity:1}
+.fo-a b,.fo-b b{font-size:.92rem;font-weight:500;flex:0 0 96px;width:96px;overflow-wrap:anywhere;line-height:1.15}
+.fo-a b{text-align:left}.fo-b b{text-align:right}
+.fo-a.win b{font-weight:800;color:var(--fa)}.fo-b.win b{font-weight:800}
+.fo-nb .fo-a b,.fo-nb .fo-b b{flex:1;width:auto}
+.fo-a b small,.fo-b b small{font-family:var(--mono);font-size:.6rem;font-weight:400;color:var(--muted);display:block;line-height:1.2;white-space:normal;margin-top:1px}
+.fo-a b small.hot,.fo-b b small.hot{color:var(--red)}.fo-a b small.due,.fo-b b small.due{color:var(--blue)}
+.fo-how summary{cursor:pointer;font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:6px 0}
+.fo-how[open] summary{color:var(--ink)}
+.fo-tr{font-size:.7rem;font-weight:700}.fo-tr.up{color:var(--blue)}.fo-tr.dn{color:var(--red)}
 /* type-to-search player box (user, 2026-10-27) */
 .cb{position:relative;min-width:0}
 .cb-in{font:inherit;font-size:.95rem;padding:8px 10px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink);width:100%;min-width:0;border-radius:0;-webkit-appearance:none;appearance:none}
@@ -673,12 +712,6 @@ CSS += r"""
 .cb-list li em{grid-column:2;grid-row:1/span 2;align-self:center;font-style:normal;font-family:var(--mono);font-size:.62rem;color:var(--muted);text-align:right;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cb-list li[aria-selected="true"],.cb-list li:hover{background:var(--paper)}
 .cb-list li.cb-none{cursor:default;color:var(--muted);font-size:.85rem}
-.fo-sum{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;border-top:3px solid var(--rule);padding-top:8px}
-.fo-sum span{display:grid;font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.fo-sum span:first-child{text-align:right}
-.fo-sum b{font-family:var(--display);font-size:2rem;font-weight:900;color:var(--ink);letter-spacing:0}
-.fo-sum .win b{color:var(--blue)}
-.fo-sum .fo-sv{font-family:var(--display);font-weight:900;font-size:1.05rem;color:var(--ink);text-align:center;letter-spacing:.02em}
 /* Steady or Streaky (reuses the Volume vs. Scoring plot styles) */
 .p-QB{background:var(--silver)}
 .sw.p-QB{width:10px;height:10px;border-radius:50%}
@@ -698,11 +731,18 @@ CSS += r"""
 .st-bars{display:flex;align-items:flex-end;gap:3px;height:34px;border-bottom:1px solid var(--line)}
 .st-bars i{display:block;flex:1;background:var(--blue);min-height:2px}
 @media (max-width:760px){
-  .fo-r{grid-template-columns:minmax(0,1fr) 92px minmax(0,1fr);gap:6px}.fo-m{font-size:.54rem;letter-spacing:.02em}.fo-a b,.fo-b b{font-size:.78rem;flex:0 0 60px;width:60px}
-  .fo-head{padding:9px}.fo-own{font-size:.68rem}.fo-pick{gap:6px}.fo-pick select{font-size:.8rem;padding:6px}
-  .fo-pick{grid-template-columns:1fr;gap:4px}.fo-pick .fo-vs{padding:0;font-size:1rem}.cb-in{font-size:16px}
-  .fo-v b{font-size:1.15rem}.fo-say{font-size:.88rem}.fo-call{padding:9px 10px}.fo-gh h4{font-size:.6rem}
-  .fo-own{flex-wrap:wrap;gap:2px 6px}.fo-ha .fo-own{justify-content:flex-end}
+  .fo-pick{grid-template-columns:1fr;gap:4px}.fo-pick .fo-vs{padding:0;font-size:.9rem}.cb-in{font-size:16px}
+  .fo-head{grid-template-columns:1fr 1fr;gap:6px;position:relative}
+  .fo-hv{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:32px;height:32px;font-size:.72rem;z-index:1;box-shadow:0 0 0 3px var(--sheet)}
+  .fo-card,.fo-cb{grid-template-columns:1fr;gap:6px;padding:10px;text-align:left}
+  .fo-cb{text-align:right}.fo-cb .fo-crest{order:0;justify-self:end}
+  .fo-crest .lg-md,.fo-fa{width:36px;height:36px}.fo-fa{font-size:.7rem}
+  .fo-nm{font-size:1.05rem}.fo-own{font-size:.72rem}.fo-rp{max-width:none}
+  .fo-call{padding:10px}.fo-v{padding:8px 9px}.fo-v b{font-size:1.1rem}.fo-say p{font-size:.88rem}.fo-say{flex-direction:column;gap:6px}
+  .fo-gh h4{font-size:1rem}
+  .fo-r{grid-template-columns:minmax(0,1fr) 84px minmax(0,1fr);gap:6px;padding:6px 0}.fo-m{font-size:.52rem;letter-spacing:.02em}
+  .fo-a,.fo-b{gap:5px}.fo-a b,.fo-b b{font-size:.8rem;flex:0 0 54px;width:54px}.fo-t{height:8px}
+  .fo-a b small,.fo-b b small{font-size:.52rem}
   .st{aspect-ratio:1.05}.st .q{font-size:.52rem}
 }
 """
