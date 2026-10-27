@@ -1418,8 +1418,8 @@ tr[hidden]{display:none}
   .dv{grid-template-columns:40px repeat(4,minmax(0,1fr)) 62px;min-width:0}.dv-c{flex-direction:column;align-items:center;gap:0;padding:4px 1px}.dv-c b{font-size:.74rem}.dv-o{font-size:.58rem;padding-left:4px}.dv-t{font-size:.85rem}
 }
 
-/* Player Face-Off (restyled 2026-10-27): A in Honolulu blue, B in slate; bars grow out from the middle */
-.fo{--fa:var(--honolulu);--fb:var(--muted);display:grid;gap:14px}
+/* Player Face-Off (restyled 2026-10-27): A in Honolulu blue, B in yellow (user); yellow is a fill, text on it stays ink; bars grow out from the middle */
+.fo{--fa:var(--honolulu);--fb:var(--hi);display:grid;gap:14px}
 .fo-pick{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:end}
 .fo-pick label{display:grid;gap:4px;min-width:0}
 .fo-pick label:first-child .cb-in{border-left:6px solid var(--fa)}
@@ -1431,7 +1431,7 @@ tr[hidden]{display:none}
 .fo-ca{border-top:8px solid var(--fa)}.fo-cb{border-top:8px solid var(--fb);grid-template-columns:minmax(0,1fr) auto;text-align:right}
 .fo-cb .fo-crest{order:2}.fo-cb .fo-id{justify-items:end}
 .fo-crest .lg-md{width:52px;height:52px}
-.fo-fa{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--hi);color:var(--hi-ink);font-family:var(--mono);font-weight:700;font-size:.85rem}
+.fo-fa{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--paper);color:var(--ink);border:2px dashed var(--muted);font-family:var(--mono);font-weight:700;font-size:.85rem}
 .fo-id{display:grid;gap:3px;min-width:0}
 .fo-tag{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .fo-nm{font-family:var(--display);font-weight:900;font-size:clamp(1.15rem,2.6vw,1.75rem);text-transform:uppercase;line-height:1;overflow-wrap:anywhere}
@@ -1449,11 +1449,12 @@ tr[hidden]{display:none}
 .fo-vk{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .fo-v b{font-family:var(--display);font-weight:900;font-size:1.5rem;text-transform:uppercase;line-height:1.05}
 .fo-v.fo-wa b{color:var(--fa)}.fo-v.fo-wt b{color:var(--muted)}
+.fo-v.fo-wb{background:var(--fb);border-color:var(--fb)}.fo-v.fo-wb b,.fo-v.fo-wb small,.fo-v.fo-wb .fo-vk{color:var(--hi-ink)}
 .fo-v small{font-family:var(--mono);font-size:.66rem;color:var(--muted)}
 .fo-say{display:flex;gap:10px;align-items:flex-start}
 .fo-say p{margin:0;font-size:.98rem;line-height:1.45}
 .fo-pill{flex:none;font-family:var(--mono);font-weight:700;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;margin-top:2px;white-space:nowrap}
-.fo-pill.go{background:var(--blue);color:var(--blue-ink)}.fo-pill.mid{background:var(--hi);color:var(--hi-ink)}.fo-pill.stop{background:var(--rule);color:var(--sheet)}
+.fo-pill.go{background:var(--blue);color:var(--blue-ink)}.fo-pill.mid{background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 2px var(--rule)}.fo-pill.stop{background:var(--rule);color:var(--sheet)}
 /* groups */
 .fo-rows{display:grid;gap:18px}
 .fo-g{display:grid}
@@ -1462,7 +1463,7 @@ tr[hidden]{display:none}
 .fo-gh h4 small{display:block;font-family:var(--mono);font-weight:400;font-size:.62rem;letter-spacing:.08em;color:var(--muted);margin-top:2px}
 .fo-sc{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
 .fo-sc b{font-family:var(--display);font-weight:900;font-size:1.25rem;min-width:24px;text-align:center;color:var(--muted)}
-.fo-sc b.fo-sa.win{color:var(--fa)}.fo-sc b.fo-sb.win{color:var(--ink)}
+.fo-sc b.fo-sa.win{color:var(--fa)}.fo-sc b.fo-sb.win{color:var(--hi-ink);background:var(--fb);border-radius:4px;padding:0 6px}
 .fo-split{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--line);gap:2px}
 .fo-split i{display:block;height:100%}.fo-split i.fo-sa{background:var(--fa)}.fo-split i.fo-sb{background:var(--fb)}
 /* rows */
