@@ -10,7 +10,7 @@ so the card carries all of their numbers too:
 - Graded (was "Every graded player"): every completed week's consensus position rank -> actual finish at the
   position, PPR points vs. the consensus projection, plus the season averages (avg rank, avg finish, spots vs.
   rank, points vs. projection).
-- Usage (was Current Data): games, snap %, target share, air-yards share, WOPR, targets/g, touches/g.
+- Usage (was Current Data): games, snap %, routes run % (WR/TE) or RB touch share (RB), target share, air-yards share, WOPR, targets/g, touches/g.
 - WR/TE: targets, catches, catch %, yards, TDs, air yards, aDOT, unrealized air yards (air yards on all targets
   minus the air yards he actually caught = air yards - (receiving yards - YAC)), YAC, YAC/catch, YAC over expected,
   separation, cushion, RACR, first downs, drops, broken tackles, red-zone / end-zone / deep (20+) targets.
@@ -390,8 +390,12 @@ SCRIPT = r"""<script>
     // route tree sits above Usage (user, 2026-10-26)
     var tr=isW?(p.pos==='QB'?wkv.prt:wkv.rt):(p.pos==='QB'?p.prt:p.rt);
     h+='<div class="lk-blk"><h4>'+(p.pos==='QB'?'Passing tree':'Route tree')+' <small>'+(p.pos==='QB'?'which routes his throws went to':p.pos==='RB'?'running back routes, from his targets':'from his targets')+' · '+(isW?'week '+VIEW:VIEW==='A'?'per game, weeks 1–'+D.W:'weeks 1–'+D.W)+'</small></h4>'+tree(tr||{},p.pos==='RB'?'rb':'wr',p.pos==='QB')+'</div>';
+    var sx=null;
     if(p.pos==='QB')h+=grid('Usage',[gl,['Snap %',pc(u[0])],[isW?'Pass att':'Pass att / g',isW?n(t.att):f((t.att||0)/g)],[isW?'Dropbacks':'Dropbacks / g',isW?n((t.att||0)+(t.sk||0)):f(((t.att||0)+(t.sk||0))/g)],[isW?'Carries':'Carries / g',isW?n(t.car):f((t.car||0)/g)]]);
-    else h+=grid('Usage',[gl,['Snap %',pc(u[0])],['Target share',pc(u[1],1)],['Air-yd share',p.pos==='RB'||p.pos==='QB'?'–':pc(u[2],1)],['WOPR',u[3]==null?'–':f(u[3],2),'Weighted opportunity: 1.5 × target share + 0.7 × air-yards share'],[isW?'Targets':'Targets / g',isW?n(u[4]):f(u[4])],[isW?'Touches':'Touches / g',isW?n(u[5]):f(u[5])]]);
+    // % routes run (WR/TE) and % of team RB touches (RB) (user, 2026-10-27); same ratio in every view
+    else{sx=p.pos==='RB'?['RB touch share',t.rbt?pc(((t.car||0)+(t.rec||0))/t.rbt*100):'–','His carries + catches ÷ every carry and catch by his team\'s running backs']
+      :['Routes run',t.tdb?pc(Math.min(1,(t.rte||0)/t.tdb)*100):'–',t.tdb?'Dropbacks he was on the field for ÷ his team\'s dropbacks':'Route data for this season isn\'t public yet'];
+    h+=grid('Usage',[gl,['Snap %',pc(u[0])],sx,['Target share',pc(u[1],1)],['Air-yd share',p.pos==='RB'||p.pos==='QB'?'–':pc(u[2],1)],['WOPR',u[3]==null?'–':f(u[3],2),'Weighted opportunity: 1.5 × target share + 0.7 × air-yards share'],[isW?'Targets':'Targets / g',isW?n(u[4]):f(u[4])],[isW?'Touches':'Touches / g',isW?n(u[5]):f(u[5])]]);}
     var c=t.car||0;
     if(p.pos==='RB'){
       h+=grid('Rushing',[['Carries',n(c)],['Rush yards',n(t.uy||0)],['YPC',c?f((t.uy||0)/c):'–'],['Rush TD',n(t.utd||0)],

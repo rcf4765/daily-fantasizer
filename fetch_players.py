@@ -381,6 +381,16 @@ def advanced():
                 d[k] = round(v, 4) if k in ("ts", "ays", "wopr") else round(v, 2)
         name_team[(norm(x["player_display_name"]), x["team"])] = pid
         name_team.setdefault((norm(x["player_display_name"]), None), pid)
+    # % of team RB touches (user, 2026-10-27): carries + catches over all of his team's RBs that week
+    rbt, rbwk = {}, []
+    for x in rows:
+        if x.get("season_type") == "REG" and x.get("position") == "RB":
+            t = (num(x.get("carries")) or 0) + (num(x.get("receptions")) or 0)
+            rbt[(x["team"], x["week"])] = rbt.get((x["team"], x["week"]), 0) + t
+            rbwk.append((x["player_id"], x["team"], x["week"]))
+    for pid, tm, w in rbwk:
+        if rbt.get((tm, w)):
+            wk(pid, w)["rbt"] = int(rbt[(tm, w)])
     find = lambda n, t: name_team.get((norm(n), t)) or name_team.get((norm(n), None))
     # PFR advanced: yards before/after contact, broken tackles, drops, bad throws, pressure
     for kind, cols in (("rush", {"ybc": "rushing_yards_before_contact", "yaco": "rushing_yards_after_contact", "brk": "rushing_broken_tackles"}),
@@ -420,6 +430,20 @@ def advanced():
                         d[k] = round(v, 3)
         except Exception as e:
             print("adv: NGS", kind, "failed:", e)
+    # % routes run (user, 2026-10-27): WR/TE on the field for a dropback ÷ his team's dropbacks that week.
+    # Needs nflverse participation (offense_players per play) for this season; without it the page shows a dash.
+    part = {}
+    try:
+        r = get(f"pbp_participation/pbp_participation_{SEASON}.csv")
+        if r.status_code == 200 and r.text[:200].count(",") > 3:
+            for x in csv.DictReader(io.StringIO(r.text)):
+                op = x.get("offense_players") or ""
+                if op:
+                    part[(x.get("nflverse_game_id") or x.get("old_game_id"), x.get("play_id"))] = op.split(";")
+        print("adv: participation rows:", len(part))
+    except Exception as e:
+        print("adv: participation failed:", e)
+    tdb, routes, rteam = {}, {}, {}
     # play by play: target trees, passing trees, red zone / end zone / goal line
     try:
         import gzip
@@ -428,6 +452,12 @@ def advanced():
             if x.get("season_type") != "REG" or x.get("play_deleted") == "1" or x.get("two_point_attempt") == "1":
                 continue
             w = x["week"]; yl = num(x.get("yardline_100"))
+            if x.get("qb_dropback") == "1" and x.get("posteam"):
+                tdb[(x["posteam"], w)] = tdb.get((x["posteam"], w), 0) + 1
+                for pid in part.get((x.get("game_id"), x.get("play_id")), []):
+                    if pid in P and P[pid]["pos"] in ("WR", "TE"):
+                        routes[(pid, w)] = routes.get((pid, w), 0) + 1
+                        rteam[(pid, w)] = x["posteam"]
             if x.get("pass_attempt") == "1" and x.get("sack") != "1" and x.get("qb_spike") != "1":
                 z = _zone(x.get("air_yards"), x.get("pass_location"))
                 c = x.get("complete_pass") == "1"
@@ -458,6 +488,11 @@ def advanced():
                     if yl <= 5: d["glc"] = d.get("glc", 0) + 1
     except Exception as e:
         print("adv: play-by-play failed:", e)
+    if routes:
+        for (pid, w), n in routes.items():
+            d = wk(pid, w); d["rte"] = n
+            d["tdb"] = tdb.get((rteam[(pid, w)], w), 0)
+    print("adv: route counts for", len({k[0] for k in routes}), "WR/TE")
     for p in P.values():  # zeros are implied: keeps the file small
         for d in p["wk"].values():
             for k in [k for k, v in d.items() if v == 0 or v is None]:
