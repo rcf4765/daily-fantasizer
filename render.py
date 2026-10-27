@@ -515,5 +515,7 @@ left = re.findall(r"<!--(?!PS-->)[A-Z0-9]+-->|\{\{[A-Z_]+\}\}|\{[TS]\d+\}", out)
 missing_tab = [k for k in ('id="tab-props"', 'id="proposals"', 'href="#proposals" data-tab="proposals"', 'id="po-data"') if k not in out]
 if missing_tab:
     sys.exit(f"Rule Changes tab missing from the page ({missing_tab}); restore it in template.html")
+import combine as _combine
+out = _combine.combine(out)  # League & Teams in five tabbed sections (user, 2026-10-26)
 open(f"daily-fantasizer-week{W}.html", "w", encoding="utf-8").write(out)
 print(f"daily-fantasizer-week{W}.html", len(out), "chars; leftover placeholders:", left)

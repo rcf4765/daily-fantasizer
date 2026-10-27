@@ -28,6 +28,7 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 | `strength.py` | Builds the Roster Radar section (lineup-slot radar per team, season vs. rest of season); called by `render.py` | no |
 | `teams.py` | Matchup of the Week (paper), Manager Report Card, One-Man Show, Trade Matchmaker (League & Teams); called by `render.py` | no |
 | `lookup.py` | Player Lookup (Player Stats tab): type a name, get one card with every fantasy and real-life number on him, graded weeks and a route tree; called by `players.build` | no |
+| `combine.py` | Groups League & Teams into five tabbed sections (Standings, Season Scoring, Managers, Roster Radar, Moves); run by `render.py` on the finished page, `python3 combine.py FILE…` for built pages | no |
 | `glossary.py` | Tap-to-explain abbreviations (PPR, YAC, aDOT, WOPR, team codes, WR12…) on every tab, and the phone Top button pinned to the bottom-right corner; the block lives at the end of `template.html`, `python3 glossary.py FILE…` adds it to built pages | no |
 | `desk.py` | Player Stats additions: Trend Lines, Steady or Streaky, Player Face-Off, Defense Matchups; called by `players.build` so the midweek refresh keeps them | no |
 | `data/players/` | Player Stats data (ESPN, nflverse, FantasyPros) | refreshed by Actions |
@@ -259,3 +260,13 @@ The separate Week at a Glance chart is gone. Each Scoreboard game now uses its b
 ## Points by Position (user, 2026-10-26)
 
 Position Kings was folded into Points by Position, which is now one full-width section: thin stacked bars per team (starters only) with each team's total, small light white position labels (Consolas, falling back to the site's mono font, with a drop shadow; a label that doesn't fit its segment is left off), the week's best team at each slot outlined in black, and a key with each slot's league average. Tapping or hovering a segment shows a tag with team, position, points and "best in the league" when it is. No kings tiles. Week 6 got it spliced in without re-rendering.
+
+## League & Teams in five sections (user, 2026-10-26)
+
+`combine.py` (called at the end of `render.py`) regroups the tab; every chart, caption and section id is kept, only the big titles move into a blue tab switch:
+- **Standings**: Power Rankings · Playoff Odds · Full Table (the Pecking Order; button and table hidden on phones as before)
+- **Season Scoring**: Heat Map · Floor & Ceiling · Good or Lucky?
+- **Managers**: Report Card · Bench Shame · One-Man Show
+- **Roster Radar** (unchanged)
+- **Moves**: Waivers · Trade Desk (only with a completed trade) · On the Block · Matchmaker
+A link to any original section id opens its tab. Sections that are missing in a week simply have no button. The tab is ~40% shorter. Weeks 5 and 6 were regrouped in place.
