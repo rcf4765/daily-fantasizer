@@ -130,7 +130,7 @@ def viz(v):
             f'<div><span>{T(r["team"], True) if "team" in r else esc(r["label"])}</span><i class="b{" alt" if r.get("alt") else ""}" style="width:{r["value"]/mx*100:.1f}%"></i><span class="num">{g(r["value"])}</span></div>'
             for r in v["rows"]) + "</div>"
     return ""
-sidebar = "".join(f'<div class="box{" hi" if b.get("style") == "hi" else ""}"><span class="kicker">{esc(b["kicker"])}</span><h3>{esc(b["title"])}</h3>{viz(b.get("viz"))}<p>{fill(b["text"])}</p></div>' for b in C["sidebar"])
+sidebar = "".join(f'<div class="box{" hi" if b.get("style") == "hi" else ""}"><span class="kicker">{esc(b["kicker"])}</span><h3>{esc(b["title"])}</h3>{viz(b.get("viz"))}<p>{fill(b["text"])}</p></div>' for b in [x for x in C["sidebar"] if x.get("style") == "hi"][:1] or C["sidebar"][:1])  # one box only: the "Strange but true" one (user, 2026-10-26)
 
 
 # ---------- scoreboard (actual + bench) ----------
