@@ -172,12 +172,19 @@ for g_ in sorted(games, key=lambda g_: g_["margin"]):
     rc = key(w, l, C["recaps"]) or {"headline": "", "text": ""}
     gm = max(TF[w]["optimal"], TF[l]["optimal"], g_["ws"])
     def lane(t, s):
+        # Week at a Glance's bar style inside each game (user, 2026-10-26): one scale for every game, striped bench
+        # gap up to the best possible lineup, dashed league-average line
         o = TF[t]["optimal"]
-        return (f'<div class="lane"><span class="lane-t">{lg(t)}</span><span class="lane-track"><span class="lane-bar {"w" if t == w else "l"}" style="width:{s/gm*100:.1f}%"></span>'
-                f'<span class="lane-opt" style="left:{o/gm*100:.1f}%" title="Best lineup {f2(o)}"></span></span><b class="num">{f2(s)}</b></div>')
+        return (f'<div class="gl-lane" title="{esc(teams[t]["name"])}: {f2(s)} scored, {f2(o)} possible">'
+                f'<span class="br-name">{lg(t)}<span>{esc(SHORT[t])}</span></span>'
+                f'<span class="br-track" style="--grid:{50/MAX*100:.2f}%"><span class="br-bar {"w" if t == w else "l"}" style="width:{s/MAX*100:.2f}%"></span>'
+                f'<span class="br-gap" style="left:{s/MAX*100:.2f}%;width:{(o-s)/MAX*100:.2f}%"></span><span class="avg" style="left:{avgp:.2f}%"></span></span>'
+                f'<span class="br-val num">{f2(s)}<em>+{o-s:.1f} bench</em></span></div>')
     flag = '<span class="flag">Best lineup would have won</span>' if g_["loser_optimal_would_win"] else ""
-    game_cards.append(f'''<article class="game"><div class="g-head"><span class="kicker">{esc(SHORT[w])} def. {esc(SHORT[l])}</span><span class="margin num">+{g_["margin"]:.2f}</span></div>
+    game_cards.append(f'''<article class="game gl"><div class="g-head"><span class="kicker">{esc(SHORT[w])} def. {esc(SHORT[l])}</span><span class="margin num">+{g_["margin"]:.2f}</span></div>
 {lane(w, g_["ws"])}{lane(l, g_["ls"])}<h3>{esc(rc["headline"])}</h3>{flag}<p>{fill(rc["text"])}</p></article>''')
+
+game_cards.insert(0, f'<div class="gl-key legend"><span><i class="sw w"></i>Won</span><span><i class="sw l"></i>Lost</span><span><i class="sw gap"></i>Left on the bench (to the best possible lineup)</span><span><i class="sw avg"></i>League average {L["avg"]:.1f}</span></div>')
 
 # ---------- honor ----------
 ho = C["honor"]
