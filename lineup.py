@@ -7,19 +7,21 @@ Who sees it: only a device that claimed the owner's team (league.json `owner_tea
 `fz-team` sign-in in localStorage. Everyone else never sees the tab button or the panel. It is hidden, not secret:
 the numbers are in the page source, like every roster on the site.
 
-How the projection is chosen (re-checked every build, so it follows the data as the season goes):
-1. Every QB/RB/WR/TE starts from the blended projection (mean of the FantasyPros consensus and ESPN), the same
-   number the rest of Player Stats uses.
-2. Back-test: for every player-week from week 3 to the edition week, rebuild what we knew before that week
-   (season PPR/g, last 3, target-share and snap trends, the opponent's points allowed to the position, the Vegas
-   implied team total, FantasyPros vs ESPN disagreement) and fit those as adjustments to the blend (ridge, leave
-   one week out). The adjustments are used only if they beat the plain blend out of sample by 1%+; otherwise the
-   blend stands. (Through week 7 they didn't: last-3 form picked the right player in close calls less often than
-   a coin flip, and matchup / Vegas were already priced into the consensus.)
-3. Uncertainty from the same back-test: the miss grows with the projection (sd = a + b x projection, fit on the
-   residuals); QBs separately; kickers and D/STs from ESPN's own misses in the weekly dumps.
-4. Injury status (ESPN): out / IR / suspended = 0; doubtful counts 30%; questionable 93% (inactives come 90
-   minutes before kickoff, so most of the risk is in-game). Byes = 0.
+How the projection is chosen (re-checked on every build):
+1. QB/RB/WR/TE: the blended projection (mean of FantasyPros consensus and ESPN), as the rest of Player Stats.
+2. Lineup back-test on every team (team_backtest, user 2026-10-28: "validate the model on every team"): all 12
+   teams' lineups are re-picked for every finished week and scored with the real points. Alternatives (ESPN only,
+   FantasyPros only, last-3 form, per-position source weights, and ridge adjustments for last 3, season PPR/g,
+   matchup, Vegas implied total, target-share and snap trends, FP-ESPN gap) are fit leave-one-week-out and replace
+   the blend only if their lineups beat it by more than two standard errors. Weeks 1-7 (84 lineups): blend 116.2
+   pts/week vs managers 112.9, ESPN only 114.8, last-3 115.5, adjustments 115.9, tuned weights 116.4 (+0.16 ± 0.48,
+   noise), hindsight 126.3. Picking for win chance chose the same lineups as picking for points in all 84.
+3. Uncertainty: sd = a + b x projection fit on this league's misses; QB constant; K/D-ST from ESPN's misses.
+4. Injuries: out / IR / suspended / bye = 0; doubtful 30%. Questionable = what questionable players score when they
+   play (learned from data/players/inj_log.json, written by every refresh until the week's Sunday 1pm kickoff, and
+   pulled toward a 90% prior; capped at 100%), because inactives are known 90 minutes before kickoff and you can
+   swap. If no eligible backup kicks off at the same time or later, his chance to play (learned the same way,
+   prior 75%) is applied too and the lineup is searched again.
 
 The lineup: every legal QB / 2 RB / 2 WR / TE / FLEX / D/ST / K from the owner's roster is scored and the one
 with the best chance to beat this week's opponent wins (their best projected lineup, same model; normal model
@@ -204,8 +206,6 @@ def calibrate(d, W):
             rep["fp"] = sum(abs(r["y"] - r["fp"]) for r in both) / len(both)
             rep["es"] = sum(abs(r["y"] - r["es"]) for r in both) / len(both)
             rep["blend_both"] = sum(abs(r["y"] - r["base"]) for r in both) / len(both)
-        if best and best[0] < 0.99 * mae_b:
-            cal["adj"][grp] = _ridge([_feats(r) for r in R], [r["y"] - r["base"] for r in R], best[1])
         cal["rep"][grp] = rep
     # close calls: when two skill players are projected within 3 points, how often does each signal pick the winner?
     cc = {"base": [0, 0], "l3": [0, 0]}
@@ -231,7 +231,195 @@ def calibrate(d, W):
     for ps, dflt in (("K", 4.5), ("D/ST", 6.0)):
         m = miss.get(ps) or []
         cal["sd"][ps] = (math.sqrt(sum(e * e for e in m) / len(m)) if len(m) >= 20 else dflt, 0.0)
+    cal["q"] = q_calibrate(d, W)
+    cal["wfp"] = {}
+    team_backtest(d, W, cal)
     return cal
+
+
+# ------------------------------------------------------------------ injury tags (questionable players)
+INJ_LOG = "data/players/inj_log.json"
+Q_PRIOR = {"play": (0.75, 8), "ratio": (0.90, 50.0)}   # prior: 3 in 4 questionable players play; 90% of projection when they do
+
+
+def log_injuries(d, N):
+    """Save each player's ESPN injury tag and blended projection for week N, so later builds can measure how
+    questionable players really did. Written on every refresh until the week's Sunday 1pm games start (the Sunday
+    11:47am refresh is the last word); data/players is committed by the refresh workflows."""
+    G = _games(_sched(), N)
+    kos = sorted(g["ko"] for g in G.values() if g.get("ko"))
+    if not kos:
+        return
+    sunday = [k for k in kos if datetime.fromisoformat(k.replace("Z", "+00:00")).weekday() == 6]
+    lock = (sunday or kos)[0]
+    if datetime.now(timezone.utc) >= datetime.fromisoformat(lock.replace("Z", "+00:00")):
+        return
+    try:
+        log = json.load(open(INJ_LOG))
+    except Exception:
+        log = {}
+    wk = {}
+    for p in d.P:
+        inj = p.get("inj") or "ACTIVE"
+        if inj in ("ACTIVE", "NORMAL"):
+            continue
+        e = d.ecr.get(p["key"], {}).get(N) or {}
+        fp = float(e["r2p_pts"]) if e.get("r2p_pts") not in (None, "") else None
+        es = p["proj"].get(N)
+        vals = [x for x in (fp, es) if x is not None]
+        wk[p["key"]] = [inj, round(sum(vals) / len(vals), 2) if vals else None]
+    log[str(N)] = {"at": d.meta.get("fetched", ""), "p": wk}
+    with open(INJ_LOG, "w") as f:
+        json.dump(log, f, separators=(",", ":"), sort_keys=True)
+
+
+def q_calibrate(d, W):
+    """How questionable players did in finished weeks: share who played, and points / projection when they did.
+    Pulled toward the prior until there is enough data."""
+    try:
+        log = json.load(open(INJ_LOG))
+    except Exception:
+        log = {}
+    n = played = 0; act = proj = 0.0; weeks = []
+    for w, v in log.items():
+        w = int(w)
+        if w > W:
+            continue
+        got = False
+        for k, (inj, pr) in v.get("p", {}).items():
+            if inj != "QUESTIONABLE" or not pr or pr < 5:
+                continue
+            p = d.by.get(k)
+            a = (p or {}).get("act", {}).get(w) if p else None
+            pl = bool(a and (a["tgt"] or a["ru_att"] or a["pa_att"] or a["pts"]))
+            n += 1; played += pl; got = True
+            if pl:
+                act += a["pts"]; proj += pr
+        if got:
+            weeks.append(w)
+    (p0, k0), (r0, s0) = Q_PRIOR["play"], Q_PRIOR["ratio"]
+    return {"n": n, "played": played, "weeks": sorted(weeks), "act": act, "proj": proj,
+            "play": (played + p0 * k0) / (n + k0), "ratio": min(1.0, (act + r0 * s0) / (proj + s0))}
+
+
+# ------------------------------------------------------------------ lineup back-test on every team
+def team_backtest(d, W, cal):
+    """Re-pick every team's lineup every finished week with the model and score it with what the players actually
+    scored. Alternatives (FantasyPros weight per position; form / matchup / Vegas / usage adjustments) are fit
+    leave-one-week-out and replace the 50/50 blend only if their lineups beat it by more than two standard errors."""
+    import strength as S
+    from facts import load as _load
+    sch = _sched(); T = sch.get("teams", {})
+    weeks = [w for w in range(1, W + 1) if os.path.exists(f"data/week{w}_raw.txt")]
+    rows, tw = [], []
+    for w in weeks:
+        meta, slots, teams, sched, ros = _load(f"data/week{w}_raw.txt")[:5]
+        G = _games(sch, w); imp = {t: g["imp"] for t, g in G.items() if g["imp"] is not None}
+        mimp = sum(imp.values()) / len(imp) if imp else 0
+        dv, avg = _allowed(d, w)
+        opp = {}
+        for g in sched:
+            if g["wk"] == w:
+                opp[g["home"]] = g["ap"]; opp[g["away"]] = g["hp"]
+        for t, pl in ros.items():
+            idx = []
+            for x in pl:
+                if x["slot"] == "IR":
+                    continue
+                r = {"w": w, "pos": x["pos"], "y": x["pts"], "es": x["proj"], "start": x["slot"] != "BE", "fp": None, "f": None}
+                if x["pos"] in POS:
+                    key = _norm(x["name"]) + "|" + x["pos"]
+                    e = d.ecr.get(key, {}).get(w)
+                    r["fp"] = float(e["r2p_pts"]) if e and e.get("r2p_pts") not in (None, "") else None
+                    p = d.by.get(key)
+                    if p is not None and x["proj"] > 0:
+                        prev = [k for k in d.games(p) if k < w]
+                        if len(prev) >= 2:
+                            r["f"] = _row(d, p, w, prev, r["fp"], x["proj"], dv, avg, imp, mimp, T)
+                idx.append(len(rows)); rows.append(r)
+            tw.append((w, t, idx, sum(rows[i]["y"] for i in idx if rows[i]["start"]), opp.get(t)))
+
+    def mu_blend(r, wf=None):
+        if r["es"] == 0:
+            return 0.0
+        if r["pos"] not in POS or r["fp"] is None:
+            return r["es"]
+        a = (wf or {}).get(r["pos"], 0.5)
+        return a * r["fp"] + (1 - a) * r["es"]
+
+    def pick(idx, mu):
+        by = lambda ps: sorted([i for i in idx if rows[i]["pos"] == ps], key=lambda i: -mu[i])
+        s = by("QB")[:1] + by("RB")[:2] + by("WR")[:2] + by("TE")[:1] + by("D/ST")[:1] + by("K")[:1]
+        return s + sorted([i for i in idx if rows[i]["pos"] in ("RB", "WR", "TE") and i not in s], key=lambda i: -mu[i])[:1]
+
+    def fit_w(train):
+        out = {}
+        for ps in POS:
+            R = [r for r in train if r["pos"] == ps and r["fp"] is not None and r["es"] > 0]
+            out[ps] = min([k / 10 for k in range(11)], key=lambda a: sum(abs(r["y"] - (a * r["fp"] + (1 - a) * r["es"])) for r in R)) if len(R) >= 20 else 0.5
+        return out
+
+    def fit_adj(train):
+        out = {}
+        for g, ps in (("QB", ("QB",)), ("skill", ("RB", "WR", "TE"))):
+            R = [r for r in train if r["pos"] in ps and r["f"]]
+            out[g] = _ridge([_feats(r["f"]) for r in R], [r["y"] - r["f"]["base"] for r in R], 5000) if len(R) >= 30 else None
+        return out
+
+    def mu_adj(r, beta):
+        m = mu_blend(r)
+        if r["f"] and m > 0:
+            b = beta.get("QB" if r["pos"] == "QB" else "skill")
+            if b:
+                m = max(0.0, m + sum(c * x for c, x in zip(b, _feats(r["f"]))))
+        return m
+
+    variants = {
+        "blend": lambda w: (lambda r: mu_blend(r)),
+        "espn": lambda w: (lambda r: r["es"]),
+        "fp": lambda w: (lambda r: (0.0 if r["es"] == 0 else r["fp"] if r["fp"] is not None else r["es"])),
+        "l3": lambda w: (lambda r: (r["f"]["l3"] if r["f"] else mu_blend(r))),
+        "weights": lambda w: (lambda wf: (lambda r: mu_blend(r, wf)))(fit_w([r for r in rows if r["w"] != w])),
+        "adjusted": lambda w: (lambda b: (lambda r: mu_adj(r, b)))(fit_adj([r for r in rows if r["w"] != w])),
+        "hindsight": lambda w: (lambda r: r["y"]),
+    }
+    res = {}
+    for name, mk in variants.items():
+        f = {w: mk(w) for w in weeks}
+        pts, wins = [], 0
+        for (w, t, idx, mgr, o) in tw:
+            mu = {i: f[w](rows[i]) for i in idx}
+            v = sum(rows[i]["y"] for i in pick(idx, mu)); pts.append(v)
+            wins += o is not None and v > o
+        res[name] = {"pts": pts, "avg": sum(pts) / len(pts) if pts else 0, "wins": wins}
+    mgr = [x[3] for x in tw]
+    res["managers"] = {"pts": mgr, "avg": sum(mgr) / len(mgr) if mgr else 0, "wins": sum(1 for x in tw if x[4] is not None and x[3] > x[4])}
+    base = res["blend"]["pts"]
+    for name, v in res.items():
+        dd = [a - b for a, b in zip(v["pts"], base)]
+        m = sum(dd) / len(dd) if dd else 0
+        se = math.sqrt(sum((x - m) ** 2 for x in dd) / (len(dd) - 1)) / math.sqrt(len(dd)) if len(dd) > 1 else 0
+        v["gain"], v["se"] = m, se
+    dm = [a - b for a, b in zip(base, mgr)]
+    res["blend"]["better"] = sum(1 for x in dm if x > .01); res["blend"]["worse"] = sum(1 for x in dm if x < -.01)
+    # adopt an alternative only when its lineups clearly beat the blend's
+    choice = "blend"
+    for name in ("weights", "adjusted"):
+        v = res[name]
+        if v["gain"] > 0 and v["gain"] > 2 * v["se"] and v["gain"] > res.get(choice, {}).get("gain", 0):
+            choice = name
+    if choice == "weights":
+        cal["wfp"] = fit_w(rows)
+    elif choice == "adjusted":
+        b = fit_adj(rows); cal["adj"] = {k: v for k, v in b.items() if v}
+    cal["team"] = {"choice": choice, "n": len(tw), "weeks": [weeks[0], weeks[-1]] if weeks else [],
+                   **{k: {kk: vv for kk, vv in v.items() if kk != "pts"} for k, v in res.items()}}
+    return cal
+
+
+def _norm(n):
+    import players as _P
+    return _P.norm(n)
 
 
 def project(d, W, cal):
@@ -262,6 +450,9 @@ def project(d, W, cal):
             r = None; mu = 0.0
         else:
             r = _row(d, p, N, prev, fp, es, dv, avg, imp, mimp, T)
+            wf = cal.get("wfp", {}).get(p["pos"], 0.5)
+            if fp is not None and es is not None:
+                r["base"] = wf * fp + (1 - wf) * es
             mu = r["base"]
             grp = "QB" if p["pos"] == "QB" else "skill"
             beta = cal["adj"].get(grp)
@@ -274,6 +465,10 @@ def project(d, W, cal):
             mu, sd, st = 0.0, 0.0, "bye"
         elif inj in OUT:
             mu, sd, st = 0.0, 0.0, "out"
+        elif inj == "QUESTIONABLE":
+            # inactives are out 90 min before kickoff, so you can swap: count what he scores when he plays.
+            # section() takes his chance of sitting off too when no backup kicks off at the same time or later.
+            mu *= cal["q"]["ratio"]; sd *= cal["q"]["ratio"]; st = "Q"
         elif inj in PPLAY:
             q = PPLAY[inj]
             sd = math.sqrt(q * sd * sd + q * (1 - q) * mu * mu)
@@ -460,6 +655,10 @@ def _rowhtml(slot, x, mx, extra=""):
 
 def section(d, W, short, own_team):
     N = W + 1
+    try:
+        log_injuries(d, N)
+    except Exception as e:
+        print("injury log skipped:", e)
     cal = calibrate(d, W)
     P = project(d, W, cal)
     K = kdst(W, cal)
@@ -479,7 +678,25 @@ def section(d, W, short, own_team):
     if opp_id:
         _, ob = optimize([x for x in P.values() if x["o"] == opp_id], [x for x in K.values() if x["o"] == opp_id])
         opp = ob
+    names = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "D/ST", "K"]
     (slots, mu, var), (pslots, pmu, pvar) = optimize(mine, mykd, (opp[1], opp[2]) if opp else None)
+    # A questionable starter only gets the "swap him if inactive" credit when a backup who could replace him kicks
+    # off at the same time or later; otherwise his chance of sitting counts against him and the search runs again.
+    qp = cal["q"]["play"]
+    for _ in range(3):
+        ids = {x["k"] for x in slots}; changed = False
+        for i, s in enumerate(slots):
+            if s["st"] != "Q" or s.get("qlock"):
+                continue
+            later = [b for b in mine if b["k"] not in ids and b["st"] not in ("bye", "out", "none") and b["mu"] > 0
+                     and (b["pos"] == s["pos"] or (names[i] == "FLEX" and b["pos"] in ("RB", "WR", "TE")))
+                     and (b.get("ko") or "") >= (s.get("ko") or "")]
+            if not later:
+                s["sd"] = math.sqrt(qp * s["sd"] ** 2 + qp * (1 - qp) * s["mu"] ** 2); s["mu"] *= qp
+                s["qlock"] = True; changed = True
+        if not changed:
+            break
+        (slots, mu, var), (pslots, pmu, pvar) = optimize(mine, mykd, (opp[1], opp[2]) if opp else None)
     pw = Phi((mu - opp[1]) / math.sqrt(max(var + opp[2], 1e-6))) if opp else None
     mx = max([x["mu"] + .84 * x["sd"] for x in slots + mine + mykd] + [1])
     started = {x["k"] for x in slots}
@@ -563,25 +780,37 @@ def section(d, W, short, own_team):
         oppfold = (f'<details class="lu-fold"><summary>{sname(opp_id)}\'s best projected lineup · {opp[1]:.1f}</summary><div class="lu-list">'
                    + "".join(_rowhtml(names[i], s, mx) for i, s in enumerate(opp[0])) + '</div></details>')
 
-    # how this works, with the back-test numbers
-    rs, rq = cal["rep"].get("skill", {}), cal["rep"].get("QB", {})
-    used = "adjusted" if cal["adj"] else "plain"
-    cc = cal["close"]
+    # track record: every team's lineups, every finished week
+    tm = cal.get("team") or {}
+    track = ""
+    if tm.get("n"):
+        lab = [("hindsight", "Perfect hindsight"), ("blend", "This model"), ("fp", "FantasyPros only"), ("weights", "Tuned source weights"),
+               ("adjusted", "Form, matchup, Vegas, usage added"), ("espn", "ESPN only"), ("l3", "Last-3 form"), ("managers", "What managers started")]
+        vals = [tm[k]["avg"] for k, _ in lab if k in tm]
+        lo, hi = min(vals) - 2, max(vals)
+        rows_ = "".join(
+            f'<div class="lu-tr{" lu-me" if k == tm["choice"] else ""}"><span>{t}</span><span class="lu-tb"><i style="width:{(tm[k]["avg"] - lo) / (hi - lo) * 100:.0f}%"></i></span>'
+            f'<b class="num">{tm[k]["avg"]:.1f}</b><small class="num">{tm[k]["wins"]} W</small></div>' for k, t in lab if k in tm)
+        bl = tm["blend"]
+        track = (f'<details class="lu-fold"><summary>Tested on every team · weeks {tm["weeks"][0]}–{tm["weeks"][1]}</summary>'
+                 f'<div class="lu-trk">{rows_}</div>'
+                 f'<p class="note-s">All 12 teams\' lineups re-picked every week ({tm["n"]} lineups), scored with what the players really scored; points per week and wins. '
+                 f'The model beat the manager\'s actual lineup {bl["better"]} times, matched it {tm["n"] - bl["better"] - bl["worse"]} and fell short {bl["worse"]}. '
+                 f'Tuned and adjusted versions are fit without the week they pick for and replace the model only if they clearly beat it '
+                 f'(this week: {"none did; small gaps here are noise" if tm["choice"] == "blend" else "the " + dict(lab)[tm["choice"]].lower() + " version is in use"}).</p></details>')
+    qq = cal["q"]
     how = (f'<details class="fo-how lu-how"><summary>How this works</summary><div class="note-s">'
-           f'<p><b>Projection.</b> Each player starts from the blended projection (FantasyPros consensus and ESPN, averaged). '
-           f'Every build re-tests weeks {cal["weeks"][0]}–{cal["weeks"][1]} ({cal["n"]} player-weeks): {", ".join(FEATS)} are tried as adjustments, '
-           f'and kept only if they beat the blend on weeks they weren\'t fit on. This week the {used} blend is used'
-           + (f' (RB/WR/TE miss: blend {rs["blend"]:.2f} pts, with adjustments {rs["adj"]:.2f}, last-3 average {rs["l3"]:.2f}' if rs.get("adj") is not None else "")
-           + (f'; QB: {rq["blend"]:.2f} vs {rq["adj"]:.2f}' if rq.get("adj") is not None else "") + ")."
-           + (f' Average miss when both sources posted a number, RB/WR/TE: blend {rs["blend_both"]:.2f}, FantasyPros alone {rs["fp"]:.2f}, ESPN alone {rs["es"]:.2f}.' if rs.get("fp") else "")
-           + (f' In close calls (projections within 3 points) the blend picked the higher scorer {cc["base"] * 100:.0f}% of the time; last-3 form, {cc["l3"] * 100:.0f}%.' if cc.get("base") and cc.get("l3") else "")
-           + '</p>'
-           f'<p><b>Range.</b> Floor and ceiling are the 20th and 80th percentile, from how far projections missed in this league\'s data '
-           f'(RB/WR/TE about {cal["sd"]["skill"][0]:.1f} + {cal["sd"]["skill"][1]:.2f} × projection; QB {cal["sd"]["QB"][0]:.1f}; K {cal["sd"]["K"][0]:.1f}; D/ST {cal["sd"]["D/ST"][0]:.1f}). '
-           f'Questionable counts {PPLAY["QUESTIONABLE"] * 100:.0f}% of his projection, doubtful {PPLAY["DOUBTFUL"] * 100:.0f}%, out, IR and byes zero. Kickers and defenses use ESPN\'s projection.</p>'
-           f'<p><b>Lineup.</b> Every legal QB / 2 RB / 2 WR / TE / FLEX / D/ST / K from your roster is scored against {sname(opp_id) if opp_id else "your opponent"}\'s best projected lineup, '
+           f'<p><b>Projection.</b> FantasyPros consensus and ESPN, averaged. When every team\'s lineups were re-picked, nothing tried clearly beat it: '
+           f'ESPN alone and last-3 form did worse, and the gaps for FantasyPros alone, per-position source weights and adding {", ".join(FEATS)} were within the noise. '
+           f'The test re-runs on each refresh and switches only when an alternative wins by more than two standard errors.</p>'
+           f'<p><b>Injuries.</b> Out, IR and byes are zero; doubtful {PPLAY["DOUBTFUL"] * 100:.0f}%. Questionable: {qq["ratio"] * 100:.0f}% of his projection, since you can swap him '
+           f'if he\'s inactive 90 minutes before kickoff; if no backup kicks off at the same time or later, his {qq["play"] * 100:.0f}% chance to play counts too. '
+           f'Learned from this season\'s tags ({qq["played"]} of {qq["n"]} questionable players played' + (f', weeks {", ".join(map(str, qq["weeks"]))}' if qq["weeks"] else "") + '), still leaning on a prior until more weeks are logged.</p>'
+           f'<p><b>Range.</b> Floor and ceiling are the 20th and 80th percentile, from how far projections missed in this league '
+           f'(RB/WR/TE about {cal["sd"]["skill"][0]:.1f} + {cal["sd"]["skill"][1]:.2f} × projection; QB {cal["sd"]["QB"][0]:.1f}; K {cal["sd"]["K"][0]:.1f}; D/ST {cal["sd"]["D/ST"][0]:.1f}). Kickers and defenses use ESPN\'s projection.</p>'
+           f'<p><b>Lineup.</b> Every legal QB / 2 RB / 2 WR / TE / FLEX / D/ST / K is scored against {sname(opp_id) if opp_id else "your opponent"}\'s best projected lineup, '
            f'and the one with the best chance to win is shown (a QB and his own receivers count as linked). Bench percentages = his chance to outscore the starter he\'d replace. '
-           f'Tap any player for every stat behind his number. Refreshes Tuesday to Thursday, Saturday and Sunday 11:47am with new projections and injury news.</p></div></details>')
+           f'Tap any player for every stat behind his number. Refreshes Tuesday to Thursday, Saturday and Sunday 11:47am.</p></div></details>')
 
     upd = esc(d.meta.get("fetched", ""))
     body = ('<div class="lu">' + hero + swap
@@ -592,7 +821,7 @@ def section(d, W, short, own_team):
             + f'<details class="lu-fold" open><summary>Bench · {len(bench)}</summary><div class="lu-list">{"".join(brows)}</div></details>'
             + (f'<details class="lu-fold"><summary>On the wire · would start for you</summary><div class="lu-list">{fa_html}</div>'
                + (f'<p class="note-s">You\'re {wr} of 12 on waivers. Gains are projected points over the starter he\'d replace this week.</p>' if wr else "") + '</details>' if fa_html else "")
-            + oppfold + how
+            + oppfold + track + how
             + f'<p class="note-s lu-upd">Week {N} · data as of {upd} UTC · only shown on your signed-in phone</p></div>')
     return (f'<section class="sec" id="ps-lineup"><div class="sec-head"><h2>Optimal Lineup</h2>'
             f'<span class="kicker">Week {N} · your team only</span></div>{body}</section>')
@@ -648,6 +877,11 @@ html:not(.fz-owner) #ps-lineup,html:not(.fz-owner) .cmb-sw button[data-k="ps-lin
 .lu-fa{display:grid;grid-template-columns:44px minmax(0,1fr) 56px;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid var(--line)}
 .lu-fa:last-child{border-bottom:0}.lu-gain{font-family:var(--display);font-size:1.3rem;text-align:right;color:var(--blue)}
 .lu-upd{margin:0}
+.lu-trk{display:grid;gap:6px;padding:10px;border:2px solid var(--rule);background:var(--sheet)}
+.lu-tr{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(60px,1fr) 46px 34px;align-items:center;gap:8px;font-size:.84rem}
+.lu-tb{height:9px;background:var(--heat0);border-radius:5px;overflow:hidden}.lu-tb i{display:block;height:100%;background:var(--silver)}
+.lu-tr.lu-me{font-weight:700}.lu-tr.lu-me .lu-tb i{background:var(--honolulu)}
+.lu-tr b{text-align:right}.lu-tr small{font-family:var(--mono);font-size:.62rem;color:var(--muted);text-align:right}
 @media (max-width:760px),(hover:none) and (pointer:coarse) and (max-width:1100px){
   .lu-hero{grid-template-columns:1fr 1fr;padding:12px}.lu-meter{grid-column:1/-1;order:3;min-width:0}
   .lu-team b{font-size:1.8rem}
