@@ -409,8 +409,11 @@ CSS = r"""
 .bk-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .bk-filters input,.bk-filters select{font:inherit;font-size:.92rem;padding:7px 10px;border:2px solid var(--rule);background:var(--sheet);color:var(--ink)}
 .bk-filters input{flex:1 1 220px;max-width:320px}
-.bk-filters .pt{padding:5px 10px}
+.bk-filters .pt{padding:5px 12px;min-height:38px;min-width:44px}
 .bk-board{display:grid;gap:10px}
+.bk-lkbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:2px 0}
+.bk-lkt{appearance:none;font:inherit;color:var(--ink);padding:8px 14px;min-height:38px;border:2px solid var(--rule);background:var(--sheet);cursor:pointer}
+.bk-lkt[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
 .bk-ev{border:2px solid var(--rule);background:var(--sheet);display:grid}
 .bk-ev-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--paper)}
 .bk-ev-h b{font-family:var(--display);font-weight:800;font-size:1.15rem;text-transform:uppercase;display:flex;align-items:center;gap:7px}
@@ -553,6 +556,8 @@ SCRIPT = r"""<script>
     f.querySelectorAll('.pt').forEach(function(b){b.addEventListener('click',function(){pos=b.dataset.p;shown=30;drawFilters();drawBoard()})});
     $('bk-own').addEventListener('change',function(){own=this.value;shown=30;drawBoard()});
   }
+  // usability (2026-11-01): open bets first; games that already kicked off sit behind a "Show locked" button
+  var showLk=false;
   function drawBoard(keepFocus){
     if(!B)return;
     var list=B[grp]||[],h='';
@@ -560,11 +565,18 @@ SCRIPT = r"""<script>
       var t=q.trim().toLowerCase(),m=me();
       list=list.filter(function(ev){return (!pos||ev.pos===pos)&&(!t||ev.name.toLowerCase().indexOf(t)>=0)&&
         (!own||(own==='fa'?!ev.owner:own==='me'?(m&&ev.owner===m.team):String(ev.owner)===own))});
+    }
+    var open=list.filter(function(ev){return !locked(ev.lock)}),lkd=list.filter(function(ev){return locked(ev.lock)});
+    var bar=lkd.length?'<div class="bk-lkbar"><span>'+(open.length?open.length+' open':'Everything here has kicked off')+' · '+lkd.length+' locked</span>'+
+      '<button type="button" class="bk-lkt" id="bk-lkt" aria-pressed="'+showLk+'">'+(showLk?'Hide locked':'Show locked')+'</button></div>':'';
+    list=open.concat(showLk?lkd:[]);
+    if(grp==='props'){
       var n=list.length;list=list.slice(0,shown);
-      h=list.map(function(ev){return evCard(ev,'props')}).join('')+(n>shown?'<button type="button" class="bk-more" id="bk-more">Show more ('+(n-shown)+')</button>':'')+(n?'':'<p class="bk-note">No players match.</p>');
-    } else h=list.length?list.map(function(ev){return evCard(ev,grp)}).join(''):'<p class="bk-note">No games on the board.</p>';
-    $('bk-board').innerHTML=h;
+      h=list.map(function(ev){return evCard(ev,'props')}).join('')+(n>shown?'<button type="button" class="bk-more" id="bk-more">Show more ('+(n-shown)+')</button>':'')+(n||lkd.length?'':'<p class="bk-note">No players match.</p>');
+    } else h=list.length?list.map(function(ev){return evCard(ev,grp)}).join(''):(lkd.length?'':'<p class="bk-note">No games on the board.</p>');
+    $('bk-board').innerHTML=bar+h;
     var mb=$('bk-more');if(mb)mb.addEventListener('click',function(){shown+=30;drawBoard()});
+    var lt=$('bk-lkt');if(lt)lt.addEventListener('click',function(){showLk=!showLk;shown=30;drawBoard()});
   }
   document.addEventListener('click',function(ev){
     var b=ev.target.closest&&ev.target.closest('.bk-o');if(!b)return;

@@ -29,6 +29,7 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 | `teams.py` | Matchup of the Week (paper), Manager Report Card, One-Man Show, Trade Matchmaker (League & Teams); called by `render.py` | no |
 | `lookup.py` | Player Lookup (Player Stats tab): type a name, get one card with every fantasy and real-life number on him, graded weeks and a route tree; called by `players.build` | no |
 | `combine.py` | Groups League & Teams into five tabbed sections (Standings, Season Scoring, Managers, Roster Radar, Moves); run by `render.py` on the finished page, `python3 combine.py FILE…` for built pages | no |
+| `ux.py` | Usability block (sticky one-row tab bar with short names on narrow screens, each tab remembers its scroll spot, Top button only while scrolling up, bigger touch targets); lives at the end of `template.html` before the glossary block, `python3 ux.py FILE…` adds it to built pages | no |
 | `glossary.py` | Tap-to-explain abbreviations (PPR, YAC, aDOT, WOPR, team codes, WR12…) on every tab, and the phone Top button pinned to the bottom-right corner; the block lives at the end of `template.html`, `python3 glossary.py FILE…` adds it to built pages | no |
 | `layout_check.py` | Compares a new edition's tabs, sections and order with the published paper (`docs/index.html`); step 7 | no |
 | `lineup.py` | Optimal Lineup (Player Stats › Compare Players, owner's signed-in phone only): back-tested projection, exact lineup search, win chance; called by `players.build` | no |
@@ -289,6 +290,15 @@ The Running hot / Running cold lists are gone; the scatter stands alone (centere
 - **Rankings & Matchups**: Rankings (Week N+1 / Rest of season switch) · Projections · Defense Matchups
 - **Rankings vs. Actuals**: accuracy tiles and last week's beat/missed lists. The Underrated / Overrated all season lists were removed (user, 2026-10-26); don't add them back.
 Every original section id is kept, so links to them open the right tab.
+
+## Usability pass (user, 2026-11-01: "make it as user friendly as possible")
+
+No section added, removed or reordered; `layout_check.py` still matches. All in `ux.py` (block `<!--ux-->`…`<!--/ux-->` in `template.html`, spliced into weeks 5–7 in place) plus one change in `bets.py`:
+- **Tab bar** sticks to the top of the screen while scrolling (subtitles fold away once stuck) and always fits one row: full names above 1000px, short names below (Paper · League · Players · Rules · Bets).
+- **Scroll memory**: switching away from a tab and back returns to the same spot; an unread tab opens at its top under the bar; the link cards at the end of each tab open the next tab at its top. Linked sections land below the sticky bar (`scroll-margin-top`).
+- **Phone Top button** shows only while scrolling up and goes to the top of the current tab (tap again for the masthead).
+- **Touch targets** 38–42px on phones/tablets: group switches, week/view buttons, Player Data team tabs and chips, Betting market tabs and filters, folds.
+- **Betting** board: open bets first; games that already kicked off are hidden behind a "Show locked" button with an "N open · N locked" line.
 
 ## Current layout (FINAL, week 7 edition, 2026-10-27; every new edition must match)
 
