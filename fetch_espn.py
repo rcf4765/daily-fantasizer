@@ -16,11 +16,11 @@ import base64, io, json, math, os, sys, datetime
 import requests
 from PIL import Image
 
-LEAGUE, SEASON = 1196354715, 2026
+LEAGUE, SEASON = int(os.environ.get("FZ_LEAGUE_ID") or 1196354715), int(os.environ.get("FZ_SEASON") or 2026)  # FZ_* = multi-league builds (multi/build_league.py)
 BASE = f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{SEASON}/segments/0/leagues/{LEAGUE}"
 POS = {1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "D/ST"}
 SLOT = {0: "QB", 2: "RB", 4: "WR", 6: "TE", 16: "D/ST", 17: "K", 20: "BE", 21: "IR", 23: "FLEX", 3: "RB/WR", 5: "WR/TE", 7: "OP"}
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.environ.get("FZ_HOME") or os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
 
 S = requests.Session()

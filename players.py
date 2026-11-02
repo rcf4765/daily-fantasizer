@@ -8,7 +8,7 @@ Sources stay in the background: the page shows one blended number, not who said 
 """
 import html, json, math, os, re, sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.environ.get("FZ_HOME") or os.path.dirname(os.path.abspath(__file__))
 D = os.path.join(HERE, "data", "players")
 POS = ["QB", "RB", "WR", "TE"]
 TOP = {"QB": 16, "RB": 30, "WR": 36, "TE": 16}

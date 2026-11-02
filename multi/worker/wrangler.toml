@@ -1,0 +1,22 @@
+# The Daily Fantasizer for any league. Setup steps: multi/SETUP.md
+name = "fantasizer"
+main = "src/index.js"
+compatibility_date = "2026-06-01"
+
+[vars]
+SITE_URL = "https://fantasizer.YOUR-SUBDOMAIN.workers.dev"   # no trailing slash; Yahoo's redirect URI is SITE_URL/auth/yahoo/callback
+GITHUB_REPO = "rcf4765/daily-fantasizer"
+GITHUB_REF = "main"
+# Secrets (npx wrangler secret put NAME): SESSION_SECRET, ENC_KEY, BUILD_TOKEN, GITHUB_TOKEN, YAHOO_CLIENT_ID, YAHOO_CLIENT_SECRET
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fantasizer"
+database_id = "REPLACE-WITH-ID-FROM-wrangler-d1-create"
+
+[[r2_buckets]]
+binding = "PAPERS"
+bucket_name = "fantasizer-papers"
+
+[triggers]
+crons = ["17 10 * * 2", "17 10 * * 3"]   # Tuesday 10:17 UTC (5-6am Eastern), Wednesday retry

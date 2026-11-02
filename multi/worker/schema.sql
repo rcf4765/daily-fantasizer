@@ -1,0 +1,35 @@
+-- The Daily Fantasizer for any league: D1 schema. Apply with: npx wrangler d1 execute fantasizer --remote --file schema.sql
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,               -- yahoo:<guid> (ESPN users have no stored account; their id is espn:<SWID>)
+  platform TEXT NOT NULL,
+  yahoo_refresh TEXT,                -- AES-GCM sealed refresh token (read-only fantasy scope)
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS leagues (
+  slug TEXT PRIMARY KEY,             -- random, the paper lives at /l/<slug>/
+  platform TEXT NOT NULL,            -- espn | yahoo
+  league_id TEXT NOT NULL,           -- ESPN league id, or Yahoo league key (461.l.12345)
+  season INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  teams INTEGER NOT NULL,
+  commissioner_uid TEXT,             -- only this person can open Settings
+  token_uid TEXT,                    -- Yahoo: whose sign-in prints the paper
+  espn_s2 TEXT, swid TEXT,           -- ESPN private leagues: sealed cookies
+  feat_rules INTEGER NOT NULL DEFAULT 0,
+  feat_bets INTEGER NOT NULL DEFAULT 0,
+  accent TEXT NOT NULL DEFAULT '#33658a',
+  comm_code_hash TEXT,               -- sha256 of the commissioner code for the paper's Commissioner panel
+  status TEXT NOT NULL DEFAULT 'queued', status_msg TEXT,
+  last_week INTEGER, last_built_at TEXT, last_dispatch_at TEXT,
+  created_by TEXT, created_at TEXT NOT NULL,
+  UNIQUE (platform, league_id, season)
+);
+CREATE TABLE IF NOT EXISTS members (uid TEXT NOT NULL, slug TEXT NOT NULL, is_comm INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (uid, slug));
+-- league office (same data as the Men Fantasizing Google Sheet tabs)
+CREATE TABLE IF NOT EXISTS claims (slug TEXT NOT NULL, team INTEGER NOT NULL, key_hash TEXT NOT NULL, claimed_at TEXT NOT NULL, PRIMARY KEY (slug, team));
+CREATE TABLE IF NOT EXISTS proposals (slug TEXT NOT NULL, seq INTEGER NOT NULL, id TEXT NOT NULL, team INTEGER NOT NULL, category TEXT, title TEXT, details TEXT,
+  created_at TEXT, deadline TEXT, status TEXT, closed_at TEXT, preset TEXT, PRIMARY KEY (slug, id));
+CREATE TABLE IF NOT EXISTS votes (slug TEXT NOT NULL, proposal TEXT NOT NULL, team INTEGER NOT NULL, choice TEXT NOT NULL, at TEXT NOT NULL, PRIMARY KEY (slug, proposal, team));
+CREATE TABLE IF NOT EXISTS bets (slug TEXT NOT NULL, seq INTEGER NOT NULL, id TEXT NOT NULL, week INTEGER, team INTEGER, stake REAL, legs TEXT, dec REAL, win REAL,
+  placed_at TEXT, status TEXT, PRIMARY KEY (slug, id));
+CREATE TABLE IF NOT EXISTS office_log (slug TEXT NOT NULL, at TEXT NOT NULL, action TEXT, team INTEGER, detail TEXT);

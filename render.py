@@ -39,7 +39,7 @@ tiles = [
     ("High score", f2(TF[L["high"]]["week_pts"]), SHORT[L["high"]], lg(L["high"])),
     ("Low score", f2(TF[L["low"]]["week_pts"]), SHORT[L["low"]], lg(L["low"])),
     ("Top player", g(tp[1]["pts"]), tp[1]["name"], lg(tp[0])),
-    ("Left on benches", f2(L["total_left"]), "across all 12 teams", ""),
+    ("Left on benches", f2(L["total_left"]), f"across all {NT} teams", ""),
     ("Perfect lineups", str(len(perfect)), perfect_caption, "".join(lg(t) for t in perfect)),
 ]
 tiles_html = "".join(f'<div class="tile"><span class="tile-k">{k}</span><b class="num">{v}</b><span class="tile-s">{c}<span>{esc(s)}</span></span></div>' for k, v, s, c in tiles)
@@ -153,6 +153,7 @@ scoreboard = f'''<div class="chart" role="img" aria-label="Week {W} scores by te
 
 # ---------- positions ----------
 POS = ["QB", "RB", "WR", "TE", "FLEX", "D/ST", "K"]
+POS += [s for s in F.get("slots", {}) if s not in POS]  # other leagues: OP, RB/WR, WR/TE (none for Men Fantasizing)
 posd = {t: {p: sum(max(s[3], 0) for s in TF[t]["starters"] if s[2] == p) for p in POS} for t in TF}
 pmx = max(sum(posd[t].values()) for t in TF)
 best_pos = {p: max(TF, key=lambda t: posd[t][p]) for p in POS}

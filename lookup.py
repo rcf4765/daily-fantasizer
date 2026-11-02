@@ -51,7 +51,7 @@ TEAMFIX = {"LA": "LAR", "WAS": "WSH", "JAC": "JAX", "LVR": "LV"}
 
 
 def _load(name):
-    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "players", name)
+    p = os.path.join(os.environ.get("FZ_HOME") or os.path.dirname(os.path.abspath(__file__)), "data", "players", name)
     return json.load(open(p)) if os.path.exists(p) else None
 
 
