@@ -1976,6 +1976,16 @@ section[id],div.sec[id],.tab-pane [id]{scroll-margin-top:64px}
   #betting .bk-mt{min-height:42px}
   .tab-pane details>summary{padding-top:9px;padding-bottom:9px}
 }
+/* ⓘ explanations (user, 2026-11-01): how-it-works notes hide behind an ⓘ on their heading */
+.ux-tuck{display:none!important}
+.ux-i{appearance:none;display:inline-grid;place-items:center;vertical-align:middle;width:1.5em;height:1.5em;min-width:30px;min-height:30px;margin:-6px 0 -6px 4px;padding:0;border:0;background:none;color:var(--honolulu,#0076b6);font:400 1.15rem/1 system-ui,-apple-system,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;letter-spacing:0;text-transform:none}
+.ux-i:hover,.ux-i[aria-expanded="true"]{color:var(--blue)}
+.ux-i:focus-visible{outline:3px solid var(--hi);outline-offset:1px;border-radius:50%}
+h2 .ux-i{font-size:1.25rem}
+.ux-info{border-left:4px solid var(--honolulu,#0076b6);background:var(--paper);color:var(--ink);padding:10px 12px;margin:4px 0 8px;font-size:.88rem;line-height:1.45;display:grid;gap:8px;text-transform:none;letter-spacing:normal;font-family:var(--body);font-weight:400}
+.ux-info[hidden]{display:none}
+.ux-info>*{margin:0!important;display:block!important;max-width:none!important;font-size:inherit!important;color:inherit!important;font-family:var(--body)!important;letter-spacing:normal!important;text-transform:none!important;line-height:1.45!important}
+.ux-info ol,.ux-info ul{display:grid!important}
 </style>
 <script>
 (function(){
@@ -2003,6 +2013,38 @@ section[id],div.sec[id],.tab-pane [id]{scroll-margin-top:64px}
     fresh=false;
     scrollTo(0,y);requestAnimationFrame(function(){scrollTo(0,y)});
   })});
+  // ---- ⓘ explanations (user, 2026-11-01) ----
+  var NOTE='p.note-s:not(.lu-upd), #proposals .rc-hero > p, #proposals .rc-steps, #betting .bk-hero > p:first-of-type';
+  function head(n){
+    var c=n.closest('.cmb-p, .lk-blk, section')||n.closest('.tab-pane');if(!c)return null;
+    if(c.classList.contains('cmb-p')){var cp=c.querySelector('.cmb-cap');if(cp)return cp}
+    return c.querySelector('.sec-head h2')||c.querySelector('h2')||c.querySelector('h3, h4');
+  }
+  function shown(n){var p=n.parentElement;return !p||p.getClientRects().length>0}
+  function tuck(){
+    document.querySelectorAll(NOTE).forEach(function(n){
+      if(n.dataset.ux||n.closest('details,.ux-info'))return;
+      var h=head(n);if(!h)return;
+      n.dataset.ux='1';n.classList.add('ux-tuck');
+      var b=h.querySelector(':scope > .ux-i');
+      if(!b){
+        b=document.createElement('button');b.type='button';b.className='ux-i';b.textContent='ⓘ';
+        b.setAttribute('aria-label','How this works');b.setAttribute('aria-expanded','false');b._notes=[];
+        var pn=document.createElement('div');pn.className='ux-info';pn.hidden=true;pn.setAttribute('role','note');b._panel=pn;
+        h.appendChild(b);var at=h.closest('.sec-head')||h;at.parentNode.insertBefore(pn,at.nextSibling);
+      }
+      b._notes.push(n);
+    });
+  }
+  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.ux-i');if(!b||!b._panel)return;
+    e.preventDefault();e.stopPropagation();
+    var open=b.getAttribute('aria-expanded')!=='true',pn=b._panel;
+    if(open){var vis=b._notes.filter(function(n){return n.isConnected&&shown(n)});if(!vis.length)vis=b._notes.filter(function(n){return n.isConnected});
+      pn.innerHTML='';vis.forEach(function(n){var c=n.cloneNode(true);c.classList.remove('ux-tuck');c.removeAttribute('data-ux');pn.appendChild(c)})}
+    pn.hidden=!open;b.setAttribute('aria-expanded',String(open));
+  },true);
+  tuck();
+  var tq=0;new MutationObserver(function(){if(!tq)tq=setTimeout(function(){tq=0;tuck()},80)}).observe(document.body,{childList:true,subtree:true});
   // phone Top button: only while scrolling up; goes to the top of this tab, then the masthead
   var top=document.querySelector('.m-top');
   if(top){

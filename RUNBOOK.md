@@ -298,6 +298,7 @@ No section added, removed or reordered; `layout_check.py` still matches. All in 
 - **Scroll memory**: switching away from a tab and back returns to the same spot; an unread tab opens at its top under the bar; the link cards at the end of each tab open the next tab at its top. Linked sections land below the sticky bar (`scroll-margin-top`).
 - **Phone Top button** shows only while scrolling up and goes to the top of the current tab (tap again for the masthead).
 - **Touch targets** 38–42px on phones/tablets: group switches, week/view buttons, Player Data team tabs and chips, Betting market tabs and filters, folds.
+- **ⓘ explanations** (user, 2026-11-01: "each section that needs an explanation should have ⓘ … keep UI clean"): every how-it-works note (`p.note-s`, the Rule Changes intro and 3 steps, the Betting rules line) is hidden and its heading (section title, or the caption line inside a tabbed group, or the card heading in Player Data) gets an ⓘ; tapping opens the note in a panel under the heading, tapping again closes it. Status lines (Optimal Lineup data time, "Loading…", sign-in prompts, payout notices) and notes already inside a fold stay visible. Keep writing new explanations as `p.note-s` and they get an ⓘ automatically.
 - **Betting** board: open bets first; games that already kicked off are hidden behind a "Show locked" button with an "N open · N locked" line.
 
 ## Current layout (FINAL, week 7 edition, 2026-10-27; every new edition must match)
