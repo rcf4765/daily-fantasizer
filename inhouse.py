@@ -7,9 +7,8 @@ Inputs (game facts only), downloaded into IH_CACHE (default .cache/nflverse, not
   stats_player_week_YYYY.csv  weekly box scores          stats_team_week_YYYY.csv  team box scores (D/ST)
   roster_weekly_YYYY.csv      game-day status, team      injuries_YYYY.csv         official NFL injury reports
   games.csv                   schedule, scores, market spread/total
-for the current season and the two before it. For a paid product, point download() at a licensed feed with the
-same columns; nothing else changes. Upcoming weeks with no game-day status yet use the injury tag in
-espn_players.json (league data).
+for the current season and the two before it. Another source with the same columns only needs a new download().
+Upcoming weeks with no game-day status yet use the injury tag in espn_players.json (league data).
 
 Model (QB/RB/WR/TE): recency-weighted PPR (half-life 5 games, last season's games x0.55) and opportunity
 (targets, carries, pass attempts x league points per opportunity), last 3 games, the team's implied points from

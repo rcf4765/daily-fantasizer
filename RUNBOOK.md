@@ -166,14 +166,14 @@ Also Trend Lines, Steady or Streaky, Player Face-Off and Defense Matchups (see "
 - Validation before switching: every-team backtest, weeks 1–7, 84 lineups: in-house 116.2 pts/week = FantasyPros+ESPN blend 116.2 (+0.01 ± 0.93), ESPN only 114.8; per-player error equal or lower at every position. As wired (rookie draft baseline added) 116.5.
 - Files: `ih_week1..17.json` (same row shape the pages read), `ih_ros.json`, `ih_ros_hist.json`; `inhouse.apply()` writes our numbers into the `proj` fields of `espn_players.json` and `espn_kdst.json`; `facts.load` swaps ESPN's projection in each `weekN_raw.txt` for ours. If a build fails (inputs unreachable), the saved projections are re-applied; nothing falls back to ESPN. Unmatched names (a handful) get no projection and are printed by the fetch.
 - Run: `fetch_players.py` calls it at the end; by hand `python3 inhouse.py` (download + build + apply) or `python3 inhouse.py --apply`.
-- Dropped with FantasyPros: the "Contrarian lean" flag (Joel Smyth list). Still from outside: ESPN league data (rosters, scores, owners, injury tags, settings) and nflverse box-score data; for a paid product the nflverse inputs should come from a licensed feed with the same columns (only `inhouse.download` changes).
+- Dropped with FantasyPros: the "Contrarian lean" flag (Joel Smyth list). Still from outside: ESPN league data (rosters, scores, owners, injury tags, settings) and nflverse box-score data (only `inhouse.download` reads the box scores).
 
 **Sources stay in the background** (user, 2026-10-19): the page never shows a "who said what" panel. The tab has no source or "updated" footnote (user removed it 2026-10-19).
 
 **Data** (`fetch_players.py`, GitHub Actions; this workspace can't reach these sites directly):
 - ESPN league API (same cookies): weekly box scores and PPR points for the 600 most-rostered QB/RB/WR/TE, league owner, injury status (ESPN projections and analyst ranks are no longer kept, 2026-11-02). ESPN stat ids were verified by rebuilding every week-5 PPR score exactly.
 - nflverse (GitHub releases, public): weekly target share, air-yards share, WOPR; PFR snap counts matched by normalized name (98% of player-weeks).
-- ~~FantasyPros~~: removed 2026-11-02 (non-commercial terms); `fp_*.json` deleted. Replaced by `inhouse.py`.
+- ~~FantasyPros~~: removed 2026-11-02; `fp_*.json` deleted. Replaced by `inhouse.py`.
 - **Gaps**: Luke Garza is not used (paid Substack, user doesn't subscribe). Joel Smyth's full list loads client-side on Yahoo and his full FantasyPros list needs a signed-in account, so only his notable disagreements are used. FantasyPros' projection tables show 10 rows without sign-in; the consensus projected points in the ranking data cover every ranked player instead. The user's own regression model will slot in later (user, 2026-10-19: "skip my model for now").
 
 **Schedule**: Tuesday's ESPN fetch (`fetch.yml`) also runs `fetch_players.py`, so the 6am edition carries fresh player data. `players.yml` refreshes the tab on the newest edition (docs/index.html, docs/weekN.html, daily-fantasizer-weekN.html) Tue/Wed/Thu/Sat 11:17am and Sun 11:47am Eastern as next week's consensus fills in, then asks GitHub Pages to rebuild.
