@@ -812,8 +812,16 @@ def section(d, W, short, own_team):
            f'and the one with the best chance to win is shown (a QB and his own receivers count as linked). Bench percentages = his chance to outscore the starter he\'d replace. '
            f'Tap any player for every stat behind his number. Refreshes Tuesday to Thursday, Saturday and Sunday 11:47am.</p></div></details>')
 
+    # Season stakes (gametheory.py, user 2026-11-01): bye race, leverage per remaining game, waivers and streaming
+    stakes = ""
+    try:
+        import gametheory as _gt
+        stakes = _gt.panel(W, {str(k): v for k, v in short.items()}, own_team)
+    except Exception as e:  # never lose the tab over one block
+        print("season stakes skipped:", e)
+
     upd = esc(d.meta.get("fetched", ""))
-    body = ('<div class="lu">' + hero + swap
+    body = ('<div class="lu">' + hero + swap + stakes
             + f'<div class="lu-list" aria-label="Starting lineup">{lineup}</div>'
             + (f'<div class="lu-watch"><span class="fs-tag">Watch before kickoff</span><ul>{"".join(piv)}</ul></div>' if piv else "")
             + (f'<div class="lu-close"><span class="fs-tag">Close calls</span>' + "".join(
@@ -877,6 +885,20 @@ html:not(.fz-owner) #ps-lineup,html:not(.fz-owner) .cmb-sw button[data-k="ps-lin
 .lu-fa{display:grid;grid-template-columns:44px minmax(0,1fr) 56px;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid var(--line)}
 .lu-fa:last-child{border-bottom:0}.lu-gain{font-family:var(--display);font-size:1.3rem;text-align:right;color:var(--blue)}
 .lu-upd{margin:0}
+.gt{display:grid;gap:10px;padding:12px;border:2px solid var(--rule);background:var(--sheet);min-width:0}
+.gt-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gt-tiles div{display:grid;gap:2px;padding:8px 10px;background:var(--paper);border-radius:3px}
+.gt-tiles span{font-family:var(--mono);font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.gt-tiles b{font-family:var(--display);font-size:1.8rem;line-height:1;color:var(--honolulu)}
+.gt-lead{margin:0;font-size:.92rem}
+.gt-tbl{display:grid;border-top:1px solid var(--line)}
+.gt-r{display:grid;grid-template-columns:52px minmax(0,1.2fr) 42px minmax(60px,1.4fr) 40px;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:.86rem}
+.gt-h{font-family:var(--mono);font-size:.6rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.gt-h span:nth-child(4){grid-column:4/6}
+.gt-op{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gt-pw,.gt-r>b{text-align:right}
+.gt-bar{height:9px;background:var(--heat0);border-radius:5px;overflow:hidden}.gt-bar i{display:block;height:100%;background:var(--silver)}
+.gt-top{font-weight:700}.gt-top .gt-bar i{background:var(--honolulu)}
+.gt ul{margin:4px 0 0;padding-left:18px}
 .lu-trk{display:grid;gap:6px;padding:10px;border:2px solid var(--rule);background:var(--sheet)}
 .lu-tr{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(60px,1fr) 46px 34px;align-items:center;gap:8px;font-size:.84rem}
 .lu-tb{height:9px;background:var(--heat0);border-radius:5px;overflow:hidden}.lu-tb i{display:block;height:100%;background:var(--silver)}
@@ -890,5 +912,7 @@ html:not(.fz-owner) #ps-lineup,html:not(.fz-owner) .cmb-sw button[data-k="ps-lin
   .lu-x{grid-template-columns:repeat(2,minmax(0,1fr));padding:4px 8px 10px}
   .lu-fa{grid-template-columns:40px minmax(0,1fr) 48px;padding:9px 8px}
   .lu-who small{white-space:normal}
+  .gt-r{grid-template-columns:44px minmax(0,1fr) 38px 34px}.gt-r .gt-bar{grid-column:2/5;grid-row:2;height:7px}.gt-h span:nth-child(4){grid-column:auto}
+  .gt-tiles b{font-size:1.5rem}
 }
 """

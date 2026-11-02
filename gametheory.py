@@ -91,7 +91,7 @@ def leverage(S, W, NS=20000, seed=7):
     stand = sorted(teams, key=lambda t: (-w0[t], -pf0[t]))
     return dict(p_playoffs=round(tot[1] / NS, 3), p_bye=round(tot[2] / NS, 3),
                 seed_dist={s: round(seeds[s] / NS, 3) for s in sorted(seeds)},
-                record=f"{w0[ME]}-{W - w0[ME]}", pf=round(pf0[ME], 2), rank=stand.index(ME) + 1,
+                record=f"{w0[ME]}–{W - w0[ME]}", pf=round(pf0[ME], 2), rank=stand.index(ME) + 1,
                 standings=[dict(team=t, w=w0[t], pf=round(pf0[t], 1), mu=round(mu[t], 1)) for t in stand],
                 sigma=round(sig, 1), weeks=rows)
 
@@ -164,3 +164,62 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------- page block (Optimal Lineup tab, owner only)
+def panel(W, short, own=ME):
+    """'Season stakes' block for lineup.section: bye race, leverage by remaining game, waiver and denial notes."""
+    import html as _h
+    esc = lambda s: _h.escape(str(s))
+    have = [k for k in weeks_available() if k <= W]
+    if len(have) < W or own != ME:
+        return ""
+    S = season(W)
+    lev = leverage(S, W, NS=10000)
+    if not lev["weeks"]:
+        return ""
+    mv = moves(S, W)
+    wr = waiver_rules()
+    sn = lambda t: esc(short.get(str(t), short.get(t, f"Team {t}")))
+    top = max(lev["weeks"], key=lambda r: r["swing_bye"] if NBYE else r["swing_po"])
+    key = "swing_bye" if NBYE else "swing_po"
+    mx = max(r[key] for r in lev["weeks"]) or 1
+    rows = ""
+    for r in lev["weeks"]:
+        cls = " gt-top" if r is top else ""
+        rows += (f'<div class="gt-r{cls}"><span class="gt-wk num">Wk {r["week"]}</span><span class="gt-op">{sn(r["opp"])}</span>'
+                 f'<span class="num gt-pw">{r["p_win"] * 100:.0f}%</span>'
+                 f'<span class="gt-bar"><i style="width:{r[key] / mx * 100:.0f}%"></i></span>'
+                 f'<b class="num">+{r[key] * 100:.0f}</b></div>')
+    goal = "bye" if NBYE and lev["p_playoffs"] >= .85 else "playoffs"
+    lead = (f'You\'re {lev["record"]} ({lev["rank"]} of {len(lev["standings"])}). A playoff spot is close to safe, so the prize is a '
+            f'top-{NBYE} seed and the round-one bye.' if goal == "bye" else
+            f'You\'re {lev["record"]} ({lev["rank"]} of {len(lev["standings"])}). Every game still moves your playoff chances.')
+    # waivers
+    busy = sorted((t for t in mv if t != own and mv[t]["adds"] >= 6), key=lambda t: -mv[t]["adds"])
+    resets = wr["reset_weekly"]
+    wv = (f'Order resets every week by reverse standings, so a claim never costs you future priority, only a roster spot. '
+          if resets else 'Rolling order: a claim sends you to the back, so save it for players worth it. ')
+    wv += (f'You\'re {wr["my_priority_now"]} of 12, so take free agents the moment you want them; anyone on waivers goes to a team ahead of you. '
+           if wr["my_priority_now"] and wr["my_priority_now"] >= 7 else '')
+    if busy:
+        wv += f'Only {", ".join(f"{sn(t)} ({mv[t]["adds"]})" for t in busy)} work the wire much; the rest rarely compete for a pickup.'
+    # denial: remaining opponents who stream K / D/ST
+    den = [r for r in lev["weeks"] if mv[r["opp"]]["kdst_per_week"] >= .5]
+    dn = "".join(f'<li>Week {r["week"]}: {sn(r["opp"])} streams a K or D/ST {mv[r["opp"]]["kdst_per_week"]:.1f} times a week. '
+                 f'Add the best free-agent {"D/ST" if mv[r["opp"]]["dst"] >= mv[r["opp"]]["k"] else "kicker"} for that week early, before Wednesday\'s waiver run.</li>' for r in den)
+    unit = "bye" if key == "swing_bye" else "playoff"
+    return (f'<div class="gt"><span class="fs-tag">Season stakes</span>'
+            f'<div class="gt-tiles"><div><span>Playoffs</span><b class="num">{lev["p_playoffs"] * 100:.0f}%</b></div>'
+            + (f'<div><span>Bye (top {NBYE})</span><b class="num">{lev["p_bye"] * 100:.0f}%</b></div>' if NBYE else "")
+            + f'<div><span>Biggest game</span><b class="num">Wk {top["week"]}</b></div></div>'
+            f'<p class="gt-lead">{lead} Week {top["week"]} against {sn(top["opp"])} matters most: a win makes your {unit} chance '
+            f'{(top["bye_if_win"] if unit == "bye" else top["po_if_win"]) * 100:.0f}%, a loss {(top["bye_if_loss"] if unit == "bye" else top["po_if_loss"]) * 100:.0f}%.</p>'
+            f'<div class="gt-tbl"><div class="gt-r gt-h"><span>Week</span><span>Opponent</span><span>Win</span><span>{unit.capitalize()} swing</span><span></span></div>{rows}</div>'
+            f'<p class="note-s">Swing = your {unit} chance if you win that game minus if you lose it, from {10000:,} simulated seasons '
+            f'(same model as Playoff Odds; ties go to points for, which isn\'t confirmed in the saved ESPN settings). '
+            f'Chasing a riskier lineup as the underdog didn\'t help here: when all 12 teams' weeks 1–7 lineups (84) were re-picked for win chance, every one matched the most-points lineup, '
+            f'so start the best projections and every extra point also helps the tiebreaker.</p>'
+            f'<details class="lu-fold"><summary>Waivers &amp; streaming</summary><div class="note-s"><p>{wv}</p>'
+            + (f'<p>Block a streamer:</p><ul>{dn}</ul>' if dn else '<p>None of your remaining opponents streams K or D/ST much, so blocking isn\'t worth a roster spot.</p>')
+            + '<p>Unlimited adds, so streaming your own K and D/ST each week is free.</p></div></details></div>')

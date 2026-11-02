@@ -1721,6 +1721,20 @@ html:not(.fz-owner) #ps-lineup,html:not(.fz-owner) .cmb-sw button[data-k="ps-lin
 .lu-fa{display:grid;grid-template-columns:44px minmax(0,1fr) 56px;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid var(--line)}
 .lu-fa:last-child{border-bottom:0}.lu-gain{font-family:var(--display);font-size:1.3rem;text-align:right;color:var(--blue)}
 .lu-upd{margin:0}
+.gt{display:grid;gap:10px;padding:12px;border:2px solid var(--rule);background:var(--sheet);min-width:0}
+.gt-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gt-tiles div{display:grid;gap:2px;padding:8px 10px;background:var(--paper);border-radius:3px}
+.gt-tiles span{font-family:var(--mono);font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.gt-tiles b{font-family:var(--display);font-size:1.8rem;line-height:1;color:var(--honolulu)}
+.gt-lead{margin:0;font-size:.92rem}
+.gt-tbl{display:grid;border-top:1px solid var(--line)}
+.gt-r{display:grid;grid-template-columns:52px minmax(0,1.2fr) 42px minmax(60px,1.4fr) 40px;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:.86rem}
+.gt-h{font-family:var(--mono);font-size:.6rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.gt-h span:nth-child(4){grid-column:4/6}
+.gt-op{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gt-pw,.gt-r>b{text-align:right}
+.gt-bar{height:9px;background:var(--heat0);border-radius:5px;overflow:hidden}.gt-bar i{display:block;height:100%;background:var(--silver)}
+.gt-top{font-weight:700}.gt-top .gt-bar i{background:var(--honolulu)}
+.gt ul{margin:4px 0 0;padding-left:18px}
 .lu-trk{display:grid;gap:6px;padding:10px;border:2px solid var(--rule);background:var(--sheet)}
 .lu-tr{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(60px,1fr) 46px 34px;align-items:center;gap:8px;font-size:.84rem}
 .lu-tb{height:9px;background:var(--heat0);border-radius:5px;overflow:hidden}.lu-tb i{display:block;height:100%;background:var(--silver)}
@@ -1734,6 +1748,8 @@ html:not(.fz-owner) #ps-lineup,html:not(.fz-owner) .cmb-sw button[data-k="ps-lin
   .lu-x{grid-template-columns:repeat(2,minmax(0,1fr));padding:4px 8px 10px}
   .lu-fa{grid-template-columns:40px minmax(0,1fr) 48px;padding:9px 8px}
   .lu-who small{white-space:normal}
+  .gt-r{grid-template-columns:44px minmax(0,1fr) 38px 34px}.gt-r .gt-bar{grid-column:2/5;grid-row:2;height:7px}.gt-h span:nth-child(4){grid-column:auto}
+  .gt-tiles b{font-size:1.5rem}
 }
 </style>
 <section class="ps-hero" aria-label="Player stats"><span class="kicker">The PPR player desk</span><h2>Player <span>Stats</span></h2><div class="ps-sub"><span>Player data weeks 1–7</span><span>Week 8 rankings &amp; start/sit</span><span>Rest of season</span><span>Rankings vs. actuals</span></div></section>
