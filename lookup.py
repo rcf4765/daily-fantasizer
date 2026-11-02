@@ -2,7 +2,12 @@
 
 Type a player's name and get one card with everything we have on him, fantasy and real life, through the
 edition's week W. It replaced the Current Data board and the "Every graded player" table (user, 2026-10-26),
-so the card carries all of their numbers too:
+so the card carries all of their numbers too.
+
+User, 2026-11-01: only the search box picks a player (the team tabs and player buttons are gone), and the card's
+Week by week, Usage, Rushing, Receiving and Passing sections fold like Game log: closed at first, and whatever you
+open stays open while you tap weeks, switch Season / Average or look up someone else.
+
 
 - Fantasy: PPR/g and its rank at the position (2+ games, as Current Data ranked), last 3 with arrow, total PPR,
   expected PPR/g from volume (Volume vs. Scoring's fit), week W+1 blended projection and opponent, rest-of-season
@@ -155,7 +160,7 @@ def section(d, W, short, own_team):
     body = (f'<div class="lk" id="lk"><div class="lk-ctl"><label class="lk-find"><span class="kicker">Type a player</span>'
             f'<input type="search" id="lk-q" placeholder="e.g. Amon-Ra St. Brown" autocomplete="off" spellcheck="false" aria-controls="lk-sug" aria-autocomplete="list"></label>'
             f'<div class="lk-sug" id="lk-sug" role="listbox" hidden></div>'
-            f'<div class="lk-mine" id="lk-mine"></div></div>'
+            f'</div>'
             f'<div class="lk-card" id="lk-card" aria-live="polite"></div></div>'
             f'<script type="application/json" id="lk-data">{json.dumps(data, separators=(",", ":")).replace("</", "<\\/")}</script>'
             f'<p class="note-s">{len(rows)} players: everyone with a game through week {W}. PPR rank = points per game among players at his position with 2+ games. '
@@ -212,7 +217,7 @@ SCRIPT = r"""<script>
 (function(){
   var src=document.getElementById('lk-data');if(!src)return;
   var D=JSON.parse(src.textContent),P=D.p,T=D.teams,byk={};P.forEach(function(p){byk[p.k]=p});
-  var q=document.getElementById('lk-q'),sug=document.getElementById('lk-sug'),card=document.getElementById('lk-card'),mine=document.getElementById('lk-mine');
+  var q=document.getElementById('lk-q'),sug=document.getElementById('lk-sug'),card=document.getElementById('lk-card');
   function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
   function f(x,n){return x==null||isNaN(x)?'–':(+x).toFixed(n==null?1:n)}
   function pc(x,n){return x==null?'–':(+x).toFixed(n==null?0:n)+'%'}
@@ -245,27 +250,17 @@ SCRIPT = r"""<script>
   sug.addEventListener('mousedown',function(ev){ev.preventDefault()});
   sug.addEventListener('click',function(ev){var b=ev.target.closest('.lk-opt');if(b)pick(b.dataset.k)});
   q.addEventListener('blur',function(){setTimeout(function(){hits=[];drawSug()},150)});
-  function pick(k){var p=byk[k];if(!p)return;q.value=p.n;hits=[];drawSug();show(p);q.blur();
-    if(p.o!==curT&&(p.o||roster(0).indexOf(p)>=0))curT=p.o||0;drawTeams()}
-  // team tabs (user, 2026-10-26): every league team plus the best free agents; search still covers everyone
-  var TT=Object.keys(T).map(Number).sort(function(a,b){return a===D.own?-1:b===D.own?1:a-b}),curT=D.own;
-  function roster(t){var r=P.filter(function(p){return t?p.o===t:!p.o});
-    r.sort(function(a,b){return t?(['QB','RB','WR','TE'].indexOf(a.pos)-['QB','RB','WR','TE'].indexOf(b.pos))||((b.ros||0)-(a.ros||0)):((a.ro||999)-(b.ro||999))||((b.ppg||0)-(a.ppg||0))});
-    return t?r:r.slice(0,24)}
-  function drawTeams(){
-    mine.innerHTML='<div class="lk-tt" role="tablist" aria-label="Teams">'+TT.concat([0]).map(function(t){return '<button type="button" role="tab" class="lk-tb'+(t===curT?' on':'')+'" data-t="'+t+'" aria-selected="'+(t===curT)+'">'+
-      (t?'<i class="lg lg-'+t+' lg-sm"></i>':'<span class="own fa">FA</span>')+'<span>'+e(t?T[t]:'Free agents')+'</span></button>'}).join('')+'</div>'+
-      '<div class="lk-ros" role="tabpanel">'+roster(curT).map(function(p){var on=CUR&&CUR.k===p.k;
-        return '<button type="button" data-k="'+e(p.k)+'"'+(on?' class="on"':'')+'><small>'+e(p.pos)+'</small> '+e(p.n.replace(/ (Jr\.?|Sr\.?|II|III|IV|V)$/,''))+'</button>'}).join('')+'</div>';
-  }
-  mine.addEventListener('click',function(ev){var b=ev.target.closest('button');if(!b)return;
-    if(b.dataset.t!=null){curT=+b.dataset.t;drawTeams();return}
-    if(b.dataset.k)pick(b.dataset.k)});
+  function pick(k){var p=byk[k];if(!p)return;q.value=p.n;hits=[];drawSug();show(p);q.blur()}
+  // team and player buttons were removed (user, 2026-11-01): the search box finds anyone
   // ---- pieces ----
   var VIEW='S',DV=1,CUR=null;
   function n(x){x=x||0;return DV===1?i0(x):f(x/DV)}
   function tile(lbl,val,sub,cls){return '<div class="lk-t'+(cls?' '+cls:'')+'"><em>'+lbl+'</em><b class="num">'+val+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</div>'}
-  function grid(title,items){return '<div class="lk-blk"><h4>'+title+(DV>1&&title!=='Usage'?' <small>per game</small>':'')+'</h4><div class="lk-g">'+items.map(function(x){return '<span'+(x[2]?' title="'+e(x[2])+'"':'')+'><em>'+x[0]+'</em><b class="num">'+x[1]+'</b></span>'}).join('')+'</div></div>'}
+  // card sections fold like Game log, closed at first; what you open stays open as you switch weeks or players (user, 2026-11-01)
+  var OPEN={};
+  card.addEventListener('toggle',function(ev){var d=ev.target;if(d.dataset&&d.dataset.f)OPEN[d.dataset.f]=d.open},true);
+  function fd(key,head,body){return '<details class="lk-blk lk-fold" data-f="'+key+'"'+(OPEN[key]?' open':'')+'><summary>'+head+'</summary><div class="lk-fb">'+body+'</div></details>'}
+  function grid(title,items){return fd(title,title+(DV>1&&title!=='Usage'?' <small>per game</small>':''),'<div class="lk-g">'+items.map(function(x){return '<span'+(x[2]?' title="'+e(x[2])+'"':'')+'><em>'+x[0]+'</em><b class="num">'+x[1]+'</b></span>'}).join('')+'</div>')}
   // classic numbered route tree (user, 2026-10-26); routes are estimated from each target's depth and side
   var RT={wr:[
       ['9','Fade','M200 140 L200 42',[200,28,'middle']],
@@ -335,7 +330,7 @@ SCRIPT = r"""<script>
       return '<li><div class="lk-lc-h"><span class="lk-lc-w">Wk '+x[0]+'</span><span class="lk-lc-o">'+(home?'vs ':'at ')+e((x[1]||'').replace('@',''))+'</span>'+
         '<span class="lk-lc-p num">'+f(x[2])+'<small>PPR</small></span>'+(b==null?'':'<span class="lk-lc-b num '+(b>=0?'up':'dn')+'">'+(b>0?'+':'')+b.toFixed(1)+' <small>vs proj</small></span>')+'</div>'+
         '<div class="lk-lc-s">'+c.map(function(v){return '<span><b class="num">'+v[0]+'</b><em>'+v[1]+'</em></span>'}).join('')+'</div></li>'}).join('');
-    return '<details class="lk-log"><summary>Game log</summary><ul class="lk-lc">'+cards+'</ul><div class="tbl-wrap"><table class="lk-gl"><thead><tr><th>Wk</th><th>Opp</th><th class="n">PPR</th><th class="n">Proj</th>'+H.map(function(x){return '<th class="n">'+x+'</th>'}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div></details>';
+    return '<details class="lk-log" data-f="log"'+(OPEN.log?' open':'')+'><summary>Game log</summary><ul class="lk-lc">'+cards+'</ul><div class="tbl-wrap"><table class="lk-gl"><thead><tr><th>Wk</th><th>Opp</th><th class="n">PPR</th><th class="n">Proj</th>'+H.map(function(x){return '<th class="n">'+x+'</th>'}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div></details>';
   }
   function receiving(p,t,full){
     var tg=t.tg||0,rec=t.rec||0,ry=t.ry||0,ay=t.ay||0,yac=t.yac||0,real=ry-yac,unr=ay-real;
@@ -377,11 +372,11 @@ SCRIPT = r"""<script>
     }
     // graded weeks
     var G=p.gr;
-    h+='<div class="lk-blk"><h4>Week by week · graded <small>tap a week to see just that game</small></h4>'+weeks(p)+
+    h+=fd('weeks','Week by week · graded <small>tap a week to see just that game</small>',weeks(p)+
       '<div class="lk-gs">'+(G[0]?'<span><em>Graded weeks</em><b class="num">'+G[0]+'</b></span><span><em>Avg rank</em><b class="num">'+p.pos+Math.round(G[1])+'</b></span><span><em>Avg finish</em><b class="num">'+p.pos+Math.round(G[2])+'</b></span>'+
         '<span><em>Spots vs rank</em><b class="num '+(G[3]>=0?'up':'dn')+'">'+(G[3]>0?'+':'')+f(G[3])+'</b></span>':'<span><em>Graded weeks</em><b class="num">0</b></span>')+
         '<span><em>Pts vs proj</em><b class="num '+(G[4]==null?'':G[4]>=0?'up':'dn')+'">'+(G[4]==null?'–':(G[4]>0?'+':'')+f(G[4]))+'</b></span></div>'+
-      '<div class="lk-key"><span><i class="k-up"></i>Beat projection</span><span><i class="k-dn"></i>Missed</span><span><i class="k-pj"></i>Consensus projection</span><span>WR12→WR5 = ranked → finished</span></div></div>';
+      '<div class="lk-key"><span><i class="k-up"></i>Beat projection</span><span><i class="k-dn"></i>Missed</span><span><i class="k-pj"></i>Consensus projection</span><span>WR12→WR5 = ranked → finished</span></div>');
     // usage
     var played=!isW||!!wkv;
     if(!played){h+='<p class="lk-none">'+(lw&&lw[1]==='BYE'?'Bye week: no game.':'He didn\'t play in week '+VIEW+'.')+'</p>';card.innerHTML=h;return}
@@ -439,16 +434,7 @@ CSS = r"""
 .lk-opt .own{grid-column:2;grid-row:1/span 2}.lk-opt .own em{display:none}
 .lk-opt .num{grid-column:3;grid-row:1/span 2;font-size:.9rem}
 .lk-opt.on,.lk-opt:hover{background:var(--paper)}
-.lk-mine{display:grid;gap:8px}
-.lk-tt{display:flex;flex-wrap:wrap;gap:4px;border-bottom:2px solid var(--rule);padding-bottom:8px}
-.lk-tt .lk-tb{display:inline-flex;align-items:center;gap:6px;padding:4px 9px 4px 5px;font-size:.76rem;font-weight:600}
-.lk-tt .lk-tb .lg{width:20px;height:20px}
-.lk-tt .lk-tb .own.fa{font-size:.56rem}
-.lk-tt .lk-tb.on{background:var(--honolulu);border-color:var(--honolulu);color:#fff}
 .lk-ros{display:flex;flex-wrap:wrap;gap:4px}
-.lk-mine button{appearance:none;font:inherit;font-size:.78rem;padding:3px 8px;border:1.5px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer}
-.lk-mine button small{font-family:var(--mono);font-size:.56rem;color:var(--muted)}
-.lk-mine button.on{background:var(--ink);color:var(--sheet)}.lk-mine button.on small{color:var(--silver)}
 .lk-card{display:grid;gap:18px;border:3px solid var(--rule);border-top:10px solid var(--honolulu);padding:18px;background:var(--sheet);min-width:0}
 .lk-head{display:flex;justify-content:space-between;align-items:end;gap:14px;flex-wrap:wrap}
 .lk-head>div:first-child{display:grid;gap:6px}
@@ -544,6 +530,10 @@ CSS = r"""
 .lk-lc-s em{font-style:normal;font-family:var(--mono);font-size:.54rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);line-height:1.2}
 .lk-lc-s span{align-content:start}
 .lk-log summary{cursor:pointer;font-family:var(--display);font-size:1.15rem;font-weight:800;text-transform:uppercase}
+.lk-fold{display:block}
+.lk-fold>summary{cursor:pointer;font-family:var(--display);font-size:1.15rem;font-weight:800;text-transform:uppercase;border-bottom:2px solid var(--rule);padding-bottom:4px}
+.lk-fold>summary small{font-family:var(--mono);font-size:.62rem;font-weight:400;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-left:6px}
+.lk-fold .lk-fb{display:grid;gap:10px;margin-top:10px;min-width:0}
 .lk-log .tbl-wrap{overflow-x:auto;margin-top:8px}
 table.lk-gl{min-width:560px;font-size:.84rem}
 table.lk-gl td,table.lk-gl th{padding:5px 6px;white-space:nowrap}
@@ -551,9 +541,6 @@ table.lk-gl td,table.lk-gl th{padding:5px 6px;white-space:nowrap}
   .lk-card{padding:12px;border-width:2px;border-top-width:8px}
   .lk-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   .lk-tiles .lk-t:last-child{grid-column:1/-1}
-  .lk-tt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
-  .lk-tt .lk-tb{min-width:0;font-size:.68rem;padding:4px 5px}
-  .lk-tt .lk-tb span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .lk-views .pt{padding:5px 7px;font-size:.66rem;flex:1 0 auto}
   .lk-big b{font-size:2.6rem}
   .lk-g{grid-template-columns:repeat(3,minmax(0,1fr))}

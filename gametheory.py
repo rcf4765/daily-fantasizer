@@ -218,7 +218,7 @@ def panel(W, short, own=ME):
             f'<div class="gt-tbl"><div class="gt-r gt-h"><span>Week</span><span>Opponent</span><span>Win</span><span>{unit.capitalize()} swing</span><span></span></div>{rows}</div>'
             f'<p class="note-s">Swing = your {unit} chance if you win that game minus if you lose it, from {10000:,} simulated seasons '
             f'(same model as Playoff Odds; ties go to points for, which isn\'t confirmed in the saved ESPN settings). '
-            f'Chasing a riskier lineup as the underdog didn\'t help here: when all 12 teams' weeks 1–7 lineups (84) were re-picked for win chance, every one matched the most-points lineup, '
+            f'Chasing a riskier lineup as the underdog didn\'t help here: when all 12 teams\' weeks 1–7 lineups (84) were re-picked for win chance, every one matched the most-points lineup, '
             f'so start the best projections and every extra point also helps the tiebreaker.</p>'
             f'<details class="lu-fold"><summary>Waivers &amp; streaming</summary><div class="note-s"><p>{wv}</p>'
             + (f'<p>Block a streamer:</p><ul>{dn}</ul>' if dn else '<p>None of your remaining opponents streams K or D/ST much, so blocking isn\'t worth a roster spot.</p>')
