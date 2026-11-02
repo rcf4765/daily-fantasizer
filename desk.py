@@ -1,7 +1,7 @@
 """Player Stats sections added 2026-10-19 at the user's request (all automatic):
 
 - Trend Lines (#ps-trend): pick any player for his PPR points every week of the fantasy season (weeks 1-17)
-  against his projection. Past weeks: the blended projection made that week (FantasyPros consensus + ESPN).
+  against his projection. Past weeks: our projection made before that week (inhouse.py).
   Coming weeks with posted projections: the same blend. Later weeks: his rest-of-season points per game
   (Roster Radar value), zero on his bye (nflverse schedule). Targets and snap share under the chart.
 - Defense Matchups (#ps-defense): PPR points each NFL defense has allowed per game to QBs, RBs, WRs and TEs
@@ -78,8 +78,8 @@ def trend(d, W, short, own_team):
             f'<div class="tl-key"><span><i class="k-act"></i>Actual</span><span><i class="k-pj"></i>Projected that week</span><span><i class="k-ros"></i>Rest-of-season estimate</span><span><i class="k-bye"></i>Bye</span></div>'
             f'<div class="tl-grid" id="tl-grid"></div></div>'
             f'<script type="application/json" id="tl-data">{json.dumps(data, separators=(",", ":")).replace("</", "<\\/")}</script>'
-            f'<p class="note-s">Past weeks show the projection made before that week (consensus and ESPN, blended). Upcoming weeks use posted projections; '
-            f'after that, his rest-of-season points per game from the consensus rankings, and zero on his bye. Weeks 15–17 are the fantasy playoffs.</p>')
+            f'<p class="note-s">Past weeks show our projection made before that week. Upcoming weeks use our weekly projections; '
+            f'after that, his rest-of-season points per game from our model, and zero on his bye. Weeks 15–17 are the fantasy playoffs.</p>')
     return sec("ps-trend", "Trend Lines", f"Actual vs. projected · weeks 1–{SEASON_WEEKS}", body)
 
 
@@ -366,8 +366,8 @@ def faceoff(d, W, short, own_team):
             f'<div class="fo-head" id="fo-head"></div><div class="fo-call" id="fo-call" aria-live="polite"></div><div class="fo-rows" id="fo-rows"></div></div>'
             f'<script type="application/json" id="fo-data">{json.dumps(data, separators=(",", ":")).replace("</", "<\\/")}</script>'
             f'<details class="fo-how"><summary>How this works</summary><p class="note-s">Type any part of a name, a team name, or “FA” for free agents. Players who matter are listed: rostered, ranked or scoring 6+ PPR per game. '
-            f'<b>Short term</b> = weeks {nxt}–{nxt + 1}: blended projections (zero on a bye or ruled out) and how many points his position scores against his week {nxt} opponent '
-            f'(100 = league average). <b>Long term</b>: rest of season = his consensus ranking turned into points per game; expected = what his targets, carries and air yards '
+            f'<b>Short term</b> = weeks {nxt}–{nxt + 1}: our projections (zero on a bye or ruled out) and how many points his position scores against his week {nxt} opponent '
+            f'(100 = league average). <b>Long term</b>: rest of season = our rest-of-season points per game; expected = what his targets, carries and air yards '
             f'usually score (above it = running hot, below = due); playoffs = his weeks {PLAYOFFS[0]}–{PLAYOFFS[-1]} opponents vs. his position. '
             f'<b>Usage</b> is season-long, with the last-3-games trend. Rostered % is ESPN-wide.</p></details>')
     return sec("ps-faceoff", "Player Face-Off", "Type two players · waiver or drop, now and later", body)

@@ -1,15 +1,14 @@
 """The Daily Fantasizer: player data fetcher for the Player Stats tab (GitHub Actions, no browser).
 
 Writes compact JSON into data/players/:
-  espn_players.json   QB/RB/WR/TE: weekly PPR points + usage box stats, ESPN weekly projections,
-                      ESPN analyst weekly PPR ranks, league owner (onTeamId), injury status
+  espn_players.json   QB/RB/WR/TE: weekly PPR points + usage box stats, league owner (onTeamId), injury status;
+                      `proj` holds OUR projections (inhouse.py fills it; ESPN's projections and analyst ranks are no
+                      longer stored, user 2026-11-02)
   usage.json          nflverse weekly snap %, target share, air-yards share, WOPR
-  fp_week{K}.json     FantasyPros weekly consensus (ECR) by position for week K
-                      (past weeks are fetched once; the upcoming week is refreshed every run)
-  fp_ros.json         FantasyPros rest-of-season PPR consensus
-  fp_lean.json        players one tracked analyst (Joel Smyth) ranks well above/below consensus
-  espn_kdst.json      kickers and D/STs: ESPN weekly projections (current and next week, plus every past week
-                      ESPN returns), actual points, league owner (added 2026-10-19 for Matchup of the Week)
+  ih_week{K}.json, ih_ros.json, ih_ros_hist.json
+                      our own weekly projections/ranks and rest-of-season values (inhouse.py, run at the end of
+                      main(); replaced FantasyPros and ESPN projections 2026-11-02)
+  espn_kdst.json      kickers and D/STs: actual points, league owner, injury tag; `proj` = our projections
   waivers.json        ESPN waiver settings (acquisitionSettings) and each team's current waiver rank, saved every
                       run with a history so order changes can be compared week to week (added 2026-10-20)
   adv.json            Player Lookup (added 2026-10-26): per player and week, from nflverse: receiving (air yards, YAC,
@@ -89,30 +88,11 @@ def espn():
             if s["statSourceId"] == 0:
                 v = {int(k): x for k, x in s.get("stats", {}).items()}
                 act[wk] = {"pts": round(s.get("appliedTotal", 0), 2), **{k: round(v.get(i, 0), 1) for k, i in ST.items()}}
-            elif s["statSourceId"] == 1:
-                proj[wk] = round(s.get("appliedTotal", 0), 2)
-        ranks = {}
-        for wk, lst in (pl.get("rankings") or {}).items():
-            pp = {str(x["rankSourceId"]): x["rank"] for x in lst if x.get("rankType") == "PPR"}
-            if pp:
-                ranks[wk] = pp
+        # ESPN's projections (statSourceId 1) and analyst ranks are not kept: `proj` is filled by inhouse.py
         players.append({"id": pl["id"], "name": pl["fullName"], "pos": POS[pl["defaultPositionId"]],
                         "team": TEAM.get(pl.get("proTeamId"), "FA"), "owner": p.get("onTeamId", 0),
                         "inj": pl.get("injuryStatus", "ACTIVE"), "own_pct": round((pl.get("ownership") or {}).get("percentOwned", 0), 1),
-                        "act": act, "proj": proj, "ranks": ranks})
-    # ESPN only returns weekly projections for the scoring period asked for: add next week's
-    nxt = cur + 1
-    r2 = E.get(BASE, params={"view": "kona_player_info", "scoringPeriodId": nxt},
-               headers={"X-Fantasy-Filter": json.dumps(flt)}, timeout=90)
-    if r2.ok:
-        byid = {p["id"]: p for p in players}
-        for p in r2.json().get("players", []):
-            pl = p["player"]
-            if pl["id"] not in byid:
-                continue
-            for s in pl.get("stats", []):
-                if s.get("seasonId") == SEASON and s.get("statSourceId") == 1 and s.get("scoringPeriodId") == nxt:
-                    byid[pl["id"]]["proj"][nxt] = round(s.get("appliedTotal", 0), 2)
+                        "act": act, "proj": proj})
     save("espn_players.json", players)
     return cur, final
 
@@ -147,68 +127,6 @@ def nflverse():
     save("usage.json", list(out.values()))
 
 
-def fp_page(path):
-    r = S.get("https://www.fantasypros.com/nfl/" + path, timeout=60)
-    time.sleep(1.5)
-    if r.status_code != 200:
-        print("FantasyPros", r.status_code, path); return None
-    m = re.search(r"var ecrData\s*=\s*(\{.*?\});\s*\n", r.text, re.S)
-    return (json.loads(m.group(1)), r.text) if m else (None, r.text)
-
-
-KEEP = ("player_name", "player_team_id", "player_position_id", "player_opponent", "rank_ecr", "rank_min", "rank_max",
-        "rank_ave", "rank_std", "pos_rank", "tier", "r2p_pts", "start_sit_grade", "player_ecr_delta", "player_owned_avg")
-
-
-def fantasypros(cur, final):
-    """Weekly ECR for every completed week (fetched once) and the upcoming week (always refreshed)."""
-    # the week on the field (cur) and the one after it: FantasyPros posts the next week's
-    # rankings early in the week, so cur + 1 is saved as soon as it shows up
-    upcoming = cur + 1
-    for wk in range(1, upcoming + 1):
-        fn = os.path.join(OUT, f"fp_week{wk}.json")
-        if wk < cur and os.path.exists(fn):
-            continue
-        res = {"week": wk, "pos": {}}
-        for pos, slug in (("QB", "qb"), ("RB", "ppr-rb"), ("WR", "ppr-wr"), ("TE", "ppr-te")):
-            got = fp_page(f"rankings/{slug}.php?week={wk}")
-            j = got and got[0]
-            if not j or str(j.get("week")) != str(wk):
-                print(f"FantasyPros week {wk} {pos}: not posted yet (page shows week {j and j.get('week')})"); continue
-            res["pos"][pos] = [{k: p.get(k) for k in KEEP} for p in j["players"]]
-            res["experts"] = j.get("total_experts"); res["updated"] = j.get("last_updated")
-        if res["pos"]:
-            save(f"fp_week{wk}.json", res)
-    got = fp_page("rankings/ros-ppr-overall.php")
-    if got and got[0]:
-        j = got[0]
-        save("fp_ros.json", {"updated": j.get("last_updated"), "players": [{k: p.get(k) for k in KEEP} for p in j["players"]]})
-    lean = {"week": None, "pos": {}}
-    for pos in ("QB", "RB", "WR", "TE"):
-        got = fp_page(f"rankings/joel-smyth-consensus-rankings.php?position={pos}")
-        if not got:
-            continue
-        html_ = got[1]
-        t = re.search(r"Rankings Week (\d+)", html_)
-        lean["week"] = int(t.group(1)) if t else None
-        rows = []
-        for tbl in re.findall(r"<table.*?</table>", html_, re.S):
-            hdr = html.unescape(re.sub(r"<[^>]+>", " ", tbl[:600]))
-            higher = "Joel Smyth's Rank" in hdr.split("Player")[0]
-            for tr in re.findall(r"<tr.*?</tr>", tbl, re.S)[1:]:
-                c = [html.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", x))).strip() for x in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
-                if len(c) >= 3 and c[0].isdigit():
-                    m = re.match(r"(.+?) ([A-Z]{2,3}) - ([A-Z]{1,3})$", c[1])
-                    if not m:
-                        continue
-                    a, b = int(c[0]), int(re.sub(r"\D", "", c[2]) or 0)
-                    rows.append({"name": m.group(1), "team": m.group(2), "analyst": a if higher else b,
-                                 "ecr": b if higher else a})
-        lean["pos"][pos] = rows
-    save("fp_lean.json", lean)
-    return upcoming
-
-
 def espn_waivers():
     """League waiver settings plus each team's waiver rank right now. Keeps a history list so we can see when
     the order changes (user, 2026-10-20: "check to see if waiver priorities reset each week")."""
@@ -231,12 +149,12 @@ KDST = {5: "K", 16: "D/ST"}
 
 
 def espn_kdst(cur):
-    """Kickers and D/STs (lineup slots 17 = K, 16 = D/ST): ESPN projection for the current and next scoring
-    period (ESPN only returns a weekly projection for the period asked for) plus actual points."""
+    """Kickers and D/STs (lineup slots 17 = K, 16 = D/ST): actual points, owner and injury tag. ESPN's projections
+    are not kept; inhouse.py fills `proj` with ours."""
     flt = {"players": {"filterSlotIds": {"value": [16, 17]}, "limit": 120,
                        "sortPercOwned": {"sortPriority": 1, "sortAsc": False}}}
     out = {}
-    for wk in (cur, cur + 1):
+    for wk in (cur,):
         r = E.get(BASE, params={"view": "kona_player_info", "scoringPeriodId": wk},
                   headers={"X-Fantasy-Filter": json.dumps(flt)}, timeout=90)
         if not r.ok:
@@ -247,14 +165,12 @@ def espn_kdst(cur):
                 continue
             d = out.setdefault(pl["id"], {"id": pl["id"], "name": pl["fullName"], "pos": KDST[pl["defaultPositionId"]],
                                           "team": TEAM.get(pl.get("proTeamId"), "FA"), "owner": p.get("onTeamId", 0),
-                                          "proj": {}, "act": {}})
+                                          "inj": pl.get("injuryStatus", "ACTIVE"), "proj": {}, "act": {}})
             for st_ in pl.get("stats", []):
                 if st_.get("seasonId") != SEASON or st_.get("statSplitTypeId") != 1:
                     continue
                 w = st_["scoringPeriodId"]
-                if st_["statSourceId"] == 1:
-                    d["proj"][w] = round(st_.get("appliedTotal", 0), 2)
-                elif st_["statSourceId"] == 0:
+                if st_["statSourceId"] == 0:
                     d["act"][w] = round(st_.get("appliedTotal", 0), 2)
     if out:
         save("espn_kdst.json", list(out.values()))
@@ -516,9 +432,18 @@ def main():
         advanced()
     except Exception as e:  # nice-to-have: the Player Lookup shows what it has
         print("adv failed:", e)
-    upcoming = fantasypros(cur, final)
+    upcoming = cur + 1
     save("meta.json", {"season": SEASON, "espn_week": cur, "final_weeks": final, "upcoming": upcoming,
                        "fetched": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%MZ")})
+    # our projections (inhouse.py): download the box-score inputs, build, and write them into the proj fields.
+    # If the build fails, the last saved projections are applied again, so the pages never fall back to ESPN.
+    import inhouse
+    try:
+        inhouse.download(SEASON)
+        inhouse.build(SEASON)
+    except Exception as e:
+        print("in-house build failed, re-applying the saved projections:", e)
+    inhouse.apply()
 
 
 if __name__ == "__main__":

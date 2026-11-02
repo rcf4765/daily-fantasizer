@@ -1,7 +1,7 @@
 name: Refresh Player Stats
 
-# FantasyPros fills in next week's consensus ranks and projections Tuesday to Thursday and keeps
-# adjusting them for injuries, so the Player Stats tab on the league site is refreshed midweek
+# Our projections (inhouse.py, run by fetch_players.py) pick up injury reports and game-day news as they
+# land, so the Player Stats tab on the league site is refreshed midweek
 # and on Sunday morning. Only the Player Stats tab of the newest edition is rewritten.
 on:
   schedule:

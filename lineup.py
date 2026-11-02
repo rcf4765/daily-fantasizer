@@ -8,15 +8,15 @@ Who sees it: only a device that claimed the owner's team (league.json `owner_tea
 the numbers are in the page source, like every roster on the site.
 
 How the projection is chosen (re-checked on every build):
-1. QB/RB/WR/TE: the blended projection (mean of FantasyPros consensus and ESPN), as the rest of Player Stats.
+1. Every position: our own projection (inhouse.py, user 2026-11-02: "bring as much in-house as possible"), as the
+   rest of Player Stats. It replaced the FantasyPros + ESPN blend after matching it on the test below (weeks 1-7,
+   84 lineups: in-house 116.21 pts/week, blend 116.20, ESPN only 114.83, managers 112.88, hindsight 126.31).
 2. Lineup back-test on every team (team_backtest, user 2026-10-28: "validate the model on every team"): all 12
-   teams' lineups are re-picked for every finished week and scored with the real points. Alternatives (ESPN only,
-   FantasyPros only, last-3 form, per-position source weights, and ridge adjustments for last 3, season PPR/g,
-   matchup, Vegas implied total, target-share and snap trends, FP-ESPN gap) are fit leave-one-week-out and replace
-   the blend only if their lineups beat it by more than two standard errors. Weeks 1-7 (84 lineups): blend 116.2
-   pts/week vs managers 112.9, ESPN only 114.8, last-3 115.5, adjustments 115.9, tuned weights 116.4 (+0.16 ± 0.48,
-   noise), hindsight 126.3. Picking for win chance chose the same lineups as picking for points in all 84.
-3. Uncertainty: sd = a + b x projection fit on this league's misses; QB constant; K/D-ST from ESPN's misses.
+   teams' lineups are re-picked for every finished week and scored with the real points. Alternatives (last-3 form,
+   and ridge adjustments for last 3, season PPR/g, matchup, Vegas implied total, target-share and snap trends) are
+   fit leave-one-week-out and replace the model only if their lineups beat it by more than two standard errors.
+   Picking for win chance chose the same lineups as picking for points in all 84.
+3. Uncertainty: sd = a + b x projection fit on this league's misses; QB constant; K/D-ST from their own misses.
 4. Injuries: out / IR / suspended / bye = 0; doubtful 30%. Questionable = what questionable players score when they
    play (learned from data/players/inj_log.json, written by every refresh until the week's Sunday 1pm kickoff, and
    pulled toward a 90% prior; capped at 100%), because inactives are known 90 minutes before kickoff and you can
@@ -49,7 +49,7 @@ SLOT_ORDER = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "D/ST", "K"]
 OUT = {"OUT", "INJURY_RESERVE", "SUSPENSION"}
 PPLAY = {"QUESTIONABLE": 0.93, "DOUBTFUL": 0.30}
 RHO = {"WR": 0.35, "TE": 0.30, "RB": 0.12}      # QB with his own pass catchers / backs
-FEATS = ["Last 3", "Season PPR/g", "Matchup", "Vegas total", "Target share trend", "Snap trend", "FantasyPros vs ESPN"]
+FEATS = ["Last 3", "Season PPR/g", "Matchup", "Vegas total", "Target share trend", "Snap trend"]
 SQ2PI = math.sqrt(math.pi / 2)
 
 
@@ -125,8 +125,7 @@ def _ridge(X, y, lam):
 
 def _feats(r):
     b = r["base"]
-    return [r["l3"] - b, r["ppg"] - b, b * (r["mr"] - 1), b * (r["it"] - 1), b * r["ts"], b * r["sn"],
-            (r["fp"] - r["es"]) if r["fp"] is not None and r["es"] is not None else 0.0]
+    return [r["l3"] - b, r["ppg"] - b, b * (r["mr"] - 1), b * (r["it"] - 1), b * r["ts"], b * r["sn"]]
 
 
 def _row(d, p, w, prev, fp, es, dv, avg, imp, mimp, T):
@@ -217,7 +216,7 @@ def calibrate(d, W):
             for k in cc:
                 cc[k][1] += 1; cc[k][0] += (x[k] > z[k]) == (x["y"] > z["y"])
     cal["close"] = {k: (v[0] / v[1] if v[1] else None) for k, v in cc.items()}
-    # kickers and D/STs: ESPN's own misses in the weekly dumps
+    # kickers and D/STs: the projection's own misses in the weekly dumps (facts.load swaps in ours)
     from facts import load as _load
     miss = defaultdict(list)
     for k in range(1, W + 1):
@@ -243,7 +242,7 @@ Q_PRIOR = {"play": (0.75, 8), "ratio": (0.90, 50.0)}   # prior: 3 in 4 questiona
 
 
 def log_injuries(d, N):
-    """Save each player's ESPN injury tag and blended projection for week N, so later builds can measure how
+    """Save each player's ESPN injury tag and projection for week N, so later builds can measure how
     questionable players really did. Written on every refresh until the week's Sunday 1pm games start (the Sunday
     11:47am refresh is the last word); data/players is committed by the refresh workflows."""
     G = _games(_sched(), N)
@@ -305,7 +304,7 @@ def q_calibrate(d, W):
 # ------------------------------------------------------------------ lineup back-test on every team
 def team_backtest(d, W, cal):
     """Re-pick every team's lineup every finished week with the model and score it with what the players actually
-    scored. Alternatives (FantasyPros weight per position; form / matchup / Vegas / usage adjustments) are fit
+    scored. Alternatives (form / matchup / Vegas / usage adjustments) are fit
     leave-one-week-out and replace the 50/50 blend only if their lineups beat it by more than two standard errors."""
     import strength as S
     from facts import load as _load
@@ -376,10 +375,7 @@ def team_backtest(d, W, cal):
 
     variants = {
         "blend": lambda w: (lambda r: mu_blend(r)),
-        "espn": lambda w: (lambda r: r["es"]),
-        "fp": lambda w: (lambda r: (0.0 if r["es"] == 0 else r["fp"] if r["fp"] is not None else r["es"])),
         "l3": lambda w: (lambda r: (r["f"]["l3"] if r["f"] else mu_blend(r))),
-        "weights": lambda w: (lambda wf: (lambda r: mu_blend(r, wf)))(fit_w([r for r in rows if r["w"] != w])),
         "adjusted": lambda w: (lambda b: (lambda r: mu_adj(r, b)))(fit_adj([r for r in rows if r["w"] != w])),
         "hindsight": lambda w: (lambda r: r["y"]),
     }
@@ -404,7 +400,7 @@ def team_backtest(d, W, cal):
     res["blend"]["better"] = sum(1 for x in dm if x > .01); res["blend"]["worse"] = sum(1 for x in dm if x < -.01)
     # adopt an alternative only when its lineups clearly beat the blend's
     choice = "blend"
-    for name in ("weights", "adjusted"):
+    for name in ("adjusted",):
         v = res[name]
         if v["gain"] > 0 and v["gain"] > 2 * v["se"] and v["gain"] > res.get(choice, {}).get("gain", 0):
             choice = name
@@ -482,6 +478,7 @@ def project(d, W, cal):
         out[p["key"]] = {
             "k": p["key"], "n": p["name"], "pos": p["pos"], "tm": p["team"], "o": p.get("owner") or 0, "inj": inj, "st": st,
             "mu": mu, "sd": sd, "fp": fp, "es": es, "base": r["base"] if r else None,
+            "lo": e.get("lo"), "hi": e.get("hi"),
             "rk": e.get("pos_rank"), "rmin": e.get("rank_min"), "rmax": e.get("rank_max"), "gr": e.get("start_sit_grade"),
             "opp": opp, "home": g.get("home"), "ko": g.get("ko"), "imp": g.get("imp"), "tot": g.get("tot"),
             "mr": (dv[opp][p["pos"]] / avg[p["pos"]]) if opp in dv and avg.get(p["pos"]) else None,
@@ -495,7 +492,8 @@ def project(d, W, cal):
 
 
 def kdst(W, cal, owner=None):
-    """Kickers and D/STs: ESPN's projection for week N, sd from ESPN's misses, season points per game from the dumps."""
+    """Kickers and D/STs: our projection for week N (inhouse.py, in espn_kdst.json's proj field), sd from its misses,
+    season points per game from the dumps."""
     from facts import load as _load
     N = W + 1
     f = "data/players/espn_kdst.json"
@@ -613,7 +611,7 @@ def _box(label, val, sub=""):
 def _every(x):
     """Every stat that bears on his week, grouped the same way for every player at the position."""
     if x["pos"] in ("K", "D/ST"):
-        b = [_box("ESPN proj", f1(x.get("es"))), _box("Season pts/g", f1(x.get("ppg"))),
+        b = [_box("Projection", f1(x.get("es"))), _box("Season pts/g", f1(x.get("ppg"))),
              _box("Floor / ceiling", f'{f1(max(0, x["mu"] - .84 * x["sd"]))}–{f1(x["mu"] + .84 * x["sd"])}')]
         if x.get("imp") is not None:
             b.append(_box("Team total", f1(x["imp"]), f'game O/U {f1(x.get("tot"))}'))
@@ -623,9 +621,9 @@ def _every(x):
     mr = x.get("mr")
     mtxt = (f'#{x["mrk"]} of {x["nd"]}' if x.get("mrk") else "–")
     msub = (f'{(mr - 1) * 100:+.0f}% vs avg' if mr else "")
-    b = [_box("Projection", f1(x["mu"]), f'blend {f1(x.get("base"))}' if x.get("base") is not None and abs((x.get("base") or 0) - x["mu"]) > .05 else ""),
-         _box("FantasyPros", f1(x.get("fp"))), _box("ESPN", f1(x.get("es"))),
-         _box("Consensus", esc(x.get("rk") or "–"), f'range {x.get("rmin") or "–"}–{x.get("rmax") or "–"}' + (f' · grade {esc(x["gr"])}' if x.get("gr") else "")),
+    b = [_box("Projection", f1(x["mu"]), f'model {f1(x.get("base"))}' if x.get("base") is not None and abs((x.get("base") or 0) - x["mu"]) > .05 else ""),
+         _box("Model settings", f'{f1(x.get("lo"))}–{f1(x.get("hi"))}' if x.get("lo") is not None else "–", "range across settings"),
+         _box("Rank", esc(x.get("rk") or "–"), f'range {x.get("rmin") or "–"}–{x.get("rmax") or "–"}' + (f' · grade {esc(x["gr"])}' if x.get("gr") else "")),
          _box("Floor / ceiling", f'{f1(max(0, x["mu"] - .84 * x["sd"]))}–{f1(x["mu"] + .84 * x["sd"])}', "20th–80th pct"),
          _box(f'Matchup vs {x["pos"]}', mtxt, msub),
          _box("Team total", f1(x.get("imp")), f'game O/U {f1(x.get("tot"))}' if x.get("tot") is not None else ""),
@@ -784,8 +782,8 @@ def section(d, W, short, own_team):
     tm = cal.get("team") or {}
     track = ""
     if tm.get("n"):
-        lab = [("hindsight", "Perfect hindsight"), ("blend", "This model"), ("fp", "FantasyPros only"), ("weights", "Tuned source weights"),
-               ("adjusted", "Form, matchup, Vegas, usage added"), ("espn", "ESPN only"), ("l3", "Last-3 form"), ("managers", "What managers started")]
+        lab = [("hindsight", "Perfect hindsight"), ("blend", "This model"),
+               ("adjusted", "Form, matchup, Vegas, usage added"), ("l3", "Last-3 form"), ("managers", "What managers started")]
         vals = [tm[k]["avg"] for k, _ in lab if k in tm]
         lo, hi = min(vals) - 2, max(vals)
         rows_ = "".join(
@@ -800,14 +798,15 @@ def section(d, W, short, own_team):
                  f'(this week: {"none did; small gaps here are noise" if tm["choice"] == "blend" else "the " + dict(lab)[tm["choice"]].lower() + " version is in use"}).</p></details>')
     qq = cal["q"]
     how = (f'<details class="fo-how lu-how"><summary>How this works</summary><div class="note-s">'
-           f'<p><b>Projection.</b> FantasyPros consensus and ESPN, averaged. When every team\'s lineups were re-picked, nothing tried clearly beat it: '
-           f'ESPN alone and last-3 form did worse, and the gaps for FantasyPros alone, per-position source weights and adding {", ".join(FEATS)} were within the noise. '
-           f'The test re-runs on each refresh and switches only when an alternative wins by more than two standard errors.</p>'
+           f'<p><b>Projection.</b> Our own model, built from box scores, game-day status, injury reports and the betting market\'s team totals: '
+           f'recent points and opportunity, the matchup, and work left by teammates who are out. Before it went live it matched the old outside-projection '
+           f'blend on every team\'s weeks 1–7 lineups (116.2 points a week each). Adding {", ".join(FEATS)} on top, or last-3 form alone, didn\'t clearly beat it; '
+           f'the test re-runs on each refresh and switches only when an alternative wins by more than two standard errors.</p>'
            f'<p><b>Injuries.</b> Out, IR and byes are zero; doubtful {PPLAY["DOUBTFUL"] * 100:.0f}%. Questionable: {qq["ratio"] * 100:.0f}% of his projection, since you can swap him '
            f'if he\'s inactive 90 minutes before kickoff; if no backup kicks off at the same time or later, his {qq["play"] * 100:.0f}% chance to play counts too. '
            f'Learned from this season\'s tags ({qq["played"]} of {qq["n"]} questionable players played' + (f', weeks {", ".join(map(str, qq["weeks"]))}' if qq["weeks"] else "") + '), still leaning on a prior until more weeks are logged.</p>'
            f'<p><b>Range.</b> Floor and ceiling are the 20th and 80th percentile, from how far projections missed in this league '
-           f'(RB/WR/TE about {cal["sd"]["skill"][0]:.1f} + {cal["sd"]["skill"][1]:.2f} × projection; QB {cal["sd"]["QB"][0]:.1f}; K {cal["sd"]["K"][0]:.1f}; D/ST {cal["sd"]["D/ST"][0]:.1f}). Kickers and defenses use ESPN\'s projection.</p>'
+           f'(RB/WR/TE about {cal["sd"]["skill"][0]:.1f} + {cal["sd"]["skill"][1]:.2f} × projection; QB {cal["sd"]["QB"][0]:.1f}; K {cal["sd"]["K"][0]:.1f}; D/ST {cal["sd"]["D/ST"][0]:.1f}). Kickers and defenses use our projection too.</p>'
            f'<p><b>Lineup.</b> Every legal QB / 2 RB / 2 WR / TE / FLEX / D/ST / K is scored against {sname(opp_id) if opp_id else "your opponent"}\'s best projected lineup, '
            f'and the one with the best chance to win is shown (a QB and his own receivers count as linked). Bench percentages = his chance to outscore the starter he\'d replace. '
            f'Tap any player for every stat behind his number. Refreshes Tuesday to Thursday, Saturday and Sunday 11:47am.</p></div></details>')

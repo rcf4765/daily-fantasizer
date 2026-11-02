@@ -4,7 +4,7 @@ build(short_names) -> HTML for the Player Stats tab pane, from data/players/*.js
 Used by render.py for the weekly edition; `python3 players.py --patch FILE...` swaps a fresh pane into
 already-built pages (between <!--PS--> and <!--/PS-->) for the midweek refresh.
 
-Sources stay in the background: the page shows one blended number, not who said what.
+Projections, rankings and rest-of-season values are our own (inhouse.py, user 2026-11-02); no outside projection source.
 """
 import html, json, math, os, re, sys
 
@@ -43,8 +43,8 @@ class Data:
         self.meta = load("meta.json", {})
         self.P = load("espn_players.json", [])
         self.U = load("usage.json", [])
-        self.ros = load("fp_ros.json", {"players": []})
-        self.lean = load("fp_lean.json", {"pos": {}})
+        self.ros = load("ih_ros.json", {"players": []})
+        self.lean = {"pos": {}}  # the Joel Smyth list was a FantasyPros page; dropped with it (2026-11-02)
         self.final = sorted(self.meta.get("final_weeks", []))
         self.live = self.meta.get("espn_week")  # week on the field (may be partly played)
         if week:
@@ -55,9 +55,9 @@ class Data:
             self.cap = None
             self.next = (max(self.final) + 1) if self.final else 1
             up = self.meta.get("upcoming")
-            if up and up > self.next and load(f"fp_week{up}.json"):
+            if up and up > self.next and load(f"ih_week{up}.json"):
                 self.next = up
-        self.fp = {w: load(f"fp_week{w}.json") for w in range(1, self.next + 1)}
+        self.fp = {w: load(f"ih_week{w}.json") for w in range(1, self.next + 1)}  # in-house weekly ranks
         self.by = {}
         for p in self.P:
             p["key"] = norm(p["name"]) + "|" + p["pos"]
@@ -232,7 +232,7 @@ def build(short_names, week=None):
     N = d.next
     fpN = d.fp.get(N)
     has_fp = bool(fpN and fpN.get("pos"))
-    early = has_fp and (fpN.get("experts") or 0) < 10
+    early = False  # our own numbers are complete as soon as the data refresh runs
     rows_by_pos = {}
     for pos in POS:
         lst = []
@@ -240,15 +240,14 @@ def build(short_names, week=None):
             if p["pos"] != pos:
                 continue
             e = d.ecr.get(p["key"], {}).get(N) if has_fp else None
-            vals = []
             if e and e.get("r2p_pts") not in (None, ""):
-                vals.append(float(e["r2p_pts"]))
-            if p["proj"].get(N):
-                vals.append(p["proj"][N])
-            if not vals:
+                pr = float(e["r2p_pts"])
+                lo, hi = e.get("lo", pr), e.get("hi", pr)  # spread across the model's settings
+            elif p["proj"].get(N):
+                pr = lo = hi = p["proj"][N]
+            else:
                 continue
-            pr = sum(vals) / len(vals)
-            lst.append({"p": p, "e": e, "proj": pr, "lo": min(vals), "hi": max(vals)})
+            lst.append({"p": p, "e": e, "proj": pr, "lo": lo, "hi": hi})
         if has_fp:
             lst = [r for r in lst if r["e"]] + [r for r in lst if not r["e"]]
             lst.sort(key=lambda r: (r["e"]["rank_ecr"] if r["e"] else 9999, -r["proj"]))
@@ -274,9 +273,9 @@ def build(short_names, week=None):
             f'<div class="pj-row"><span class="rk2">{i}</span>{d.pname(r["p"])}{d.owner(r["p"])}<span class="pj-opp num">{esc(opp(r))}</span>'
             f'<span class="pj-t"><i class="pj-rng" style="left:{r["lo"] / mx * 100:.1f}%;width:{max(0.6, (r["hi"] - r["lo"]) / mx * 100):.1f}%"></i><i class="pj-dot" style="left:{r["proj"] / mx * 100:.1f}%"></i></span>'
             f'<b class="num">{r["proj"]:.1f}</b></div>' for i, r in enumerate(lst, 1)) + '</div>'
-    out.append(sec("ps-proj", f"Week {N} Projections", "PPR points, blended",
-                   postabs("proj", panes) + '<div class="legend"><span><i class="sw pj-sw-d"></i>Blended projection</span><span><i class="sw pj-sw-r"></i>Range across projections</span></div>'
-                   + ("" if has_fp and not early else f'<p class="note-s">Early numbers. Most of the consensus for week {N} lands Tuesday to Thursday; this tab refreshes as it does.</p>')))
+    out.append(sec("ps-proj", f"Week {N} Projections", "PPR points, our model",
+                   postabs("proj", panes) + '<div class="legend"><span><i class="sw pj-sw-d"></i>Projection</span><span><i class="sw pj-sw-r"></i>Range across model settings</span></div>'
+                   + ("" if has_fp and not early else f'<p class="note-s">Week {N} projections post with the next data refresh.</p>')))
 
     # 4. start / sit assist (interactive)
     cands = []
@@ -320,7 +319,7 @@ def build(short_names, week=None):
                    f'<span class="ss-vs">vs.</span><label><span class="kicker">Player B</span><select id="ss-b"></select></label></div>'
                    f'<div class="ss-out" id="ss-out" aria-live="polite"></div></div>'
                    f'<script type="application/json" id="ss-data">{json.dumps(ss, separators=(",", ":")).replace("</", "<\\/")}</script>'
-                   '<p class="note-s">The call weighs the blended projection first, then the floor (low end of the projections), recent target share and snaps. Grades and rank ranges come from the consensus. "Contrarian lean" means a tracked analyst ranks him well away from consensus this week.</p>'))
+                   '<p class="note-s">The call weighs the projection first, then the floor (low end across the model\'s settings), recent target share and snaps. Grades come from his projected position rank; the rank range is where he lands across the model\'s settings.</p>'))
 
     # 5. next week rankings
     panes = {}
@@ -333,8 +332,8 @@ def build(short_names, week=None):
         panes[pos] = (f'<div class="tbl-wrap"><table class="pst"><thead><tr><th>#</th><th>Player</th><th>Owner</th><th>Opp</th><th class="n">Rank range</th><th class="n">Grade</th><th class="n">Proj</th></tr></thead><tbody>{rows}</tbody></table></div>'
                       if lst else '<p class="note-s">Rankings post early in the week.</p>')
     # Week N+1 and rest-of-season rankings share one section with a switch (user, 2026-10-26)
-    next_html = (postabs("next", panes) + ("" if has_fp else f'<p class="note-s">Consensus week {N} ranks aren\'t posted yet; until they are, this list is ordered by projection.</p>')
-                 + '<p class="note-s">Weekly consensus PPR ranks with the range across experts, start/sit grade and blended projection. Yellow rows are free agents in our league.</p>')
+    next_html = (postabs("next", panes) + ("" if has_fp else f'<p class="note-s">Week {N} ranks post with the next data refresh.</p>')
+                 + '<p class="note-s">Weekly PPR ranks from our projection, with the rank range across the model\'s settings, start/sit grade and projection. Yellow rows are free agents in our league.</p>')
 
     # 6. rest of season
     panes = {}; fa_best = []
@@ -358,10 +357,10 @@ def build(short_names, week=None):
     fa_html = "".join(f'<div class="fa-c"><span class="kicker">{esc(r["pos_rank"] or p["pos"])} · overall {r["rank_ecr"]}</span><b>{esc(p["name"])}</b><small>{esc(p["team"])} · {f1(p["ppg"])} PPR/g</small></div>' for _, p, r in fa_best[:6])
     ros_html = ((f'<div class="fa-best"><span class="fs-tag">On our wire</span>{fa_html}</div>' if fa_html else "")
                 + postabs("ros", panes)
-                + f'<p class="note-s">Rest-of-season consensus, updated {esc(str(d.ros.get("updated") or ""))}. Move = change in consensus overall rank since last week. Expected = PPR/g his volume supports (see Volume vs. Scoring). Yellow rows are free agents in our league.</p>')
+                + f'<p class="note-s">Rest-of-season projection, updated {esc(str(d.ros.get("updated") or ""))}: points per game times games left (byes and injuries count). Overall = value over a replacement starter. Move = change in overall rank since last week. Expected = PPR/g his volume supports (see Volume vs. Scoring). Yellow rows are free agents in our league.</p>')
     sw = (f'<div class="rk-sw" role="group" aria-label="Which rankings"><button type="button" class="pt" data-rk="next" aria-pressed="true">Week {N}</button>'
           f'<button type="button" class="pt" data-rk="ros" aria-pressed="false">Rest of season</button></div>')
-    out.append(sec("ps-next", "Rankings", f"Week {N} &amp; rest of season · consensus PPR · yellow = free agent",
+    out.append(sec("ps-next", "Rankings", f"Week {N} &amp; rest of season · projected PPR · yellow = free agent",
                    f'{sw}<div class="rk-v" data-rk="next">{next_html}</div><div class="rk-v" data-rk="ros" hidden>{ros_html}</div>'))
 
     # ---------- 7. rankings vs actuals ----------
@@ -420,7 +419,7 @@ def build(short_names, week=None):
                   f'<div><h3>Overrated all season</h3><div class="tbl-wrap"><table class="pst sm">{th}<tbody>{"".join(trow(a) for a in over)}</tbody></table></div></div></div>')
         out.append(sec("ps-variance", "Rankings vs. Actuals", f"Weeks {min(graded)}–{lw} graded",
                        f'<div class="rum-stats rs5">{tiles}</div>{bv}'
-                       f'<p class="note-s">Every week\'s consensus PPR ranks (top 60 WR, 48 RB, 24 QB, 24 TE) graded against where each player actually finished at his position (look up any player above for his week-by-week grades). Variance = actual points minus projected points; rank arrows read ranked → finished.</p>'))
+                       f'<p class="note-s">Every week\'s projected PPR ranks (top 60 WR, 48 RB, 24 QB, 24 TE) graded against where each player actually finished at his position (look up any player above for his week-by-week grades). Variance = actual points minus projected points; rank arrows read ranked → finished.</p>'))
 
     # Trend Lines and Defense Matchups (desk.py, added 2026-10-19): slotted after Player Lookup and Start/Sit
     import desk

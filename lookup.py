@@ -10,10 +10,10 @@ open stays open while you tap weeks, switch Season / Average or look up someone 
 
 
 - Fantasy: PPR/g and its rank at the position (2+ games, as Current Data ranked), last 3 with arrow, total PPR,
-  expected PPR/g from volume (Volume vs. Scoring's fit), week W+1 blended projection and opponent, rest-of-season
-  consensus rank, owner or FA, injury, bye.
-- Graded (was "Every graded player"): every completed week's consensus position rank -> actual finish at the
-  position, PPR points vs. the consensus projection, plus the season averages (avg rank, avg finish, spots vs.
+  expected PPR/g from volume (Volume vs. Scoring's fit), week W+1 projection (inhouse.py) and opponent, rest-of-season
+  rank (ours), owner or FA, injury, bye.
+- Graded (was "Every graded player"): every completed week's projected position rank (ours, made before the week) -> actual finish at the
+  position, PPR points vs. our projection, plus the season averages (avg rank, avg finish, spots vs.
   rank, points vs. projection).
 - Usage (was Current Data): games, snap %, routes run % (WR/TE) or RB touch share (RB), target share, air-yards share, WOPR, targets/g, touches/g.
 - WR/TE: targets, catches, catch %, yards, TDs, air yards, aDOT, unrealized air yards (air yards on all targets
@@ -32,7 +32,7 @@ open stays open while you tap weeks, switch Season / Average or look up someone 
   yards and side of the field (fetch_players._route has the cutoffs); the page says so.
 - Game log: one row per week.
 
-Data: data/players/espn_players.json (fantasy points, projections, owner), usage.json, fp_week*.json, fp_ros.json,
+Data: data/players/espn_players.json (fantasy points, projections, owner), usage.json, ih_week*.json, ih_ros.json,
 adv.json (fetch_players.advanced) and nfl_schedule.json. Players: everyone with a game through week W.
 """
 import html, json, os, re
@@ -164,7 +164,7 @@ def section(d, W, short, own_team):
             f'<div class="lk-card" id="lk-card" aria-live="polite"></div></div>'
             f'<script type="application/json" id="lk-data">{json.dumps(data, separators=(",", ":")).replace("</", "<\\/")}</script>'
             f'<p class="note-s">{len(rows)} players: everyone with a game through week {W}. PPR rank = points per game among players at his position with 2+ games. '
-            f'Graded weeks: the consensus rank before the week → where he actually finished at his position; vs proj = PPR points minus the consensus projection. '
+            f'Graded weeks: our projected rank before the week → where he actually finished at his position; vs proj = PPR points minus our projection. '
             f'Unrealized air yards = air yards on all his targets minus the air yards on the balls he caught. Yards before/after contact, broken tackles, drops, bad throws and pressures are charted by PFR; '
             f'separation, YAC over expected, rush yards over expected, 8+ box %, time to throw and aggressiveness are Next Gen Stats (only weeks over their minimums count). '
             f'The route tree shows where his targets went (depth and side of every target); the route actually run isn\'t public for this season.</p>')
@@ -308,7 +308,7 @@ SCRIPT = r"""<script>
     L.forEach(function(x){
       var hasPts=x[2]!=null,beat=hasPts&&x[3]!=null?x[2]-x[3]:null;
       h+='<button type="button" class="lk-w'+(String(VIEW)===String(x[0])?' sel':'')+'" data-v="'+x[0]+'" aria-label="Week '+x[0]+'"><div class="lk-bar">'+(hasPts?'<i class="'+(beat==null?'':beat>=0?'up':'dn')+'" style="height:'+(x[2]/mx*100).toFixed(1)+'%"><b class="num">'+f(x[2])+'</b></i>':'<span class="lk-dnp">'+(x[1]==='BYE'?'bye':'–')+'</span>')+
-        (x[3]!=null?'<u style="bottom:'+(x[3]/mx*100).toFixed(1)+'%" title="Consensus projection '+f(x[3])+'"></u>':'')+'</div>'+
+        (x[3]!=null?'<u style="bottom:'+(x[3]/mx*100).toFixed(1)+'%" title="Projection '+f(x[3])+'"></u>':'')+'</div>'+
         '<span class="lk-wl">W'+x[0]+'<small>'+e(x[1]||'')+'</small></span>'+
         '<span class="lk-rf num">'+(x[4]&&x[5]?p.pos+x[4]+'→'+p.pos+x[5]:x[4]&&hasPts?p.pos+x[4]+'→?':'')+'</span>'+
         '<span class="lk-vp num '+(beat==null?'':beat>=0?'up':'dn')+'">'+(beat==null?'':(beat>0?'+':'')+beat.toFixed(1))+'</span></button>';
@@ -359,9 +359,9 @@ SCRIPT = r"""<script>
     if(isW){
       var beat=lw&&lw[2]!=null&&lw[3]!=null?lw[2]-lw[3]:null;
       h+='<div class="lk-tiles">'+tile('Week '+VIEW+' PPR',lw&&lw[2]!=null?f(lw[2]):'–',lw&&lw[1]?e(lw[1]==='BYE'?'bye week':lw[1]):'')+
-        tile('Projected',lw&&lw[3]!=null?f(lw[3]):'–','consensus, before the week')+
+        tile('Projected',lw&&lw[3]!=null?f(lw[3]):'–','our model, before the week')+
         tile('vs projection',beat==null?'–':(beat>0?'+':'')+f(beat),beat==null?'':beat>=0?'beat it':'missed it',beat==null?'':beat>=0?'up':'dn')+
-        tile('Ranked',lw&&lw[4]?p.pos+lw[4]:'–','consensus before the week')+
+        tile('Ranked',lw&&lw[4]?p.pos+lw[4]:'–','projected, before the week')+
         tile('Finished',lw&&lw[5]?p.pos+lw[5]:'–','at his position',lw&&lw[4]&&lw[5]?(lw[5]<=lw[4]?'up':'dn'):'')+'</div>';
     } else {
       h+='<div class="lk-tiles">'+tile('Last 3','<span class="'+ac+'">'+f(p.l3)+' '+ar+'</span>','vs '+f(p.ppg)+' season')+
@@ -376,7 +376,7 @@ SCRIPT = r"""<script>
       '<div class="lk-gs">'+(G[0]?'<span><em>Graded weeks</em><b class="num">'+G[0]+'</b></span><span><em>Avg rank</em><b class="num">'+p.pos+Math.round(G[1])+'</b></span><span><em>Avg finish</em><b class="num">'+p.pos+Math.round(G[2])+'</b></span>'+
         '<span><em>Spots vs rank</em><b class="num '+(G[3]>=0?'up':'dn')+'">'+(G[3]>0?'+':'')+f(G[3])+'</b></span>':'<span><em>Graded weeks</em><b class="num">0</b></span>')+
         '<span><em>Pts vs proj</em><b class="num '+(G[4]==null?'':G[4]>=0?'up':'dn')+'">'+(G[4]==null?'–':(G[4]>0?'+':'')+f(G[4]))+'</b></span></div>'+
-      '<div class="lk-key"><span><i class="k-up"></i>Beat projection</span><span><i class="k-dn"></i>Missed</span><span><i class="k-pj"></i>Consensus projection</span><span>WR12→WR5 = ranked → finished</span></div>');
+      '<div class="lk-key"><span><i class="k-up"></i>Beat projection</span><span><i class="k-dn"></i>Missed</span><span><i class="k-pj"></i>Projection</span><span>WR12→WR5 = ranked → finished</span></div>');
     // usage
     var played=!isW||!!wkv;
     if(!played){h+='<p class="lk-none">'+(lw&&lw[1]==='BYE'?'Bye week: no game.':'He didn\'t play in week '+VIEW+'.')+'</p>';card.innerHTML=h;return}

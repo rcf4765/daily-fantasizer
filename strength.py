@@ -5,13 +5,12 @@ Added 2026-10-19 at the user's request.
 Player value (points per game):
 - Season (weeks 1..N): PPR points per game played through the edition week (players.Data, same
   numbers as the Player Stats tab).
-- Rest of season: FantasyPros ROS consensus position rank turned into points with this season's
-  scoring curve (the rank-k player at a position is worth what the k-th best scorer at that
-  position has averaged, 3+ games). Players the consensus doesn't rank: half PPR/g, half
-  volume-expected PPR/g, capped below the last ranked player; injured reserve counts a quarter.
+- Rest of season: our rest-of-season points per game (inhouse.py, data/players/ih_ros.json; user 2026-11-02,
+  replacing the FantasyPros consensus). Players it has no rate for: half PPR/g, half volume-expected PPR/g;
+  injured reserve counts a quarter.
 - K and D/ST: season view = season points per game from the weekly ESPN dumps, pulled toward the
   league average by two games of prior so a single big week doesn't dominate. Rest-of-season view =
-  ESPN's weekly projections for the coming weeks (falls back to the season number without them).
+  our weekly projections for the coming weeks (falls back to the season number without them).
 
 Lineup: each team's best player fills QB, RB1, RB2, WR1, WR2, TE, then FLEX (best RB/WR/TE left),
 using current rosters (QB-TE from the player data, K and D/ST from espn_kdst.json or week N's roster).
@@ -34,8 +33,8 @@ esc = lambda s: html.escape(str(s))
 def _kdst(W):
     """team -> [(name, pos, season value, rest-of-season value)] for kickers and D/STs.
     Season: points per game over weeks 1..W from the raw dumps, with two games of league-average prior.
-    Rest of season: ESPN's weekly projections for the coming weeks (data/players/espn_kdst.json, user 2026-10-19:
-    "default to ESPN projections"); falls back to the season value when ESPN has none.
+    Rest of season: our weekly projections for the coming weeks (the proj fields inhouse.py writes into
+    data/players/espn_kdst.json); falls back to the season value when there are none.
     Owners come from espn_kdst.json when present (current rosters, like QB-TE), else from week W's dump."""
     tot = defaultdict(lambda: [0.0, 0]); pos = {}; owner = defaultdict(list)
     for k in range(1, W + 1):
@@ -96,18 +95,15 @@ def ros_values(d):
             rk[k] = int("".join(c for c in (r.get("pos_rank") or "") if c.isdigit()))
         except ValueError:
             pass
-    last = defaultdict(int)
-    for k, r in rk.items():
-        last[k.split("|")[1]] = max(last[k.split("|")[1]], r)
     for p in d.P:
-        if p["key"] in rk:
-            v = cv(p["pos"], rk[p["key"]])
+        r = d.ros_by.get(p["key"]) or {}
+        if r.get("ros_ppg") is not None:          # our rest-of-season rate (inhouse.py)
+            v = float(r["ros_ppg"])
         else:
             xp = p.get("xp")
             v = (0.5 * p["ppg"] + 0.5 * xp) if xp is not None else p["ppg"]
-            if p.get("inj") == "INJURY_RESERVE":
-                v *= 0.25
-            v = min(v, cv(p["pos"], last[p["pos"]] + 1))
+        if p.get("inj") == "INJURY_RESERVE":
+            v *= 0.25
         p["ros"] = v
         p["ros_rank"] = rk.get(p["key"])
     d._ros_done = True
@@ -222,10 +218,10 @@ def build(short, W):
             f'<span class="rd-key"><i class="sw-team"></i>Team <i class="sw-avg"></i>League average <i class="sw-max"></i>Best in league</span></div>'
             f'<div class="rd-grid">{"".join(cards)}</div>'
             f'<p class="note-s"><span class="m-season">Weeks 1–{W}: current rosters, scored on PPR points per game so far (a player&#39;s full season counts, wherever he played it). </span>'
-            f'<span class="m-next">Week {W + 1}: each player&#39;s blended projection for that game (zero on a bye or when ruled out); kickers and defenses use ESPN&#39;s projection. </span>'
-            f'<span class="m-ros">Rest of season: consensus rankings turned into points per game using this season&#39;s scoring at each rank. </span>'
+            f'<span class="m-next">Week {W + 1}: each player&#39;s projection for that game from our model (zero on a bye or when ruled out), kickers and defenses included. </span>'
+            f'<span class="m-ros">Rest of season: our rest-of-season points per game. </span>'
             f'Best player fills each slot, FLEX takes the best RB/WR/TE left. Each slot is 75% the starter and 25% his first backup. '
-            f'Kickers and defenses: season points per game in the weeks 1–{W} view, ESPN&#39;s projections for the coming weeks in the rest-of-season view. Hover a dot or open Lineup for the players.</p>'
+            f'Kickers and defenses: season points per game in the weeks 1–{W} view, our projections for the coming weeks in the rest-of-season view. Hover a dot or open Lineup for the players.</p>'
             '<script>(function(){var s=document.getElementById("roster-radar");if(!s)return;var b=s.querySelectorAll(".rd-tg .pt");'
             'b.forEach(function(x){x.addEventListener("click",function(){s.dataset.m=x.dataset.m;'
             'b.forEach(function(y){y.setAttribute("aria-pressed",y===x?"true":"false")})})})})();</script></section>')
@@ -243,7 +239,8 @@ _RAWP = {}
 
 
 def raw_proj(W):
-    """name -> {week: ESPN projection at the time} for every player on a league roster, weeks 1..W (from the raw dumps)."""
+    """name -> {week: projection made before that week} for every player on a league roster, weeks 1..W (the raw dumps,
+    with facts.load swapping in our own projection)."""
     if W in _RAWP:
         return _RAWP[W]
     out = defaultdict(dict)
@@ -258,15 +255,11 @@ def raw_proj(W):
 
 
 def proj_for(d, p, w, rawp):
-    """Blended projection for week w: mean of the FantasyPros consensus projection and ESPN's (as the
-    Player Stats tab does). Past weeks use ESPN's projection from that week's dump when the player was rostered."""
-    vals = []
+    """Our projection for week w (inhouse.py), as the Player Stats tab shows it. Falls back to the week's dump."""
     e = d.ecr.get(p["key"], {}).get(w)
     if e and e.get("r2p_pts") not in (None, ""):
-        vals.append(float(e["r2p_pts"]))
-    espn = p["proj"].get(w)
-    if espn is None:
-        espn = rawp.get(p["name"], {}).get(w)
-    if espn is not None:
-        vals.append(float(espn))
-    return sum(vals) / len(vals) if vals else None
+        return float(e["r2p_pts"])
+    v = p["proj"].get(w)
+    if v is None:
+        v = rawp.get(p["name"], {}).get(w)
+    return float(v) if v is not None else None

@@ -15,9 +15,9 @@ Rules (user's choices, 2026-10-26)
 
 Lines
 - NFL: the sportsbook lines nflverse carries (data/players/nfl_schedule.json "games", fetched with the player data).
-- League: each team's best projected lineup for the week (blended projections, ESPN for K and D/ST, same as Matchup of
+- League: each team's best projected lineup for the week (our projections for every slot, inhouse.py, same as Matchup of
   the Week). Win chance = normal model with the league's week-to-week swing; spread/total at -110.
-- Props: fantasy points at the blended projection; yards and receptions at 60% season / 40% last-3 per-game average;
+- Props: fantasy points at our projection; yards and receptions at 60% season / 40% last-3 per-game average;
   O/U at -110 with the line on a half point so it can't push. Touchdowns: Poisson chance from his TD rate (two
   games of position-average prior), priced with a 5% house edge.
 

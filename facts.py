@@ -33,7 +33,32 @@ def load(path):
         elif sec == "LOGOURLS":
             logo_urls[int(p[0])] = p[1]
     meta["week"] = int(meta["week"])
+    _inhouse(meta["week"], rosters)
     return meta, slots, teams, sched, rosters, tx, logo_urls
+
+
+def _inhouse(week, rosters):
+    """Swap ESPN's projection in the dump for ours (inhouse.py, data/players/ih_weekN.json; user 2026-11-02).
+    A player our model has no number for keeps the dump's, and is counted on stderr."""
+    import os, re
+    f = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "players", f"ih_week{week}.json")
+    if not os.path.exists(f):
+        return
+    def key(n, pos):
+        n = n.lower().replace("’", "'")
+        n = re.sub(r"\b(jr|sr|ii|iii|iv|v)\b\.?", "", n)
+        return re.sub(r"[^a-z]", "", n) + "|" + pos
+    ih = {key(r["player_name"], pos): float(r["r2p_pts"]) for pos, rows in json.load(open(f))["pos"].items() for r in rows}
+    kept = []
+    for pl in rosters.values():
+        for p in pl:
+            v = ih.get(key(p["name"], p["pos"]))
+            if v is None:
+                kept.append(p["name"])
+            else:
+                p["proj"] = v
+    if kept:
+        print(f"week {week}: no in-house projection for {len(kept)} rostered players: {', '.join(kept[:8])}", file=sys.stderr)
 
 
 def optimal(roster, slots):

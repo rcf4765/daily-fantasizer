@@ -3,7 +3,7 @@
 This Week's Paper
 - Matchup of the Week: the next week's game the Forecast calls closest (season averages); its spread and O/U
   come from each team's best projected lineup that week (user, 2026-10-22). Both teams' rest-of-season
-  Roster Radars overlaid, plus each lineup slot's blended projection for that week, head to head.
+  Roster Radars overlaid, plus each lineup slot's projection for that week (inhouse.py), head to head.
 
 League & Teams
 - Manager Report Card: one grade per manager from
@@ -16,7 +16,7 @@ League & Teams
 - One-Man Show: share of each team's starting-lineup points from its top scorer, and from the next two.
 - Trade Matchmaker: one-for-one swaps of players at different positions, judged by each team's best starting
   lineup (QB, 2 RB, 2 WR, TE, FLEX; rest-of-season points per week). Every team gets at least one idea
-  (user, 2026-10-19). Tiers: win-win (both gain 0.3+, consensus ranks within 12 spots or 25%), small win-win
+  (user, 2026-10-19). Tiers: win-win (both gain 0.3+, rest-of-season ranks (ours) within 12 spots or 25%), small win-win
   (both gain, ranks within 24 spots or 50%), even swap (one gains, the other gives up under a point a week). Suggestions only.
 """
 import html, json, os
@@ -289,7 +289,7 @@ def matchup(short, W, F, records):
     for t in (pick["home"], pick["away"]):
         ps = [p for p in d.P if p.get("owner") == t]
         lines[t] = [(s, x, pj(x) if x else 0.0) for s, x in _lineup(ps, pj)]
-    # kickers and defenses: ESPN's projection for that week (data/players/espn_kdst.json); the best one each team rosters
+    # kickers and defenses: our projection for that week (data/players/espn_kdst.json); the best one each team rosters
     kf = "data/players/espn_kdst.json"
     KD = json.load(open(kf)) if os.path.exists(kf) else []
     for t in lines:
@@ -324,9 +324,9 @@ def matchup(short, W, F, records):
             f'<span>Roster Radar, rest of season · dashed ring = league average</span></figcaption></figure>'
             f'<div class="mw-list"><span class="kicker">Week {nxt} projected points, slot by slot</span>{rows}'
             f'<div class="mw-row mw-tot"><span class="mw-a"><b class="num">{tot[a]:.1f}</b></span><span class="mw-s">Total</span><span class="mw-b"><b class="num">{tot[b]:.1f}</b></span></div></div></div>'
-            f'<p class="note-s">Each team&#39;s best projected lineup for week {nxt}: QB through FLEX use the blended projection (consensus and ESPN); '
-            f'kickers and defenses use ESPN&#39;s projection. Byes and players ruled out count zero. The spread and over/under come from these totals.'
-            f'{"" if has_kd else " ESPN projections for kickers and defenses were not available for this edition, so those slots show zero."}</p></section>')
+            f'<p class="note-s">Each team&#39;s best projected lineup for week {nxt}: every slot, kickers and defenses included, uses our own projection.'
+            f' Byes and players ruled out count zero. The spread and over/under come from these totals.'
+            f'{"" if has_kd else " Kicker and defense projections were not available for this edition, so those slots show zero."}</p></section>')
 
 
 # ------------------------------------------------------------------ power rankings (animated)
