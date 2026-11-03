@@ -1,0 +1,401 @@
+<title>Fantasizer Test Site</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=IBM+Plex+Mono:wght@500;600;700&family=Literata:wght@400;600&display=swap">
+<style>
+/* Layout: a test control strip, then a simulated browser window (tab strip + page) that switches between the
+   Daily Fantasizer site and a stand-in ESPN tab, then the bug notes. Paper look: newsprint, ink, Big Shoulders. */
+:root{
+  --paper:#e3e6de; --sheet:#f4f5f0; --ink:#151a24; --muted:#59606c; --line:#c9cdc3;
+  --blue:#1c3fae; --blue-ink:#ffffff; --hi:#f2d23c; --hi-ink:#151a24; --ok:#1f7a4d; --bad:#b3261e;
+  --espn:#c8102e; --espn-ink:#ffffff; --chrome:#d5d9cf; --tab:#eceee8; --shadow:rgba(21,26,36,.18);
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Literata",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0e1117; --sheet:#171b24; --ink:#e8eae3; --muted:#a2a9b5; --line:#333a47;
+  --blue:#5b7de8; --blue-ink:#ffffff; --hi:#e6c83a; --hi-ink:#151a24; --ok:#5bd394; --bad:#ef7b72;
+  --espn:#d8334f; --espn-ink:#ffffff; --chrome:#232935; --tab:#1c212b; --shadow:rgba(0,0,0,.45); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0e1117; --sheet:#171b24; --ink:#e8eae3; --muted:#a2a9b5; --line:#333a47;
+  --blue:#5b7de8; --blue-ink:#ffffff; --hi:#e6c83a; --hi-ink:#151a24; --ok:#5bd394; --bad:#ef7b72;
+  --espn:#d8334f; --espn-ink:#ffffff; --chrome:#232935; --tab:#1c212b; --shadow:rgba(0,0,0,.45); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:16px/1.5 var(--body)}
+.wrap{max-width:1040px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+.k{font:600 .72rem/1.3 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+h1,h2,h3{font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.01em;line-height:.95;margin:0;text-wrap:balance}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:2px solid var(--ink);background:var(--ink);color:var(--sheet);
+  font:700 .82rem/1 var(--mono);text-transform:uppercase;letter-spacing:.05em;cursor:pointer;text-decoration:none}
+.btn.blue{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+.btn.alt{background:transparent;color:var(--ink)}
+.btn[disabled]{background:transparent;color:var(--muted);border-color:var(--line);cursor:not-allowed}
+.btn small{font-size:.62rem;border:1px solid currentColor;padding:2px 4px}
+input[type=text],input[type=password],input[type=email],textarea,select{width:100%;min-height:44px;padding:10px 12px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);font:500 .95rem/1.3 var(--mono);border-radius:0}
+textarea{min-height:88px;resize:vertical;font-family:var(--body)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* test controls */
+.lab{display:grid;gap:12px;border:2px dashed var(--ink);padding:14px 16px;background:var(--sheet)}
+.lab-h{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.lab-h h1{font-size:clamp(1.7rem,6vw,2.4rem)}
+.lab-h h1 span{color:var(--blue)}
+.lab p{margin:0;max-width:62ch;color:var(--muted);font-size:.95rem}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.ctl label{display:grid;gap:4px;min-width:0}
+.ctl .sw,.sw{display:flex;align-items:center;gap:10px;min-height:44px;border:2px solid var(--line);padding:0 12px;background:var(--paper);cursor:pointer}
+.sw input{width:20px;height:20px;accent-color:var(--blue);margin:0}
+.sw span{font:600 .85rem/1.2 var(--mono)}
+
+/* simulated browser */
+.win{border:2px solid var(--ink);background:var(--sheet);box-shadow:6px 6px 0 var(--shadow);min-width:0}
+.tabs{display:flex;gap:4px;background:var(--chrome);padding:8px 8px 0;overflow-x:auto}
+.tab{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;background:transparent;border:0;border-radius:6px 6px 0 0;font:600 .8rem/1 var(--mono);color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--sheet);color:var(--ink)}
+.tab i{width:10px;height:10px;display:inline-block;background:var(--ink)}
+.tab.e i{background:var(--espn)}
+.tab b{font-weight:600;color:var(--muted);padding:2px 4px}
+.url{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font:500 .8rem/1.2 var(--mono);color:var(--muted);overflow:hidden}
+.url span{background:var(--paper);padding:6px 10px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.view{padding:22px 20px 30px;min-height:420px;position:relative}
+
+/* site pages */
+.mast{padding-bottom:14px;border-bottom:8px solid var(--ink);box-shadow:0 5px 0 var(--sheet),0 9px 0 var(--blue);margin-bottom:22px}
+.mast h2{font-size:clamp(2.4rem,9vw,4.4rem)}
+.mast h2 span{color:var(--blue);display:block}
+.lede{font-size:1.08rem;max-width:58ch;margin:0 0 18px}
+.cards{display:grid;gap:14px}
+@media(min-width:720px){.cards{grid-template-columns:1fr 1fr}}
+.card{border:3px solid var(--ink);border-top-width:8px;background:var(--sheet);padding:16px;display:grid;gap:10px;align-content:start}
+.card.e{border-top-color:var(--espn)} .card.y{border-top-color:var(--line);color:var(--muted)}
+.card h3{font-size:1.5rem}
+.card p{margin:0}
+.hint{font-size:.88rem;color:var(--muted);margin:0}
+.note{border-left:6px solid var(--blue);background:var(--paper);padding:10px 14px;margin:0 0 14px}
+.note.bad{border-color:var(--bad)} .note.good{border-color:var(--ok)}
+.lg-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.lg-list li{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;border:2px solid var(--ink);padding:12px 14px;background:var(--sheet)}
+@media(max-width:520px){.lg-list li{grid-template-columns:1fr}}
+.badge{display:inline-block;font:600 .64rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:3px 5px;border:1.5px solid currentColor;color:var(--blue);margin-left:6px;vertical-align:2px}
+.h2s{font-size:1.8rem;margin:26px 0 12px;padding-top:10px;border-top:6px solid var(--ink)}
+.toggle{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;border:2px solid var(--ink);padding:12px 14px;margin:0 0 10px;background:var(--sheet)}
+.toggle input{width:24px;height:24px;accent-color:var(--blue)}
+.toggle p{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+.press{height:10px;background:var(--paper);border:2px solid var(--ink);overflow:hidden;margin:12px 0}
+.press i{display:block;height:100%;width:0;background:var(--blue);transition:width .4s}
+.ed{border:2px solid var(--ink);padding:16px;display:grid;gap:6px;background:var(--paper)}
+.ed b{font-family:var(--display);font-size:1.8rem;text-transform:uppercase}
+
+/* stand-in ESPN tab */
+.espn-top{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--espn);color:var(--espn-ink);padding:12px 16px;margin:-22px -20px 18px}
+.espn-top b{font:800 1.05rem/1 system-ui,sans-serif;letter-spacing:.02em}
+.espn-top .btn{background:var(--espn-ink);color:var(--espn);border-color:var(--espn-ink);min-height:36px}
+.espn-body{font-family:system-ui,sans-serif;color:var(--muted);max-width:44ch}
+.login{max-width:360px;display:grid;gap:10px;font-family:system-ui,sans-serif;border:1px solid var(--line);padding:18px;background:var(--paper)}
+.login h3{font:800 1.3rem/1.1 system-ui,sans-serif;text-transform:none}
+.login label{display:grid;gap:4px;font-size:.85rem}
+.login .btn{background:var(--espn);border-color:var(--espn);color:var(--espn-ink)}
+
+/* the extension's panel, as it appears on ESPN */
+.panel{position:absolute;top:66px;right:16px;width:min(360px,calc(100% - 32px));background:var(--sheet);border:2px solid var(--ink);box-shadow:6px 6px 0 var(--blue);z-index:2}
+@media(max-width:640px){.panel{position:static;width:auto;margin-top:18px}}
+.panel-h{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:var(--sheet);padding:10px 12px}
+.panel-h b{font:900 1.2rem/1 var(--display);text-transform:uppercase}
+.panel-h button{background:none;border:0;color:var(--sheet);font-size:1.3rem;cursor:pointer;min-width:36px;min-height:36px}
+.panel-b{padding:12px;display:grid;gap:10px;font-size:.95rem}
+.panel-b p{margin:0}
+.pk{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.pk label{display:grid;grid-template-columns:22px 1fr;gap:10px;border:2px solid var(--line);padding:10px;cursor:pointer;background:var(--paper)}
+.pk label:has(input:checked){border-color:var(--blue)}
+.pk input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--blue)}
+.pk small{display:block;color:var(--muted);font-size:.8rem}
+details summary{cursor:pointer;color:var(--blue);font-size:.9rem}
+
+/* dialog */
+dialog{border:3px solid var(--ink);background:var(--sheet);color:var(--ink);padding:20px;max-width:min(540px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(14,17,23,.5)}
+dialog h3{font-size:1.7rem;margin-bottom:8px}
+dialog ol{padding-left:20px;margin:8px 0 14px;display:grid;gap:6px}
+
+/* notes + log */
+.bottom{display:grid;gap:18px}
+@media(min-width:860px){.bottom{grid-template-columns:1.2fr 1fr}}
+.box{border:2px solid var(--ink);background:var(--sheet);padding:16px;display:grid;gap:10px;align-content:start;min-width:0}
+.box h2{font-size:1.6rem}
+.notes{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.notes li{border-left:4px solid var(--hi);background:var(--paper);padding:8px 10px;font-size:.92rem}
+.notes li .k{display:block;margin-bottom:2px}
+.log{font:12.5px/1.5 var(--mono);background:var(--paper);border:1px solid var(--line);padding:10px;max-height:260px;overflow:auto;margin:0;white-space:pre-wrap;min-width:0}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);font:600 .85rem/1.2 var(--mono);padding:10px 14px;z-index:9}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <section class="lab" aria-label="Test controls">
+    <div class="lab-h"><h1>Fantasizer <span>test site</span></h1><span class="k">Simulated · nothing touches ESPN or the real site</span></div>
+    <p>Click through linking an ESPN league the way a commissioner will. ESPN is a stand-in here (any email and password work). Flip the switches to try the cases that can go wrong, and leave a note whenever something looks off.</p>
+    <div class="ctl">
+      <label class="sw"><input type="checkbox" id="c-ext" checked><span>Extension installed</span></label>
+      <label><span class="k">ESPN account</span>
+        <select id="c-acct">
+          <option value="two">Commissioner of 1, member of another</option>
+          <option value="one">Member of 1 league</option>
+          <option value="empty">ESPN lists no leagues</option>
+        </select></label>
+      <label class="sw"><input type="checkbox" id="c-pw"><span>Wrong password on first try</span></label>
+      <div class="row"><button class="btn alt" id="c-reset" type="button">Start over</button></div>
+    </div>
+  </section>
+
+  <section class="win" aria-label="Simulated browser">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="url"><span id="url"></span></div>
+    <div class="view" id="view"></div>
+  </section>
+
+  <div class="bottom">
+    <section class="box" aria-labelledby="notes-h">
+      <h2 id="notes-h">Bug notes</h2>
+      <p class="hint" id="notes-where">Notes save with the screen and switches you were on, so I can reproduce them.</p>
+      <label for="n-text" class="k">What went wrong or felt off?</label>
+      <textarea id="n-text" placeholder="e.g. On the league list, the Add button sat below the fold on my phone"></textarea>
+      <div class="row"><button class="btn" id="n-save" type="button">Save note</button><span class="hint" id="n-state"></span></div>
+      <ul class="notes" id="notes"></ul>
+    </section>
+    <section class="box" aria-labelledby="log-h">
+      <h2 id="log-h">What happened</h2>
+      <p class="hint">Each step, as the real site and extension would log it.</p>
+      <pre class="log" id="log"></pre>
+    </section>
+  </div>
+</div>
+
+<dialog id="d-ext" aria-labelledby="d-ext-h">
+  <h3 id="d-ext-h">Add the Chrome extension first</h3>
+  <p>ESPN has no sign-in for other websites. Like FantasyPros, The Daily Fantasizer uses a small Chrome extension to read your ESPN leagues after you sign in on ESPN's own page.</p>
+  <ol><li>Use Chrome or Edge on a computer.</li><li>Download the extension and unzip it.</li><li>Open chrome://extensions, turn on Developer mode, click Load unpacked and pick the folder.</li><li>Come back and press Link ESPN Fantasy account again.</li></ol>
+  <div class="row"><button class="btn blue" id="d-ext-ok" type="button">I installed it</button><button class="btn alt" id="d-ext-close" type="button">Close</button></div>
+</dialog>
+
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // ---- example data (the stand-in ESPN account) ----
+  const ACCOUNTS = {
+    two:   [{id:'4001', name:'Office League', teams:12, team:'Taco Tuesday', comm:true}, {id:'4002', name:'Family League', teams:10, team:'Grandpa’s Guys', comm:false}],
+    one:   [{id:'4002', name:'Family League', teams:10, team:'Grandpa’s Guys', comm:false}],
+    empty: []
+  };
+  const BY_ID = {'4003': {id:'4003', name:'Old College League', teams:8, team:'Dorm Room Dynasty', comm:false}, '4777': 'stranger'};
+
+  // ---- state ----
+  const S = { tab:'site', page:'home', espnOpen:false, signedIn:false, loginOpen:false, pwTries:0, leagues:[], picked:new Set(),
+    mine:[], flash:null, panelMsg:null, settingsFor:null, printing:{}, log:[] };
+  const opt = () => ({ ext:$('c-ext').checked, acct:$('c-acct').value, badPw:$('c-pw').checked });
+
+  function log(t){ const d = new Date(); S.log.push(`${d.toTimeString().slice(0,8)}  ${t}`); $('log').textContent = S.log.join('\n'); $('log').scrollTop = 1e9; }
+  function toast(t){ const el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role','status'); el.textContent = t; document.body.appendChild(el); setTimeout(() => el.remove(), 1800); }
+
+  // ---- tabs + url ----
+  function chrome(){
+    const tabs = [`<button class="tab" role="tab" aria-selected="${S.tab==='site'}" data-tab="site"><i></i>The Daily Fantasizer</button>`];
+    if (S.espnOpen) tabs.push(`<button class="tab e" role="tab" aria-selected="${S.tab==='espn'}" data-tab="espn"><i></i>ESPN Fantasy<b data-close aria-label="Close ESPN tab">×</b></button>`);
+    $('tabs').innerHTML = tabs.join('');
+    const urls = { home:'fantasizer.example/', mine:'fantasizer.example/mine', paper:'fantasizer.example/l/' + (S.settingsFor||'') + '/', settings:'fantasizer.example/l/' + (S.settingsFor||'') + '/settings' };
+    $('url').textContent = S.tab === 'espn' ? 'https://fantasy.espn.com/football/  (stand-in)' : 'https://' + (urls[S.page] || urls.home) + '  (test)';
+  }
+  $('tabs').addEventListener('click', (e) => {
+    if (e.target.closest('[data-close]')) { closeEspn('closed'); return; }
+    const t = e.target.closest('[data-tab]'); if (t) { S.tab = t.dataset.tab; render(); }
+  });
+
+  // ---- site pages ----
+  const mast = (k) => `<header class="mast"><span class="k">${esc(k)}</span><h2>The Daily<span>Fantasizer</span></h2></header>`;
+  const flash = () => S.flash ? `<div class="note ${S.flash.kind||''}" role="status">${esc(S.flash.text)}</div>` : '';
+
+  function home(){
+    return `${mast('A newspaper for your fantasy football league')}${flash()}
+      <p class="lede">Every Tuesday, a fresh edition built from your league's real games: upsets, bench blunders, power rankings, playoff odds and a player desk. Share one link with your league.</p>
+      <div class="cards">
+        <section class="card e"><span class="k">ESPN leagues</span><h3>Link your ESPN account</h3>
+          <p>Sign in on ESPN and tick the leagues you want. Every league on your account can get its own paper.</p>
+          <div class="row"><button class="btn blue" type="button" data-act="link">Link ESPN Fantasy account</button></div>
+          <p class="hint">No computer handy? Enter a league ID instead.</p></section>
+        <section class="card y"><span class="k">Yahoo leagues</span><h3>Link your Yahoo account</h3>
+          <p>Yahoo sign-in is on the way.</p>
+          <div class="row"><button class="btn" type="button" disabled>Link Yahoo Fantasy account <small>Soon</small></button></div></section>
+      </div>`;
+  }
+  function mine(){
+    const items = S.mine.map((l) => `<li><div><b>${esc(l.name)}</b>${l.comm ? '<span class="badge">Commissioner</span>' : ''}<br><span class="hint">ESPN · ${l.teams} teams · your team: ${esc(l.team)}</span></div>
+      <div class="row"><button class="btn alt" type="button" data-act="paper" data-id="${l.id}">Paper</button>${l.comm ? `<button class="btn alt" type="button" data-act="settings" data-id="${l.id}">Settings</button>` : ''}</div></li>`).join('');
+    return `${mast('My leagues')}${flash()}<ul class="lg-list">${items || '<li><div>No leagues yet.</div></li>'}</ul>
+      <div class="row" style="margin-top:16px"><button class="btn blue" type="button" data-act="link">Add more ESPN leagues</button><button class="btn alt" type="button" data-act="signout">Sign out</button></div>`;
+  }
+  function paper(){
+    const l = S.mine.find((x) => x.id === S.settingsFor); const p = S.printing[l.id] || 0;
+    const done = p >= 100;
+    return `${mast(l.name)}${done ? `<div class="ed"><span class="k">Week 8 edition · printed</span><b>${esc(l.name)}</b><span class="hint">This is where the full paper opens, in the same layout as yours, with Rule Changes and Betting off until the commissioner turns them on.</span></div>`
+      : `<div class="note" role="status">Your first paper is at the printer. This usually takes 3 to 10 minutes (sped up here).</div><div class="press" aria-hidden="true"><i style="width:${p}%"></i></div>`}
+      <div class="row" style="margin-top:16px"><button class="btn alt" type="button" data-act="mine">My leagues</button>${l.comm ? `<button class="btn alt" type="button" data-act="settings" data-id="${l.id}">Settings</button>` : ''}</div>`;
+  }
+  function settings(){
+    const l = S.mine.find((x) => x.id === S.settingsFor);
+    return `${mast(l.name + ' · commissioner settings')}${flash()}
+      <h3 class="h2s">Share</h3>
+      <div class="row"><input type="text" id="s-link" readonly value="https://fantasizer.example/l/${l.id}x7k2/" aria-label="Link to the paper" style="flex:1 1 240px;min-width:0"><button class="btn" type="button" data-act="copy">Copy</button></div>
+      <h3 class="h2s">Optional tabs</h3>
+      <label class="toggle"><span><b>Rule Changes</b><p>Teams propose and vote on rule changes. You set passed changes in ESPN yourself.</p></span><input type="checkbox" id="s-rules"></label>
+      <label class="toggle"><span><b>Betting</b><p>A side game with each team's own points. Real league scores never change.</p></span><input type="checkbox" id="s-bets"></label>
+      <div class="row" style="margin-top:12px"><button class="btn blue" type="button" data-act="save">Save and reprint</button><button class="btn alt" type="button" data-act="mine">My leagues</button></div>`;
+  }
+
+  // ---- stand-in ESPN tab + the extension's panel ----
+  function espn(){
+    const o = opt();
+    const top = `<div class="espn-top"><b>ESPN FANTASY · stand-in</b>${S.signedIn ? '<span>Signed in</span>' : '<button class="btn" type="button" data-act="login">Log In</button>'}</div>`;
+    const body = S.loginOpen && !S.signedIn ? `<form class="login" id="f-login"><h3>Log in to ESPN</h3>
+        ${S.pwTries && o.badPw && S.pwTries === 1 ? '<div class="note bad">ESPN: that email and password don’t match. Try again.</div>' : ''}
+        <label>Email<input type="email" id="l-email" autocomplete="off" value="commish@example.com"></label>
+        <label>Password<input type="password" id="l-pw" autocomplete="off" value="anything"></label>
+        <button class="btn" type="submit">Log In</button><p class="hint">Stand-in: any email and password work.</p></form>`
+      : `<p class="espn-body">${S.signedIn ? 'Your ESPN fantasy home.' : 'ESPN fantasy home. Use Log In at the top right.'}</p>`;
+    return top + body + panel();
+  }
+  function panel(){
+    let b;
+    if (!S.signedIn) b = `<p><b>Sign in to ESPN</b> with the <b>Log In</b> button on this page.</p><p class="hint">Once you're in, your fantasy leagues show up here and you pick which ones get a paper. Your ESPN password goes only to ESPN.</p>`;
+    else {
+      const list = S.leagues.length ? `<ul class="pk">${S.leagues.map((l) => `<li><label><input type="checkbox" data-pick="${l.id}" ${S.picked.has(l.id)?'checked':''}><span><b>${esc(l.name)}</b>${l.comm?'<span class="badge">Commish</span>':''}${l.linked?'<span class="badge" style="color:var(--muted)">Has a paper</span>':''}<small>Your team: ${esc(l.team)} · ${l.teams} teams · 2026</small></span></label></li>`).join('')}</ul>`
+        : `<p class="hint">ESPN didn’t list any football leagues for this account this season. Add a league by its ID below.</p>`;
+      const n = S.picked.size;
+      b = `${S.panelMsg ? `<div class="note ${S.panelMsg.kind}">${esc(S.panelMsg.text)}</div>` : ''}<span class="k">Your ESPN football leagues</span>${list}
+        <details ${S.leagues.length && !S.idOpen ? '' : 'open'}><summary>A league is missing? Add it by ID</summary>
+          <div class="row" style="margin-top:8px"><input type="text" id="p-id" placeholder="League ID (try 4003 or 4777)" style="flex:1 1 150px;min-width:0"><button class="btn" type="button" data-act="addid">Add</button></div></details>
+        <button class="btn blue" type="button" data-act="sync" ${n?'':'disabled'}>${n ? `Add ${n} league${n>1?'s':''}` : 'Pick a league'}</button>
+        <p class="hint">Read-only access to the leagues you tick. It can't change lineups, trades or settings.</p>`;
+    }
+    return `<aside class="panel" aria-label="The Daily Fantasizer extension"><div class="panel-h"><b>The Daily Fantasizer</b><button type="button" data-act="cancel" aria-label="Cancel">×</button></div><div class="panel-b">${b}</div></aside>`;
+  }
+
+  function render(){
+    chrome();
+    const v = $('view');
+    v.innerHTML = S.tab === 'espn' ? espn() : ({home, mine, paper, settings}[S.page] || home)();
+    $('notes-where').textContent = `Notes save with where you are now (${where()}), so I can reproduce them.`;
+  }
+  const where = () => S.tab === 'espn' ? `ESPN tab, ${S.signedIn ? 'signed in' : 'signed out'}` : `site: ${S.page}`;
+
+  // ---- actions ----
+  function startLink(){
+    if (!opt().ext) { log('Site: extension not found → showing install steps'); $('d-ext').showModal(); return; }
+    S.espnOpen = true; S.tab = 'espn'; S.loginOpen = false; S.panelMsg = null;
+    if (S.signedIn) fetchLeagues();
+    S.flash = { text:'An ESPN tab is open. Sign in there, tick your leagues and press Add leagues.' };
+    log('Site → extension: link requested · extension opens fantasy.espn.com in a new tab');
+    render();
+  }
+  function fetchLeagues(){
+    S.leagues = ACCOUNTS[opt().acct].map((l) => ({ ...l, linked: S.mine.some((m) => m.id === l.id) }));
+    S.picked = new Set(S.leagues.filter((l) => !l.linked).map((l) => l.id));
+    log(`Extension → server: ESPN session sent · server lists ${S.leagues.length} football league(s) on this account`);
+  }
+  function closeEspn(why){
+    S.espnOpen = false; S.tab = 'site'; S.loginOpen = false;
+    if (why === 'closed' || why === 'cancel') { S.flash = { kind:'bad', text: why === 'closed' ? 'The ESPN tab was closed. Nothing was added.' : 'Cancelled. Nothing was added.' }; log(`ESPN tab ${why === 'closed' ? 'closed' : 'cancelled'} → nothing shared`); }
+    render();
+  }
+
+  $('view').addEventListener('click', async (e) => {
+    const pick = e.target.closest('[data-pick]');
+    if (pick) { pick.checked ? S.picked.add(pick.dataset.pick) : S.picked.delete(pick.dataset.pick); render(); return; }
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    const act = a.dataset.act;
+    if (act === 'link') startLink();
+    if (act === 'login') { S.loginOpen = true; log('ESPN: Log In opened'); render(); }
+    if (act === 'cancel') closeEspn('cancel');
+    if (act === 'addid') {
+      S.idOpen = true;
+      const v = ($('p-id').value || '').trim(); const m = v.match(/leagueId=(\d+)/) || v.match(/^(\d{3,12})$/);
+      if (!m) S.panelMsg = { kind:'bad', text:'That doesn’t look like an ESPN league ID.' };
+      else if (BY_ID[m[1]] === 'stranger') { S.panelMsg = { kind:'bad', text:'This ESPN account isn’t in Strangers League.' }; log(`Server: league ${m[1]} refused (not a member)`); }
+      else if (!BY_ID[m[1]]) { S.panelMsg = { kind:'bad', text:`No ESPN league ${m[1]} in 2026.` }; log(`Server: league ${m[1]} not found`); }
+      else if (S.leagues.some((l) => l.id === m[1])) S.panelMsg = { kind:'', text:'That league is already in the list.' };
+      else { const l = { ...BY_ID[m[1]], linked: S.mine.some((x) => x.id === m[1]) }; S.leagues.push(l); S.picked.add(l.id); S.panelMsg = { kind:'good', text:`Added ${l.name}.` }; log(`Server: league ${m[1]} checked · member · added to the list`); }
+      render();
+    }
+    if (act === 'sync') {
+      const chosen = S.leagues.filter((l) => S.picked.has(l.id));
+      a.disabled = true; a.textContent = 'Adding…';
+      log(`Extension → server: add ${chosen.map((l) => l.id).join(', ')}`);
+      await new Promise((r) => setTimeout(r, 700));
+      for (const l of chosen) { if (!S.mine.some((m) => m.id === l.id)) S.mine.push({ ...l }); S.printing[l.id] = S.printing[l.id] || 0; }
+      log(`Server: ${chosen.length} league(s) saved · first prints queued · one-time return link issued`);
+      S.espnOpen = false; S.tab = 'site'; S.page = 'mine';
+      S.flash = { kind:'good', text:`Added ${chosen.length} league${chosen.length>1?'s':''}. Each first paper prints in a few minutes; share each league's link from its Settings.` };
+      log('Extension: ESPN tab closed · site opens My leagues, signed in');
+      render();
+    }
+    if (act === 'paper' || act === 'settings') { S.settingsFor = a.dataset.id; S.page = act; S.flash = null; render(); if (act === 'paper') runPress(a.dataset.id); }
+    if (act === 'mine') { S.page = 'mine'; S.flash = null; render(); }
+    if (act === 'signout') { S.page = 'home'; S.flash = { text:'Signed out.' }; log('Site: signed out'); render(); }
+    if (act === 'copy') { const t = $('s-link'); try { await navigator.clipboard.writeText(t.value); toast('Link copied'); } catch (err) { t.select(); toast('Select and copy the link'); } }
+    if (act === 'save') { const r = $('s-rules').checked, b = $('s-bets').checked; S.flash = { kind:'good', text:'Saved. The paper is being reprinted with your changes.' }; log(`Settings saved · Rule Changes ${r?'on':'off'} · Betting ${b?'on':'off'} · reprint queued`); render(); }
+  });
+  $('view').addEventListener('submit', (e) => {
+    if (e.target.id !== 'f-login') return; e.preventDefault();
+    S.pwTries++;
+    if (opt().badPw && S.pwTries === 1) { log('ESPN: wrong password (ESPN shows its own error; the panel waits)'); render(); return; }
+    S.signedIn = true; S.loginOpen = false;
+    log('ESPN: signed in · extension sees the new ESPN session · panel refreshes');
+    fetchLeagues(); render();
+  });
+  function runPress(id){
+    if (S.printing[id] >= 100) return;
+    const step = () => { S.printing[id] = Math.min(100, (S.printing[id] || 0) + 25);
+      if (S.page === 'paper' && S.settingsFor === id) render();
+      if (S.printing[id] < 100) setTimeout(step, 900); else log(`Printer: first paper for league ${id} printed`); };
+    setTimeout(step, 600);
+  }
+
+  $('d-ext-ok').onclick = () => { $('c-ext').checked = true; $('d-ext').close(); log('Test: extension marked as installed'); };
+  $('d-ext-close').onclick = () => $('d-ext').close();
+  $('c-acct').onchange = () => { log(`Test: ESPN account switched to "${$('c-acct').selectedOptions[0].text}"`); if (S.signedIn) { fetchLeagues(); render(); } };
+  $('c-ext').onchange = () => log(`Test: extension ${$('c-ext').checked ? 'installed' : 'not installed'}`);
+  $('c-pw').onchange = () => { S.pwTries = 0; log(`Test: wrong first password ${$('c-pw').checked ? 'on' : 'off'}`); };
+  $('c-reset').onclick = () => { Object.assign(S, { tab:'site', page:'home', espnOpen:false, signedIn:false, loginOpen:false, pwTries:0, leagues:[], picked:new Set(), mine:[], flash:null, panelMsg:null, settingsFor:null, printing:{} }); log('Test: start over (signed out of ESPN, no leagues)'); render(); };
+
+  // ---- bug notes (shared store, so Claude can read them) ----
+  let db = null, notesLocal = [];
+  function drawNotes(rows){
+    $('notes').innerHTML = rows.length ? rows.map((n) => `<li><span class="k">${esc(n.where)} · ${esc(n.switches)} · ${esc((n.at||'').replace('T',' ').slice(0,16))}</span>${esc(n.text)}</li>`).join('')
+      : '<li><span class="k">No notes yet</span>Your first note shows up here.</li>';
+  }
+  $('n-save').onclick = async () => {
+    const text = $('n-text').value.trim(); if (!text) { $('n-state').textContent = 'Write the note first.'; return; }
+    const o = opt();
+    const note = { text, where: where(), switches: `extension ${o.ext?'on':'off'} · account ${o.acct} · bad password ${o.badPw?'on':'off'}`, steps: S.log.slice(-12).join('\n'), at: new Date().toISOString() };
+    if (db) {
+      try { await db.collection('notes').add(note); $('n-text').value = ''; $('n-state').textContent = 'Saved. Claude can read it.'; }
+      catch (err) { $('n-state').textContent = 'Couldn’t save to the shared notes. Kept on this page only.'; notesLocal.unshift(note); drawNotes(notesLocal); }
+    } else { notesLocal.unshift(note); drawNotes(notesLocal); $('n-text').value = ''; $('n-state').textContent = 'Kept on this page only (shared notes need sign-in). Paste it into the chat.'; }
+  };
+  drawNotes([]);
+  (async () => {
+    try {
+      db = await window.claude?.use?.('db');
+      if (!db) return;
+      const timer = setTimeout(() => { $('n-state').textContent = 'Notes are slow to load.'; }, 10000);
+      db.collection('notes').orderBy('at', 'desc').limit(50).onSnapshot((snap) => { clearTimeout(timer); drawNotes(snap.docs.map((d) => d.data())); }, () => clearTimeout(timer));
+    } catch (err) { db = null; }
+  })();
+
+  log('Test site ready · signed out of ESPN · no leagues linked');
+  render();
+})();
+</script>
