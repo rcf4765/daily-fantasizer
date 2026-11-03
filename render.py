@@ -500,6 +500,8 @@ race_html = _teams.race(LG["short_names"], W)
 matchmaker_html = _teams.matchmaker(LG["short_names"], W) if os.path.exists("data/players/meta.json") else ""
 
 out = open("template.html", encoding="utf-8").read()
+if LG["league_name"].lower().endswith(" league"):   # "Office League", not "Office League league"
+    out = out.replace("the {{LEAGUE_NAME}} league", "the {{LEAGUE_NAME}}")
 for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
              "<!--CRESTS-->": crests, "<!--POTEAMS-->": json.dumps({t: {"name": teams[t]["name"], "short": SHORT[t]} for t in sorted(teams)}).replace("</", "<\\/"), "{{PROPOSALS_API}}": LG.get("proposals_api", ""), "<!--RCPRESETS-->": json.dumps({k: {f: v[f] for f in ("category", "title", "pitch", "now_label", "new_label") if f in v} for k, v in json.load(open("rules_presets.json")).items()}).replace("</", "<\\/"), "<!--UPSETS-->": upsets_html, "<!--ANNOUNCE-->": announce_html, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
              "<!--SIDEBAR-->": sidebar,

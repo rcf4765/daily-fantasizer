@@ -46,7 +46,7 @@ def prepare(work):
 
 def short_name(name):
     name = re.sub(r"\s+", " ", name).strip()
-    if len(name) <= 14:
+    if len(name) <= 18:   # keep whole names that fit the narrow columns ("Per My Last Email")
         return name
     words = [w for w in name.split(" ") if w.lower().strip("'’s") not in FILLER] or name.split(" ")
     two = " ".join(words[:2])
