@@ -37,3 +37,8 @@ CREATE TABLE IF NOT EXISTS office_log (slug TEXT NOT NULL, at TEXT NOT NULL, act
 -- ESPN links from the browser extension: a short-lived, single-use token between "signed in on ESPN" and "back on the site"
 CREATE TABLE IF NOT EXISTS espn_links (token_hash TEXT PRIMARY KEY, uid TEXT NOT NULL, leagues TEXT, created_at TEXT NOT NULL,
   synced INTEGER NOT NULL DEFAULT 0, done_hash TEXT, done_used INTEGER NOT NULL DEFAULT 0);
+-- ESPN sign-in on the server: a sign-in waiting for the one-time code ESPN emailed (browser kept open up to 10 minutes)
+CREATE TABLE IF NOT EXISTS espn_logins (token_hash TEXT PRIMARY KEY, session_id TEXT NOT NULL, created_at TEXT NOT NULL, tries INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS login_attempts (ip TEXT NOT NULL, at TEXT NOT NULL);
+-- what each sign-in did, for fixing it when ESPN changes its login page (step names only: no emails, passwords or codes)
+CREATE TABLE IF NOT EXISTS login_traces (at TEXT NOT NULL, ok INTEGER NOT NULL, steps TEXT);

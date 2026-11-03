@@ -2,6 +2,10 @@
 name = "fantasizer"
 main = "src/index.js"
 compatibility_date = "2026-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+# A real browser for "Log in with ESPN" (Cloudflare Browser Rendering; Workers Paid plan)
+browser = { binding = "BROWSER" }
 
 [vars]
 SITE_URL = "https://fantasizer.YOUR-SUBDOMAIN.workers.dev"   # no trailing slash; Yahoo's redirect URI is SITE_URL/auth/yahoo/callback

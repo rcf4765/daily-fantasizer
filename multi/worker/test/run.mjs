@@ -46,13 +46,14 @@ globalThis.fetch = async (url, init = {}) => {
       { metaData: { entry: { abbrev: 'FFL', gameId: 1, seasonId: 2026, groups: [{ groupId: 4001 }] } } },
       { metaData: { entry: { abbrev: 'FFL', gameId: 1, seasonId: 2026, groups: [{ groupId: 4002 }] } } },
       { metaData: { entry: { abbrev: 'FFL', gameId: 1, seasonId: 2025, groups: [{ groupId: 3999 }] } } },   // last season: skipped
+      ...(globalThis.JOINED_4004 ? [{ metaData: { entry: { abbrev: 'FFL', gameId: 1, seasonId: 2026, groups: [{ groupId: 4004 }] } } }] : []),
       { metaData: { entry: { abbrev: 'FBA', gameId: 3, seasonId: 2026, groups: [{ groupId: 5001 }] } } },   // basketball: skipped
       { type: { code: 'team' } } ] });
   }
-  if (url.includes('lm-api-reads.fantasy.espn.com') && /leagues\/(400[1-3]|4777)/.test(url)) {
+  if (url.includes('lm-api-reads.fantasy.espn.com') && /leagues\/(400[1-4]|4777)/.test(url)) {
     const id = url.match(/leagues\/(\d+)/)[1], me = '{CCCCCCCC-1111-2222-3333-444444444444}';
     const mine = id !== '4777';
-    return Response.json({ settings: { name: { 4001: 'Office League', 4002: 'Family League', 4003: 'Old College League', 4777: 'Strangers' }[id] },
+    return Response.json({ settings: { name: { 4001: 'Office League', 4002: 'Family League', 4003: 'Old College League', 4004: 'New Rivals League', 4777: 'Strangers' }[id] },
       teams: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: i === 2 ? 'My Squad ' + id : 'T' + i, owners: i === 2 && mine ? [me] : ['{X}'] })),
       members: mine ? [{ id: me, isLeagueManager: id === '4001' }, { id: '{X}' }] : [{ id: '{X}' }] });
   }
@@ -83,7 +84,7 @@ const ok = (name) => console.log('  ✓', name);
 
 // ---- tests ----
 console.log('pages');
-let r = await call('GET', '/'); assert.equal(r.status, 200); assert.match(await text(r), /Sign in with Yahoo/); ok('home');
+let r = await call('GET', '/'); assert.equal(r.status, 200); assert.match(await text(r), /Log in with ESPN/); ok('home');
 r = await call('GET', '/espn'); assert.match(await text(r), /League ID/); ok('ESPN form');
 
 console.log('ESPN');
@@ -198,7 +199,7 @@ console.log('ESPN extension sync (one account, several leagues)');
   r = await call('GET', j.next); assert.equal(r.status, 400); ok('return link is single-use');
   r = await call('GET', '/mine?added=3'); const page = await text(r);
   for (const n of ['Office League', 'Family League', 'Old College League']) assert.ok(page.includes(n));
-  assert.match(page, /Added 3 leagues/); ok('My leagues shows all three');
+  assert.match(page, /3 papers set up/); ok('My leagues shows all three');
   const off = sql.prepare("SELECT slug FROM leagues WHERE league_id='4001'").get().slug;
   r = await call('GET', `/l/${off}/settings`); assert.equal(r.status, 200); ok('commissioner of Office League gets Settings');
   const fam = sql.prepare("SELECT slug FROM leagues WHERE league_id='4002'").get().slug;
@@ -207,9 +208,47 @@ console.log('ESPN extension sync (one account, several leagues)');
   assert.equal(j.leagues[0].espn_s2, GOOD); ok('printer gets the ESPN session for each league');
   r = await call('POST', '/api/espn/link', { body: JSON.stringify({ espn_s2: GOOD, swid: SW }), headers: ext, keepCookies: false }); j = await r.json();
   assert.ok(j.leagues.every((l) => l.linked)); ok('linking again marks leagues that already have a paper');
-  r = await call('GET', '/'); assert.match(await text(r), /Link ESPN Fantasy account/); ok('home page has the Link ESPN button');
   r = await call('GET', '/extension.zip'); assert.equal(r.headers.get('Content-Type'), 'application/zip'); assert.ok((await r.arrayBuffer()).byteLength > 2000); ok('extension download');
   jar = savedJar;
+}
+
+console.log('Log in with ESPN (server signs in; user only logs in)');
+{
+  const savedJar = { ...jar };
+  const SW = '{CCCCCCCC-1111-2222-3333-444444444444}', GOOD = 'GOOD' + 'x'.repeat(60);
+  const seen = [];
+  env.__espnLogin = {
+    start: async (e, email, pw) => { seen.push(pw); if (pw === 'bad') return { status: 'error', error: 'ESPN didn’t accept that email and password.', trace: ['opening', 'password entered', 'ESPN error shown'] };
+      if (email.startsWith('code')) return { status: 'code', sessionId: 'SESS1', trace: ['code asked'] };
+      return { status: 'ok', s2: GOOD, swid: SW, trace: ['signed in'] }; },
+    code: async (e, sid, code) => { assert.equal(sid, 'SESS1'); return code === '123456' ? { status: 'ok', s2: GOOD, swid: SW, trace: ['code ok'] } : { status: 'code', again: true, trace: ['code wrong'] }; },
+  };
+  const login = (email, password) => call('POST', '/login', { form: { email, password } });
+  jar = {};
+  r = await call('GET', '/login'); assert.match(await text(r), /type="password"/); ok('login page: email and password only');
+  r = await login('nope', 'x'); assert.equal(r.status, 400); ok('bad email refused before contacting ESPN');
+  r = await login('me@example.com', 'bad'); assert.match(await text(r), /didn’t accept that email and password/); ok('wrong password explained');
+  r = await login('me@example.com', 'right'); assert.equal(r.status, 303); assert.match(r.headers.get('Location'), /^\/mine\?added=\d+&found=2$/); ok('one login → every league on the account');
+  r = await call('GET', r.headers.get('Location')); let page = await text(r);
+  assert.ok(page.includes('Office League') && page.includes('Family League')); ok('My leagues lists them, signed in');
+  const dump = JSON.stringify(sql.prepare('SELECT * FROM users').all()) + JSON.stringify(sql.prepare('SELECT * FROM login_traces').all());
+  assert.ok(!dump.includes('right') && !dump.includes('me@example.com')); ok('password and email never stored; traces have step names only');
+  jar = {};
+  r = await login('code@example.com', 'right'); assert.match(await text(r), /emailed a code/); assert.ok(jar.fz_login); ok('ESPN code step shown when ESPN asks');
+  r = await call('POST', '/login/code', { form: { code: '999999' } }); assert.match(await text(r), /didn’t work/); ok('wrong code: ask again');
+  r = await call('POST', '/login/code', { form: { code: '123 456' } }); assert.equal(r.status, 303); assert.match(r.headers.get('Location'), /found=2/); ok('right code → signed in, leagues set up');
+  r = await call('POST', '/login/code', { form: { code: '123456' } }); assert.equal(r.status, 400); ok('code sign-in is single-use');
+  r = await call('POST', '/mine/add', { form: { league: '4777' } }); assert.match(r.headers.get('Location'), /err=/); ok('add by ID refuses a league you are not in');
+  r = await call('POST', '/mine/add', { form: { league: 'https://fantasy.espn.com/football/league?leagueId=4003' } }); assert.match(r.headers.get('Location'), /added=1/); ok('add by ID from a league link');
+  globalThis.JOINED_4004 = true; const before = dispatched.length;
+  await worker.scheduled({}, env, { waitUntil: async (p) => p }); await new Promise((res) => setTimeout(res, 50));
+  assert.ok(sql.prepare("SELECT slug FROM leagues WHERE league_id='4004'").get()); ok('Tuesday refresh adds a league joined since');
+  assert.ok(dispatched.length > before); ok('then prints every league');
+  sql.prepare('DELETE FROM login_attempts').run();
+  for (let i = 0; i < 6; i++) await login('me@example.com', 'bad');
+  r = await login('me@example.com', 'right'); assert.equal(r.status, 429); ok('six tries in 15 minutes, then wait');
+  r = await call('GET', '/api/build/login-traces', { headers: { Authorization: 'Bearer build-tok' } }); assert.ok((await r.json()).traces.length > 3); ok('sign-in traces readable for fixing ESPN changes');
+  delete env.__espnLogin; jar = savedJar;
 }
 
 console.log('cleanup');

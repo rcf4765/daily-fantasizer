@@ -29,7 +29,25 @@ edition prints for their league every Tuesday.
 - **Not included for other leagues**: Optimal Lineup (your private tool), auto-applying rules to ESPN, league lore and
   announcements, the home-screen install page.
 
-## ESPN: the Chrome extension (works like FantasyPros' ESPN sync)
+## ESPN: Log in with ESPN (the main way, phone and desktop)
+
+The user only logs in. `/login` takes their ESPN email and password; the server opens ESPN's real login page in a
+browser it runs (Cloudflare Browser Rendering, `src/espn_login.js`), fills it in, and keeps only ESPN's session
+(espn_s2 + SWID), encrypted. The password is used once and never stored or logged. If ESPN emails a one-time code,
+`/login/code` asks for it (the browser waits up to 10 minutes). Then every football league on the account gets a paper
+automatically (`linkEspnAccount`), and every Tuesday the site re-checks each account for leagues joined since
+(`refreshEspnAccounts`) before printing. A league ESPN's list misses can be added by ID on My leagues.
+
+- Needs the **Workers Paid plan** (about $5/month) for Browser Rendering; `wrangler.toml` already has the binding.
+- Six tries per 15 minutes per address. Each sign-in writes a trace of step names (no email, password or code):
+  read the last 30 at `SITE_URL/api/build/login-traces` with the BUILD_TOKEN. ESPN changes its login page now and
+  then; every selector is in `SEL` at the top of `src/espn_login.js`.
+- Against ESPN's terms of use (FantasyPros' app does the same); ESPN's bot checks may sometimes refuse a server
+  sign-in, and the user then sees "try again in a few minutes".
+- `node --no-warnings test/login_browser.mjs` runs the real sign-in code in Chrome against a mock of ESPN's two-step
+  login (email → password → code). Not yet tried against the live ESPN page: the first real login is the test.
+
+## ESPN: the Chrome extension (backup; works like FantasyPros' ESPN sync)
 
 ESPN has no sign-in for other websites, so ESPN leagues link through a small Chrome extension (`multi/extension`):
 

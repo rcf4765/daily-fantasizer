@@ -82,30 +82,52 @@ const mast = (kicker) => `<header class="mast"><span class="kicker">${esc(kicker
 
 export function home(env, signedIn) {
   return layout('The Daily Fantasizer: a newspaper for your fantasy league', `${mast('A newspaper for your fantasy football league')}
-<p class="lede">Every Tuesday, a fresh edition built from your league's real games: upsets, bench blunders, power rankings, playoff odds, a player desk and next week's lines. Share one link with your league.</p>
-<h2>Start here</h2>
-<div class="grid two">
- <section class="card y"><span class="kicker">Yahoo leagues</span><h3>Sign in with Yahoo</h3>
-  <p>Yahoo asks you to approve read-only access to your fantasy leagues. Then pick the league.</p>
-  <p><a class="btn y" href="/auth/yahoo">Sign in with Yahoo</a></p></section>
- <section class="card e"><span class="kicker">ESPN leagues</span><h3>Link your ESPN account</h3>
-  <p>Sign in on ESPN and tick the leagues you want: every league on your account can get its own paper. Needs our free Chrome extension, once, on a computer.</p>
-  <p class="row"><button class="btn" type="button" data-espn-link>Link ESPN Fantasy account</button></p>
-  <p class="hint">No computer handy? <a href="/espn">Enter a league ID instead</a>.</p></section>
+<p class="lede">Every Tuesday, a fresh edition built from your league's real games: upsets, bench blunders, power rankings, playoff odds and a player desk. Log in once and every league on your account gets its paper.</p>
+<div class="grid two" style="margin-top:22px">
+ <section class="card e"><span class="kicker">ESPN</span><h3>Log in with ESPN</h3>
+  <p>Use the email and password you use for ESPN Fantasy. We find your leagues and print each one's paper.</p>
+  <p><a class="btn" href="/login">Log in with ESPN</a></p></section>
+ <section class="card y" style="opacity:.6"><span class="kicker">Yahoo</span><h3>Log in with Yahoo</h3>
+  <p>Coming soon.</p>
+  <p><span class="btn alt" aria-disabled="true" style="cursor:not-allowed">Log in with Yahoo</span></p></section>
 </div>
-<h2>How it works</h2>
-<ol class="steps">
- <li><div><b>Connect your league.</b> Anyone in the league can set it up; only the commissioner can change its settings.</div></li>
- <li><div><b>Get your link.</b> The first paper prints in a few minutes. Share the link in your group chat.</div></li>
- <li><div><b>A new edition every Tuesday</b> after Monday Night Football, with last week's archive kept.</div></li>
-</ol>
-${ESPN_LINK_UI}
 ${signedIn ? '<p class="row" style="margin-top:22px"><a class="btn alt" href="/mine">My leagues</a><a class="btn alt" href="/signout">Sign out</a></p>' : ''}`);
+}
+
+const BUSY = `<script>document.addEventListener('submit',function(e){var b=e.target.querySelector('button[type=submit]');if(!b)return;
+ b.disabled=true;b.dataset.t=b.textContent;var m=[b.dataset.busy||'Signing in to ESPN…','Finding your leagues…','Setting up your papers…'],i=0;b.textContent=m[0];
+ var n=document.getElementById('busy');if(n){n.hidden=false}setInterval(function(){if(i<m.length-1)b.textContent=m[++i]},9000)});
+window.addEventListener('pageshow',function(){document.querySelectorAll('button[type=submit]').forEach(function(b){b.disabled=false;if(b.dataset.t)b.textContent=b.dataset.t})});</script>`;
+
+export function espnLogin({ error = '', email = '' } = {}) {
+  return layout('Log in with ESPN · The Daily Fantasizer', `${mast('Log in with ESPN')}
+${error ? `<div class="err" role="alert">${esc(error)}</div>` : ''}
+<form method="post" action="/login" style="max-width:440px">
+ <label><span class="kicker">ESPN email</span><input type="email" name="email" required autocomplete="username" inputmode="email" value="${esc(email)}"></label>
+ <label><span class="kicker">ESPN password</span><input type="password" name="password" required autocomplete="current-password"></label>
+ <p><button class="btn" type="submit" style="width:100%">Log in</button></p>
+ <p class="note" id="busy" hidden>This takes about 20 to 40 seconds. Keep this page open.</p>
+ <p class="hint">We sign in to ESPN for you once and keep only ESPN's sign-in pass, encrypted. Your password is never stored. We only read your leagues; we can't change lineups, trades or settings.</p>
+</form>
+<p class="hint" style="margin-top:22px"><a href="/">← Back</a></p>${BUSY}`);
+}
+
+export function espnCode({ error = '', email = '' } = {}) {
+  return layout('Enter ESPN’s code · The Daily Fantasizer', `${mast('One more step')}
+${error ? `<div class="err" role="alert">${esc(error)}</div>` : ''}
+<p class="lede">ESPN just emailed a code${email ? ` to ${esc(email)}` : ''}. Enter it here.</p>
+<form method="post" action="/login/code" style="max-width:440px">
+ <label><span class="kicker">Code from ESPN</span><input type="text" name="code" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{4,10}" maxlength="10"></label>
+ <p><button class="btn" type="submit" style="width:100%" data-busy="Checking the code…">Continue</button></p>
+ <p class="note" id="busy" hidden>Almost there. Keep this page open.</p>
+</form>
+<p class="hint" style="margin-top:22px">No email? Check spam, or <a href="/login">start again</a>. The code works for 10 minutes.</p>${BUSY}`);
 }
 
 export function espnForm({ error = '', leagueId = '', season = '' } = {}) {
   const yr = season || new Date().getUTCFullYear() - (new Date().getUTCMonth() < 6 ? 1 : 0);
-  return layout('Set up an ESPN league · The Daily Fantasizer', `${mast('ESPN league setup')}
+  return layout('Set up an ESPN league · The Daily Fantasizer', `${mast('ESPN league by ID')}
+<p class="hint">Easier: <a href="/login">log in with ESPN</a> and every league on your account is set up for you.</p>
 ${error ? `<div class="err" role="alert">${esc(error)}</div>` : ''}
 <form method="post" action="/espn">
  <label><span class="kicker">League ID or league link</span>
@@ -169,11 +191,18 @@ ${code ? `<p class="code">${esc(code)}</p><p class="hint">Write it down: it won'
 <p class="hint" style="margin-top:22px"><a href="/l/${esc(L.slug)}/">Open the paper</a> · <a href="/mine">My leagues</a></p>`);
 }
 
-export function mine(rows, { added = 0, failed = [] } = {}) {
-  const flash = (added ? `<div class="note" role="status">Added ${added} league${added > 1 ? 's' : ''}. Each first paper prints in a few minutes; share each league's link from its Settings.</div>` : '')
-    + failed.map((f) => `<div class="err">${esc(f)}</div>`).join('');
-  return layout('My leagues · The Daily Fantasizer', `${mast('My leagues')}${flash}<ul class="lg-list">${rows.length ? rows.map((L) => `<li><div><b>${esc(L.name)}</b>${L.is_comm ? '<span class="badge">Commissioner</span>' : ''}<br><span class="hint">${L.platform === 'yahoo' ? 'Yahoo' : 'ESPN'} · ${L.teams} teams</span></div><div class="row"><a class="btn alt" href="/l/${esc(L.slug)}/">Paper</a>${L.is_comm ? `<a class="btn alt" href="/l/${esc(L.slug)}/settings">Settings</a>` : ''}</div></li>`).join('') : '<li><div>No leagues yet.</div></li>'}</ul>
-<p class="row" style="margin-top:16px"><a class="btn" href="/">Add a league</a><button class="btn alt" type="button" data-espn-link>Add more ESPN leagues</button><a class="btn alt" href="/signout">Sign out</a></p>${ESPN_LINK_UI}`);
+export function mine(rows, { added = 0, found = null, espn = false, failed = [] } = {}) {
+  let flash = '';
+  if (found !== null && +found === 0 && !rows.length) flash = '<div class="note" role="status">You’re signed in, but ESPN didn’t list any football leagues on this account this season. Add your league by its ID below.</div>';
+  else if (added) flash = `<div class="note" role="status">${added} paper${added > 1 ? 's' : ''} set up. ${added > 1 ? 'Each first edition prints' : 'The first edition prints'} in a few minutes.</div>`;
+  else if (found !== null) flash = '<div class="note" role="status">Signed in. Your leagues are up to date.</div>';
+  flash += failed.map((f) => `<div class="err">${esc(f)}</div>`).join('');
+  const list = rows.map((L) => `<li><div><b>${esc(L.name)}</b>${L.is_comm ? '<span class="badge">Commissioner</span>' : ''}<br><span class="hint">${L.platform === 'yahoo' ? 'Yahoo' : 'ESPN'} · ${L.teams} teams</span></div><div class="row"><a class="btn alt" href="/l/${esc(L.slug)}/">Paper</a>${L.is_comm ? `<a class="btn alt" href="/l/${esc(L.slug)}/settings">Settings</a>` : ''}</div></li>`).join('');
+  const add = espn ? `<details ${rows.length ? '' : 'open'}><summary>A league is missing?</summary>
+<form method="post" action="/mine/add" class="share" style="margin-top:10px"><input type="text" name="league" placeholder="League ID or league link" aria-label="ESPN league ID or link" required><button class="btn" type="submit">Add</button></form>
+<p class="hint" style="margin-top:6px">New leagues on your ESPN account are added automatically every Tuesday.</p></details>` : '';
+  return layout('My leagues · The Daily Fantasizer', `${mast('My leagues')}${flash}<ul class="lg-list">${list || '<li><div>No leagues yet.</div></li>'}</ul>${add}
+<p class="row" style="margin-top:16px"><a class="btn alt" href="/signout">Sign out</a></p>`);
 }
 
 export function message(title, text, back = '/') {
