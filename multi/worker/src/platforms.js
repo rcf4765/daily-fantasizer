@@ -24,12 +24,12 @@ async function yahooToken(env, params) {
 
 export const yahooExchange = (env, code) => yahooToken(env, { grant_type: 'authorization_code', code });
 
-/** A fresh access token for a stored user (refresh tokens are kept encrypted in D1). */
-export async function yahooAccess(env, uid) {
-  const u = await env.DB.prepare('SELECT yahoo_refresh FROM users WHERE id=?').bind(uid).first();
+/** A fresh access token for a stored user (refresh tokens are kept encrypted in the data repo). */
+export async function yahooAccess(env, uid, D) {
+  const u = await D.user(uid);
   if (!u || !u.yahoo_refresh) throw new Error('No Yahoo sign-in stored for this league. Sign in with Yahoo again.');
   const j = await yahooToken(env, { grant_type: 'refresh_token', refresh_token: await open(env, u.yahoo_refresh) });
-  if (j.refresh_token) await env.DB.prepare('UPDATE users SET yahoo_refresh=? WHERE id=?').bind(await seal(env, j.refresh_token), uid).run();
+  if (j.refresh_token) await D.saveUser(uid, { yahoo_refresh: await seal(env, j.refresh_token) });
   return j.access_token;
 }
 

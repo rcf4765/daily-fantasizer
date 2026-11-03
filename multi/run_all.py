@@ -1,7 +1,10 @@
-"""The printer: build every league's paper (or one) and upload it to the website. Run by
-.github/workflows/fantasizer-leagues.yml.
+"""The printer: build every league's paper (or one). Run by print.yml in the private data repo (from
+multi/data-repo/), which checks this code out next to the data and commits what it writes.
 
-  BUILD_TOKEN=... python3 multi/run_all.py https://fantasizer.example.workers.dev [slug]
+  BUILD_TOKEN=... FZ_DATA_DIR=path/to/data-repo python3 multi/run_all.py https://fantasizer.example.workers.dev [slug]
+
+With FZ_DATA_DIR, editions and each league's saved data go straight into the data repo (papers/<slug>/...);
+the website is only asked for the leagues (with their decrypted sign-ins) and told each league's status.
 
 1. asks the website for the leagues (with decrypted ESPN cookies / a fresh Yahoo token, never stored here);
 2. fetches the shared player data once;
@@ -9,7 +12,7 @@
    betting board and the data back, and reports ok / waiting / error so the website can show it.
 One league failing never stops the others.
 """
-import io, json, os, subprocess, sys, tarfile, tempfile, traceback
+import io, json, os, shutil, subprocess, sys, tarfile, tempfile, traceback
 import requests
 
 SITE = sys.argv[1].rstrip("/")
@@ -41,15 +44,28 @@ def status(slug, st, message="", week=None):
         print("status report failed:", e)
 
 
+DATA = os.environ.get("FZ_DATA_DIR")
+
+
 def upload(slug, path, local):
+    if DATA:   # the data repo checkout; print.yml commits it
+        dst = os.path.join(DATA, "papers", slug, path)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(local, dst)
+        return
     with open(local, "rb") as f:
         api("PUT", f"/api/build/{slug}/file", params={"path": path}, data=f)
 
 
 def restore(slug, work):
-    r = api("GET", f"/api/build/{slug}/file", params={"path": "cache/data.tgz"})
-    if r.status_code == 200:
-        with tarfile.open(fileobj=io.BytesIO(r.content), mode="r:gz") as t:
+    if DATA:
+        p = os.path.join(DATA, "papers", slug, "cache", "data.tgz")
+        content = open(p, "rb").read() if os.path.exists(p) else None
+    else:
+        r = api("GET", f"/api/build/{slug}/file", params={"path": "cache/data.tgz"})
+        content = r.content if r.status_code == 200 else None
+    if content:
+        with tarfile.open(fileobj=io.BytesIO(content), mode="r:gz") as t:
             t.extractall(work, filter="data")
         print(f"[{slug}] restored saved data")
 
@@ -68,6 +84,11 @@ def save(slug, work):
 
 
 def main():
+    if not ONLY:   # the weekly run: pick up leagues people joined since (and mark expired ESPN sign-ins) first
+        try:
+            api("POST", "/api/build/refresh")
+        except Exception as e:
+            print("refresh failed (printing the known leagues anyway):", e)
     leagues = api("GET", "/api/build/leagues", params={"slug": ONLY} if ONLY else None).json()["leagues"]
     for c in leagues:  # keep secrets out of the Actions log
         for k in ("espn_s2", "swid", "yahoo_token"):

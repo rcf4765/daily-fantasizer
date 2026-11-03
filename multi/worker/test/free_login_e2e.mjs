@@ -7,8 +7,7 @@ import http from 'node:http';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 
-import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
+import { fakeGitHub } from './fake_github.mjs';
 import { createRequire } from 'node:module';
 import worker from '../src/index.js';
 const require = createRequire(import.meta.url);
@@ -39,32 +38,26 @@ http.createServer((req, res) => {
   res.end(`<!doctype html><title>ESPN</title><iframe src="http://127.0.0.1:9102/oneid/email" width="400" height="400"></iframe><script>addEventListener('message',function(e){if(e.data==='ok')fetch('/set')})</script>`);
 }).listen(9101, '127.0.0.1');
 
-// ---- the site, free plan: no BROWSER binding, LOGIN_KEY set, papers in "KV" ----
+// ---- the site, free plan: no BROWSER binding, LOGIN_KEY set, data in the (fake) GitHub data repo ----
 const LOGIN_KEY = 'login-key-' + 'z'.repeat(40);
-const sql = new DatabaseSync(':memory:');
-sql.exec(readFileSync(new URL('../schema.sql', import.meta.url), 'utf8'));
-const stmt = (q, a = []) => ({ bind: (...b) => stmt(q, b), first: async () => sql.prepare(q).get(...a) ?? null,
-  all: async () => ({ results: sql.prepare(q).all(...a) }), run: async () => ({ meta: { changes: sql.prepare(q).run(...a).changes } }) });
-const kv = new Map();
-const KV = { put: async (k, v) => kv.set(k, v), get: async (k) => kv.has(k) ? (typeof kv.get(k) === 'string' ? new TextEncoder().encode(kv.get(k)).buffer : kv.get(k)) : null,
-  delete: async (k) => kv.delete(k), list: async ({ prefix }) => ({ keys: [...kv.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }) };
+const gh = fakeGitHub('me/data');
 const SITE = 'http://127.0.0.1:8787';
-const env = { DB: { prepare: (q) => stmt(q), batch: async (l) => Promise.all(l.map((s) => s.run())) }, PAPERS_KV: KV,
-  SITE_URL: SITE, SESSION_SECRET: 'x'.repeat(32), ENC_KEY: 'y'.repeat(32), BUILD_TOKEN: 'build-tok', GITHUB_TOKEN: 'gh', GITHUB_REPO: 'x/y', LOGIN_KEY };
+const env = { DATA_REPO: 'me/data', SITE_URL: SITE, SESSION_SECRET: 'x'.repeat(32), ENC_KEY: 'y'.repeat(32), BUILD_TOKEN: 'build-tok', GITHUB_TOKEN: 'gh', LOGIN_KEY };
 const jobs = [];
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (url, init = {}) => {
   url = String(url);
-  if (url.includes('espn-login.yml/dispatches')) {   // "GitHub" runs the real job script
+  if (url.includes('espn-login.yml/dispatches')) {   // "GitHub" (the data repo's workflow) runs the real job script
     const { inputs } = JSON.parse(init.body);
+    await gh.handle(url, init);
     const p = spawn(process.execPath, ['--no-warnings', new URL('../../login_runner/run.mjs', import.meta.url).pathname], {
-      env: { ...process.env, SITE: inputs.site, JOB: inputs.job, SIG: process.env.TAMPER ? 'bad' : inputs.sig, BUILD_TOKEN: 'build-tok', LOGIN_KEY,
+      env: { ...process.env, SITE: inputs.site, JOB: inputs.job, LOGIN: inputs.login, SIG: process.env.TAMPER ? 'bad' : inputs.sig, BUILD_TOKEN: 'build-tok', LOGIN_KEY,
         FZ_LOCAL_TEST: '1', PW_PKG: PW, CHROME_PATH: '/usr/bin/google-chrome', ESPN_LOGIN_URL: 'http://127.0.0.1:9101/login' }, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = ''; p.stdout.on('data', (d) => (out += d)); p.stderr.on('data', (d) => (out += d));
     jobs.push(new Promise((res) => p.on('exit', (c) => res({ code: c, out }))));
     return new Response(null, { status: 204 });
   }
-  if (url.includes('api.github.com')) return new Response(null, { status: 204 });
+  if (url.includes('api.github.com')) return (await gh.handle(url, init)) || new Response(null, { status: 204 });
   const ck = init.headers?.Cookie || '';
   if (url.includes('fan.api.espn.com')) {
     if (!ck.includes('espn_s2=AEB')) return new Response('no', { status: 401 });
@@ -102,14 +95,14 @@ console.log('Free-plan ESPN sign-in, end to end');
 {
   const { ctx, pg } = await login('fan@example.com', 'right');
   assert.match(await pg.textContent('body'), /about a minute/); ok('waiting page shown while the GitHub job signs in');
-  const row = sql.prepare('SELECT enc FROM login_jobs').get();
-  assert.ok(!JSON.stringify(sql.prepare('SELECT * FROM login_jobs').all()).includes('right')); ok('the site stores only the encrypted login, never the password');
+  assert.ok(!gh.dump().includes('right') && !gh.dump().includes('fan@example.com')); ok('the data repo never gets the password or email (job file holds progress only)');
   const reached = await until(pg, async () => pg.url().includes('/mine'));
-  if (!reached) { const j0 = await jobs[0]; console.log('URL', pg.url(), '\nJOB', j0.code, j0.out, '\nROW', JSON.stringify(sql.prepare('SELECT status,msg FROM login_jobs').all())); }
+  if (!reached) { const j0 = await jobs[0]; console.log('URL', pg.url(), '\nJOB', j0.code, j0.out); }
   assert.ok(reached, 'never reached My leagues'); ok('job signed in → user lands on My leagues by itself');
   const t = await pg.textContent('body');
   assert.ok(t.includes('Office League') && t.includes('Family League') && /2 papers set up/.test(t)); ok('both leagues on the account set up');
-  assert.equal(sql.prepare('SELECT enc FROM login_jobs').all().filter((r) => r.enc).length, 0); ok('encrypted login wiped once the job read it');
+  assert.ok(gh.json(`users/espn_${ME.replace(/[{}]/g, '')}.json`).espn_s2); ok('ESPN session saved (encrypted) on the account in the data repo');
+  assert.ok(!gh.dump().includes('AEBfake')); ok('ESPN session is never stored readable');
   const j = await jobs.shift(); assert.equal(j.code, 0, j.out); assert.ok(!j.out.includes('right')); ok('job log has no password');
   await ctx.close();
 }

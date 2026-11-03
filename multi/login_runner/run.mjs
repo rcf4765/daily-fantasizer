@@ -1,9 +1,9 @@
 // The free ESPN sign-in, run by .github/workflows/espn-login.yml for one queued login (no Cloudflare browser needed).
-//  1. reads the login from the site (encrypted with LOGIN_KEY, shared only with this job; never printed)
+//  1. gets the login inside its own start request (input LOGIN, encrypted with LOGIN_KEY; never stored or printed)
 //  2. signs in on ESPN's real login page with the same code the paid plan uses (multi/worker/src/espn_login.js)
 //  3. if ESPN emails a code, tells the site, waits up to 9 minutes for the user to type it, and tries it (4 tries)
 //  4. sends ESPN's session (espn_s2 + SWID) back to the site, which stores it encrypted and sets up every league.
-// node multi/login_runner/run.mjs   with env SITE, JOB, SIG, BUILD_TOKEN, LOGIN_KEY (PW_PKG optional: a Playwright path)
+// node multi/login_runner/run.mjs   with env SITE, JOB, SIG, LOGIN, BUILD_TOKEN, LOGIN_KEY (PW_PKG optional: a Playwright path)
 import { createRequire } from 'node:module';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { open } from '../worker/src/crypto.js';
@@ -32,8 +32,9 @@ const env = { BROWSER: {}, __browserLib: lib, ESPN_LOGIN_URL: process.env.ESPN_L
 let exitCode = 0;
 try {
   const j = await get();
-  if (!j.enc) throw new Error(j.error === 'gone' ? 'login expired before the job started' : 'no login to run (already read?)');
-  const { email, password } = JSON.parse(await decrypt(j.enc));
+  if (j.error) throw new Error('login expired before the job started');
+  if (!process.env.LOGIN) throw new Error('no login in the start request');
+  const { email, password } = JSON.parse(await decrypt(process.env.LOGIN));
   mask(email); mask(password);
   await report({ status: 'running' });
   let r = await espnLoginStart(env, email, password);

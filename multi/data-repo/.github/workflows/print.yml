@@ -1,0 +1,75 @@
+name: Print papers
+
+# Lives in the private data repo (installed and kept up to date by site-deploy.yml in the code repo).
+# Prints every league's paper on Tuesdays and Wednesdays (5-6am Eastern), or one league when the website asks.
+# Uses the code from CODE_REPO (public) and writes editions into papers/ here, then commits them.
+# Needs this repo's secret FZ_MASTER_KEY (the deploy sets it).
+
+on:
+  schedule:
+    - cron: "17 10 * * 2"
+    - cron: "17 10 * * 3"
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "One league's id (blank = every league)"
+        required: false
+        default: ""
+      site:
+        description: "The website's address (the website fills this in)"
+        required: false
+        default: ""
+      sig:
+        description: "The website's signature of site|slug"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: print-${{ github.event.inputs.slug || 'all' }}
+  cancel-in-progress: false
+
+jobs:
+  print:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: data
+      - uses: actions/checkout@v4
+        with:
+          repository: CODE_REPO
+          path: code
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get install -y libcairo2 >/dev/null
+      - run: pip install requests pillow cairosvg
+      - name: Keys and site
+        env:
+          MASTER: ${{ secrets.FZ_MASTER_KEY }}
+          IN_SITE: ${{ github.event.inputs.site }}
+        run: |
+          b=$(printf %s build | openssl dgst -sha256 -hmac "$MASTER" -r | cut -d' ' -f1); echo "::add-mask::$b"; echo "BUILD_TOKEN=$b" >> "$GITHUB_ENV"
+          known=$(python3 -c "import json;print(json.load(open('data/site.json'))['site'])")
+          echo "FZ_VAR_SITE=$known" >> "$GITHUB_ENV"
+          echo "SITE=${IN_SITE:-$known}" >> "$GITHUB_ENV"
+      - name: Print
+        env:
+          SLUG: ${{ github.event.inputs.slug }}
+          SIG: ${{ github.event.inputs.sig }}
+          FZ_DATA_DIR: ${{ github.workspace }}/data
+        run: python code/multi/run_all.py "$SITE" "$SLUG"
+      - name: Save the papers
+        if: always()
+        run: |
+          cd data
+          git config user.name "Daily Fantasizer printer"; git config user.email "printer@users.noreply.github.com"
+          git add papers || true
+          git diff --cached --quiet && { echo "nothing new"; exit 0; }
+          git commit -q -m "printer: ${{ github.event.inputs.slug || 'weekly run' }}"
+          for i in 1 2 3 4 5; do git pull -q --rebase origin HEAD && git push -q origin HEAD && exit 0; sleep $((i*3)); done
+          exit 1

@@ -5,15 +5,14 @@ second, separate service: a website where anyone signs in with Yahoo or enters a
 edition prints for their league every Tuesday.
 
 ```
- League member ──► Cloudflare Worker (multi/worker)  ── D1: accounts, leagues, votes, bets
-   (browser)        sign-up, Yahoo OAuth, ESPN setup  ── R2: printed papers
-                    commissioner settings, papers,
-                    league office (Rule Changes/Betting)
-                          │ starts ▲ uploads
-                          ▼        │
-                 GitHub Actions: fantasizer-leagues.yml  → multi/run_all.py → multi/build_league.py
-                 (fetches ESPN/Yahoo + player data,        (the same render.py, facts.py, players.py …
-                  prints each league's paper)                as the Men Fantasizing paper)
+ League member ──► the website (multi/worker, on Cloudflare; stores nothing)
+   (browser)        log in with ESPN, My leagues, papers, commissioner settings, Rule Changes/Betting
+                          │ reads/writes files            │ starts jobs (signed)      ▲ reports back
+                          ▼                               ▼                           │
+                 private repo daily-fantasizer-data ◄── its workflows: espn-login.yml (signs in to ESPN, ~1 min)
+                 (accounts, leagues, votes, bets,          print.yml (Tue/Wed + on request) → multi/run_all.py →
+                  printed papers)                           build_league.py (the same render.py, facts.py, players.py
+                                                            as the Men Fantasizing paper), commits the papers
 ```
 
 ## What other leagues get
@@ -29,29 +28,38 @@ edition prints for their league every Tuesday.
 - **Not included for other leagues**: Optimal Lineup (your private tool), auto-applying rules to ESPN, league lore and
   announcements, the home-screen install page.
 
-## Free setup (no paid plans, about 15 minutes, works from a phone)
+## Where everything lives
 
-1. **Merge `release-multi` into `main`** (GitHub only runs the site's jobs from `main`). The Men Fantasizing paper is
-   unchanged by it.
-2. **Cloudflare** (free account, no card): sign up at dash.cloudflare.com.
-   - My Profile → API Tokens → Create Token → template **Edit Cloudflare Workers** → add permission **Account · D1 · Edit**
-     → Create. Copy the token.
-   - Workers & Pages: copy your **Account ID** (right-hand side).
-3. **GitHub token**: github.com → Settings → Developer settings → Fine-grained tokens → Generate. Repository access:
-   only `rcf4765/daily-fantasizer`. Permissions: **Actions: Read and write**. Copy it.
-4. **Four repo secrets** (repo → Settings → Secrets and variables → Actions → New repository secret):
-   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `FZ_GITHUB_TOKEN`, and `FZ_MASTER_KEY` = any long random text
-   (24+ characters, e.g. from a password manager; never change it later: the site's keys come from it).
-5. **Actions → "Deploy the sign-up site (Cloudflare, free plan)" → Run workflow.** It creates the database and paper
-   storage, sets the keys, deploys, and its summary shows the site's address. Re-run it after code changes.
-6. Open `SITE/login` and log in with ESPN. The first real login is the real test of ESPN's login page.
+| What | Where |
+|---|---|
+| Code (site, printer, sign-in job) | this public repo |
+| All data: accounts, leagues, encrypted ESPN sign-ins, votes, bets, printed papers | **private repo `daily-fantasizer-data`** (plain JSON and HTML files; layout in its README) |
+| ESPN sign-in and printing | GitHub Actions **in the private data repo** (`print.yml`, `espn-login.yml`), so their logs are private |
+| Running the website | Cloudflare Workers (free plan). It stores nothing; moving hosts means running `multi/worker/src/index.js` anywhere with `fetch()` and the same secrets |
 
-How the free sign-in works: the site keeps the login encrypted for at most 15 minutes and starts the **ESPN sign-in
-(free)** workflow, which signs in on ESPN's real page with a browser on GitHub's machines (about a minute; the waiting
-page moves on by itself), handles ESPN's emailed code, and sends back only ESPN's session. The login is wiped as soon as
-the job reads it, masked in the job's log, and the job refuses any site address the website didn't sign. GitHub's free
-minutes cover a few hundred logins a month. ESPN's bot checks may block GitHub's machines now and then; the user is
-then asked to try again later.
+Nothing secret is stored readable: ESPN sign-ins and Yahoo tokens are encrypted with keys derived from `FZ_MASTER_KEY`.
+ESPN passwords are never stored anywhere: the website hands the login, encrypted, straight to the sign-in job's start
+request, and the job only sends back ESPN's session.
+
+## Free setup (no paid plans, about 15 minutes; easiest on a computer)
+
+1. **Merge `release-multi` into `main`** (the Men Fantasizing paper is unchanged by it).
+2. **Create the private data repo**: github.com → New repository → name `daily-fantasizer-data`, **Private**, tick
+   "Add a README". (Another name works too: set it as repo variable `FZ_DATA_REPO` here.)
+3. **Cloudflare** (free account, no card): dash.cloudflare.com → My Profile → API Tokens → Create Token → template
+   **Edit Cloudflare Workers** → Create; copy it. Copy your **Account ID** from Workers & Pages.
+4. **GitHub token**: github.com → Settings → Developer settings → Fine-grained tokens → Generate. Repository access:
+   only `daily-fantasizer-data`. Permissions, all **Read and write**: Contents, Actions, Workflows, Secrets. Copy it.
+5. **Four secrets in this repo** (Settings → Secrets and variables → Actions): `CLOUDFLARE_API_TOKEN`,
+   `CLOUDFLARE_ACCOUNT_ID`, `FZ_GITHUB_TOKEN`, and `FZ_MASTER_KEY` = any long random text (24+ characters; never
+   change it later). The deploy copies `FZ_MASTER_KEY` into the data repo by itself.
+6. **Actions → "Deploy the sign-up site" → Run workflow.** It installs the data repo's two workflows, records the site's
+   address there, deploys the site and checks it answers. Its summary shows the address. Re-run it after code changes.
+7. Open `SITE/login` and log in with ESPN. The first real login is the real test of ESPN's login page.
+
+Limits worth knowing: each page view reads a few files from GitHub (about half a second; GitHub allows 5,000 reads an
+hour, plenty for a group of leagues). Every change the site makes is a commit in the data repo, so its history is a
+full log. The sign-in job takes about a minute; GitHub's free minutes cover a few hundred sign-ins a month.
 
 ## ESPN: Log in with ESPN (the main way, phone and desktop)
 
@@ -96,60 +104,14 @@ and a review of a few days).
 (`fan.api.espn.com/apis/v2/fans/{SWID}`), which ESPN doesn't document. If it lists nothing, the panel falls back to
 "add it by ID" and everything else still works. First real test: link an account that's in two leagues.
 
-## One-time setup (about 30 minutes)
-
-You need a free Cloudflare account and a free Yahoo developer account. Commands run in `multi/worker` with Node 18+.
-
-1. **Cloudflare storage**
-   ```
-   cd multi/worker && npm install
-   npx wrangler login
-   npx wrangler d1 create fantasizer          # copy the database_id into wrangler.toml
-   npx wrangler r2 bucket create fantasizer-papers
-   npx wrangler d1 execute fantasizer --remote --file schema.sql
-   npx wrangler deploy                         # prints your URL, e.g. https://fantasizer.<you>.workers.dev
-   ```
-   Put that URL in `wrangler.toml` as `SITE_URL` (no trailing slash) and deploy again.
-
-2. **Yahoo app** at https://developer.yahoo.com/apps/create/
-   - Application type: Web Application. Redirect URI: `SITE_URL/auth/yahoo/callback`.
-   - API permissions: **Fantasy Sports → Read**.
-   - Copy the Client ID and Client Secret.
-
-3. **GitHub token** so the site can start the printer: a fine-grained personal access token for
-   `rcf4765/daily-fantasizer` with **Actions: Read and write** (nothing else).
-
-4. **Secrets** (each command asks for the value):
-   ```
-   npx wrangler secret put SESSION_SECRET       # any long random string
-   npx wrangler secret put ENC_KEY              # another long random string (encrypts ESPN cookies, Yahoo tokens)
-   npx wrangler secret put BUILD_TOKEN          # a third long random string
-   npx wrangler secret put GITHUB_TOKEN         # from step 3
-   npx wrangler secret put YAHOO_CLIENT_ID      # from step 2
-   npx wrangler secret put YAHOO_CLIENT_SECRET  # from step 2
-   ```
-   Random strings: `openssl rand -hex 32`.
-
-4b. **Extension**: `cd multi/worker && npm run deploy` packs the extension with your SITE_URL (`multi/extension/pack.py`).
-   In `multi/extension/config.js`, `SITES` must list the same SITE_URL for anyone loading the folder directly.
-
-5. **GitHub repo settings** (Settings → Secrets and variables → Actions):
-   - Secret `FZ_BUILD_TOKEN` = the same value as BUILD_TOKEN.
-   - Variable `FZ_SITE_URL` = your SITE_URL.
-
-6. **Merge the `multi-league` branch into `main`.** GitHub only lets the site start workflows that exist on `main`.
-   The Men Fantasizing pipeline is unchanged by the merge (its week 7 render is byte-identical apart from the betting
-   board's timestamp; MANIFEST.txt is updated for the eight parameterized files).
-
-7. Open SITE_URL, set up a test league, and watch the run under the repo's Actions tab.
-
 ## How a league is printed
 
 `run_all.py` asks the site for the leagues (with decrypted cookies / a fresh Yahoo token, masked in the logs), fetches the
 shared player data once (nflverse, FantasyPros, ESPN's player pool), then for each league: restores its saved data,
-`build_league.py` fetches the new week(s), runs facts.py → autocopy.py → render.py → postprocess.py, and uploads the
-edition, the next week's betting board and the data back to the site. One league failing never stops the others; the
-error shows on that league's page. The site's own cron starts a full run Tuesday and Wednesday at 10:17 UTC.
+`build_league.py` fetches the new week(s), runs facts.py → autocopy.py → render.py → postprocess.py, and writes the
+edition, the next week's betting board and the league's saved data into the data repo (papers/<slug>/), which the job
+commits. One league failing never stops the others; the error shows on that league's page. print.yml runs itself
+Tuesday and Wednesday at 10:17 UTC and first asks the site to pick up leagues people joined since.
 
 ## Limits worth knowing
 
@@ -161,7 +123,8 @@ error shows on that league's page. The site's own cron starts a full run Tuesday
   trading block, and Player Stats points are rescored with the league's own stat modifiers.
 - **Lineups**: Roster Radar, Matchup of the Week and the Matchmaker follow each league's real starting lineup (superflex,
   3 WR, no kicker…). Optimal Lineup is not offered.
-- **Cost**: Cloudflare and GitHub free tiers cover a few dozen leagues. Each league adds about a minute to the Tuesday run.
+- **Cost**: Cloudflare's and GitHub's free plans cover a few dozen leagues. Each league adds about a minute to the
+  Tuesday run, and each edition adds about 2 MB to the data repo.
 
 ## Tests
 

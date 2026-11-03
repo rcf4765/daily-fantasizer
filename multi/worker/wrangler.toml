@@ -1,6 +1,7 @@
 # The Daily Fantasizer for any league. Setup: multi/SETUP.md. Deployed by .github/workflows/site-deploy.yml, which
-# fills in the two ids and SITE_URL below at deploy time (they stay placeholders in the repo).
-# Runs on Cloudflare's free plan: papers in Workers KV, ESPN sign-in on a free GitHub Actions run (espn-login.yml).
+# fills in SITE_URL and DATA_REPO at deploy time (they stay placeholders in the repo).
+# The site keeps nothing on Cloudflare: its data lives in the private GitHub data repo, and the data repo's workflows
+# sign in to ESPN and print the papers. Moving hosts = run src/index.js anywhere with fetch() and the same secrets.
 name = "fantasizer"
 main = "src/index.js"
 compatibility_date = "2026-06-01"
@@ -11,19 +12,6 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 SITE_URL = "https://fantasizer.YOUR-SUBDOMAIN.workers.dev"   # no trailing slash
-GITHUB_REPO = "rcf4765/daily-fantasizer"
-GITHUB_REF = "main"
-# Secrets (set by the deploy workflow from FZ_MASTER_KEY and FZ_GITHUB_TOKEN): SESSION_SECRET, ENC_KEY, BUILD_TOKEN,
-# LOGIN_KEY, GITHUB_TOKEN; optional YAHOO_CLIENT_ID, YAHOO_CLIENT_SECRET
-
-[[d1_databases]]
-binding = "DB"
-database_name = "fantasizer"
-database_id = "REPLACE-WITH-D1-ID"
-
-[[kv_namespaces]]
-binding = "PAPERS_KV"
-id = "REPLACE-WITH-KV-ID"
-
-[triggers]
-crons = ["17 10 * * 2", "17 10 * * 3"]   # Tuesday 10:17 UTC (5-6am Eastern), Wednesday retry
+DATA_REPO = "OWNER/daily-fantasizer-data"
+# Secrets (set by the deploy workflow): SESSION_SECRET, ENC_KEY, BUILD_TOKEN, LOGIN_KEY (derived from FZ_MASTER_KEY)
+# and GITHUB_TOKEN (FZ_GITHUB_TOKEN: reads/writes the data repo, starts its workflows); optional YAHOO_CLIENT_ID/_SECRET

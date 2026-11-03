@@ -1,12 +1,15 @@
-name: Deploy the sign-up site (Cloudflare, free plan)
+name: Deploy the sign-up site
 
-# Puts the "any league" website (multi/worker) on Cloudflare's free plan, or updates it. Run it from the Actions tab
-# (Run workflow). First run creates the database and paper storage; later runs just update.
-# Needs four repo secrets (Settings → Secrets and variables → Actions), all free:
-#   CLOUDFLARE_API_TOKEN   Cloudflare → My Profile → API Tokens → "Edit Cloudflare Workers" template, plus D1: Edit
+# Puts the "any league" website (multi/worker) on Cloudflare's free plan, or updates it, and installs the private data
+# repo's workflows (multi/data-repo). Run it from the Actions tab (Run workflow) after each change.
+# The site keeps nothing on Cloudflare: all data lives in the private data repo on GitHub.
+# Needs four secrets in this repo (Settings → Secrets and variables → Actions), all free:
+#   CLOUDFLARE_API_TOKEN   Cloudflare → My Profile → API Tokens → template "Edit Cloudflare Workers"
 #   CLOUDFLARE_ACCOUNT_ID  Cloudflare dashboard → Workers & Pages → right-hand side
-#   FZ_GITHUB_TOKEN        GitHub fine-grained token for this repo with Actions: Read and write (lets the site start jobs)
-#   FZ_MASTER_KEY          any long random text; the site's keys are derived from it (never change it afterwards)
+#   FZ_GITHUB_TOKEN        fine-grained token, repository: the private data repo only, permissions Read and write on:
+#                          Contents, Actions, Workflows, Secrets
+#   FZ_MASTER_KEY          any long random text; every key is derived from it (never change it afterwards)
+# Data repo: OWNER/daily-fantasizer-data (private, created by you), or set repo variable FZ_DATA_REPO.
 
 on:
   workflow_dispatch:
@@ -15,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: site-deploy-cloudflare
+  group: site-deploy
   cancel-in-progress: false
 
 jobs:
@@ -27,36 +30,57 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       MASTER: ${{ secrets.FZ_MASTER_KEY }}
       GH_PAT: ${{ secrets.FZ_GITHUB_TOKEN }}
+      DATA_REPO: ${{ vars.FZ_DATA_REPO || format('{0}/daily-fantasizer-data', github.repository_owner) }}
+      CODE_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Check the secrets
+      - name: Check the secrets and the data repo
         run: |
           miss=""; for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID MASTER GH_PAT; do [ -n "${!v}" ] || miss="$miss $v"; done
           [ -z "$miss" ] || { echo "::error::Missing repo secrets:$miss (MASTER = FZ_MASTER_KEY, GH_PAT = FZ_GITHUB_TOKEN). See the top of this file."; exit 1; }
           [ ${#MASTER} -ge 24 ] || { echo "::error::FZ_MASTER_KEY must be at least 24 characters."; exit 1; }
-      - name: Install
-        run: cd multi/worker && npm install --no-audit --no-fund
-      - name: Database, paper storage and address (created once)
+          info=$(curl -sS -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$DATA_REPO")
+          priv=$(printf %s "$info" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('private',''))")
+          [ "$priv" = "True" ] || { echo "::error::Can't reach $DATA_REPO as a private repo with FZ_GITHUB_TOKEN. Create it (private) and give the token access to it."; exit 1; }
+      - name: Address
         run: |
           cf() { curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" "$@"; }
           A="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
-          py() { python3 -c "import sys,json;d=json.load(sys.stdin);$1"; }
-          DB=$(cf "$A/d1/database?name=fantasizer" | py "print(next((x['uuid'] for x in d.get('result') or [] if x['name']=='fantasizer'),''))")
-          [ -n "$DB" ] || DB=$(cf -X POST "$A/d1/database" -d '{"name":"fantasizer"}' | py "print((d.get('result') or {}).get('uuid',''))")
-          KV=$(cf "$A/storage/kv/namespaces?per_page=100" | py "print(next((x['id'] for x in d.get('result') or [] if x['title']=='fantasizer-papers'),''))")
-          [ -n "$KV" ] || KV=$(cf -X POST "$A/storage/kv/namespaces" -d '{"title":"fantasizer-papers"}' | py "print((d.get('result') or {}).get('id',''))")
-          SUB=$(cf "$A/workers/subdomain" | py "print((d.get('result') or {}).get('subdomain') or '')")
+          SUB=$(cf "$A/workers/subdomain" | python3 -c "import sys,json;d=json.load(sys.stdin);print((d.get('result') or {}).get('subdomain') or '')")
           if [ -z "$SUB" ]; then SUB="fantasizer-$(printf %s "$CLOUDFLARE_ACCOUNT_ID" | cut -c1-6)"; cf -X PUT "$A/workers/subdomain" -d "{\"subdomain\":\"$SUB\"}" >/dev/null; fi
-          [ -n "$DB" ] && [ -n "$KV" ] && [ -n "$SUB" ] || { echo "::error::Couldn't set up storage. Check the API token's permissions (Workers Scripts, Workers KV Storage, D1: Edit)."; exit 1; }
+          [ -n "$SUB" ] || { echo "::error::Couldn't read your workers.dev address. Check the Cloudflare API token."; exit 1; }
           SITE="https://fantasizer.$SUB.workers.dev"
-          cd multi/worker
-          sed -i "s|REPLACE-WITH-D1-ID|$DB|; s|REPLACE-WITH-KV-ID|$KV|; s|https://fantasizer.YOUR-SUBDOMAIN.workers.dev|$SITE|" wrangler.toml
+          sed -i "s|https://fantasizer.YOUR-SUBDOMAIN.workers.dev|$SITE|; s|OWNER/daily-fantasizer-data|$DATA_REPO|" multi/worker/wrangler.toml
           echo "SITE=$SITE" >> "$GITHUB_ENV"
-      - name: Tables
-        run: cd multi/worker && npx wrangler d1 execute fantasizer --remote --file schema.sql
+      - name: Data repo (workflows, site address, its key)
+        run: |
+          pip install pynacl >/dev/null
+          git clone -q "https://x-access-token:${GH_PAT}@github.com/${DATA_REPO}.git" data 2>/dev/null || { mkdir data; cd data; git init -q -b main; git remote add origin "https://x-access-token:${GH_PAT}@github.com/${DATA_REPO}.git"; cd ..; }
+          cd data
+          git checkout -q -B main 2>/dev/null || true
+          mkdir -p .github/workflows
+          for f in print.yml espn-login.yml; do sed "s|CODE_REPO|$CODE_REPO|" "../multi/data-repo/.github/workflows/$f" > ".github/workflows/$f"; done
+          [ -f README.md ] && grep -q "Daily Fantasizer data" README.md || cp ../multi/data-repo/README.md README.md
+          printf '{"site": "%s"}\n' "$SITE" > site.json
+          git add -A; git config user.name "Daily Fantasizer deploy"; git config user.email "deploy@users.noreply.github.com"
+          git diff --cached --quiet || { git commit -q -m "deploy: workflows and site address"; git push -q origin main; }
+          cd ..
+          python3 - <<'PY'
+          import base64, json, os, urllib.request
+          from nacl import encoding, public
+          repo, tok, val = os.environ["DATA_REPO"], os.environ["GH_PAT"], os.environ["MASTER"]
+          H = {"Authorization": f"Bearer {tok}", "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+          k = json.load(urllib.request.urlopen(urllib.request.Request(f"https://api.github.com/repos/{repo}/actions/secrets/public-key", headers=H)))
+          box = public.SealedBox(public.PublicKey(k["key"].encode(), encoding.Base64Encoder()))
+          body = json.dumps({"encrypted_value": base64.b64encode(box.encrypt(val.encode())).decode(), "key_id": k["key_id"]}).encode()
+          urllib.request.urlopen(urllib.request.Request(f"https://api.github.com/repos/{repo}/actions/secrets/FZ_MASTER_KEY", data=body, method="PUT", headers=H))
+          print("data repo secret FZ_MASTER_KEY set")
+          PY
+      - name: Install
+        run: cd multi/worker && npm install --no-audit --no-fund
       - name: Extension download (points at this site)
         run: python3 multi/extension/pack.py
       - name: Deploy
@@ -73,5 +97,5 @@ jobs:
           sleep 5
           code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE/login")
           echo "Site: $SITE  (login page answered $code)"
-          { echo "### Site is up"; echo "$SITE"; echo; echo "Log in: $SITE/login"; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "### Site is up"; echo "$SITE"; echo; echo "Log in: $SITE/login"; echo; echo "Data: https://github.com/$DATA_REPO (private)"; } >> "$GITHUB_STEP_SUMMARY"
           [ "$code" = "200" ]

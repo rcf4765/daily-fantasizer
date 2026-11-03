@@ -1,29 +1,10 @@
 name: Fantasizer leagues (print other leagues' papers)
 
-# The printer for the shareable version (multi/). The website (multi/worker) starts this workflow:
-#  - for one league right after it signs up or its commissioner changes settings (input slug);
-#  - for every league on Tuesdays and Wednesdays (its own cron, slug blank).
-# It never touches the Men Fantasizing paper, docs/ or data/.
-# Needs: repo secret FZ_MASTER_KEY (BUILD_TOKEN is derived from it, as in site-deploy.yml); the website passes its
-# address and a signature with every start.
-# A push to the multi-league branch runs a self-test instead: the Men Fantasizing league built through the
-# generic path (automatic copy, no Rule Changes/Betting), uploaded as a workflow artifact, nothing published.
+# Self-test only. The real printer now runs in the private data repo (multi/data-repo/.github/workflows/print.yml,
+# installed by site-deploy.yml). A push to the multi-league branch builds the Men Fantasizing league through the
+# generic path (automatic copy, no Rule Changes/Betting) and uploads it as a workflow artifact; nothing is published.
 
 on:
-  workflow_dispatch:
-    inputs:
-      slug:
-        description: "One league's id (blank = every league)"
-        required: false
-        default: ""
-      site:
-        description: "The website's address (the website fills this in)"
-        required: false
-        default: ""
-      sig:
-        description: "The website's signature of site|slug (the website fills this in)"
-        required: false
-        default: ""
   push:
     branches: [multi-league]
     paths: ["multi/**", ".github/workflows/fantasizer-leagues.yml"]
@@ -36,30 +17,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  print:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: sudo apt-get install -y libcairo2 >/dev/null
-      - run: pip install requests pillow cairosvg
-      - name: Keys
-        env:
-          MASTER: ${{ secrets.FZ_MASTER_KEY }}
-        run: |
-          b=$(printf %s build | openssl dgst -sha256 -hmac "$MASTER" -r | cut -d' ' -f1); echo "::add-mask::$b"; echo "BUILD_TOKEN=$b" >> "$GITHUB_ENV"
-      - name: Print
-        env:
-          SITE_URL: ${{ github.event.inputs.site || vars.FZ_SITE_URL }}
-          SLUG: ${{ github.event.inputs.slug }}
-          SIG: ${{ github.event.inputs.sig }}
-          FZ_VAR_SITE: ${{ vars.FZ_SITE_URL }}
-        run: python multi/run_all.py "$SITE_URL" "$SLUG"
-
   selftest:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest

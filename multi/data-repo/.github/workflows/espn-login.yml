@@ -1,15 +1,19 @@
-name: ESPN sign-in (free)
+name: ESPN sign-in
 
-# Started by the website (multi/worker) for each "Log in with ESPN" on the free Cloudflare plan: signs in on ESPN's
-# real login page with a browser, waits for ESPN's emailed code when asked, and sends ESPN's session back to the site.
-# The login arrives encrypted (LOGIN_KEY); it is masked in the log and never written to disk.
-# Needs repo secret FZ_MASTER_KEY (the site's keys are derived from it, see site-deploy.yml).
+# Lives in the private data repo (installed by site-deploy.yml in the code repo), so its runs and logs are private.
+# Started by the website for each "Log in with ESPN": signs in on ESPN's real login page with a browser, waits for
+# ESPN's emailed code when asked, and sends ESPN's session back to the website. The login arrives encrypted in this
+# run's own inputs (LOGIN_KEY), is masked in the log, and is never written to disk or to this repo.
+# Needs this repo's secret FZ_MASTER_KEY (the deploy sets it).
 
 on:
   workflow_dispatch:
     inputs:
       job:
-        description: "Login job id (from the website)"
+        description: "Login job id"
+        required: true
+      login:
+        description: "The login, encrypted"
         required: true
       site:
         description: "The website's address"
@@ -21,10 +25,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: espn-login-${{ github.event.inputs.job }}
-  cancel-in-progress: false
-
 jobs:
   signin:
     runs-on: ubuntu-latest
@@ -32,6 +32,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          repository: CODE_REPO
+          path: code
           sparse-checkout: |
             multi/worker/src
             multi/login_runner
@@ -40,7 +42,7 @@ jobs:
           node-version: "22"
       - name: Browser
         run: |
-          cd multi/login_runner
+          cd code/multi/login_runner
           npm init -y >/dev/null
           npm install --no-audit --no-fund playwright@1.63.0 >/dev/null
           npx playwright install --with-deps chromium >/dev/null
@@ -56,4 +58,5 @@ jobs:
           SITE: ${{ github.event.inputs.site }}
           JOB: ${{ github.event.inputs.job }}
           SIG: ${{ github.event.inputs.sig }}
-        run: node multi/login_runner/run.mjs
+          LOGIN: ${{ github.event.inputs.login }}
+        run: node code/multi/login_runner/run.mjs

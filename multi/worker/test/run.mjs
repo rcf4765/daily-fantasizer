@@ -1,30 +1,14 @@
 // Local test of the Worker without Cloudflare: D1 on Node's built-in SQLite, R2 in memory, Yahoo/ESPN/GitHub faked.
 // node --no-warnings test/run.mjs
-import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import worker from '../src/index.js';
 
-// ---- D1 shim ----
-const sql = new DatabaseSync(':memory:');
-sql.exec(readFileSync(new URL('../schema.sql', import.meta.url), 'utf8'));
-const stmt = (q, args = []) => ({
-  bind: (...a) => stmt(q, a),
-  first: async () => sql.prepare(q).get(...args) ?? null,
-  all: async () => ({ results: sql.prepare(q).all(...args) }),
-  run: async () => { const r = sql.prepare(q).run(...args); return { meta: { changes: r.changes } }; },
-});
-const DB = { prepare: (q) => stmt(q), batch: async (list) => Promise.all(list.map((s) => s.run())) };
-// ---- R2 shim ----
-const store = new Map();
-const PAPERS = {
-  put: async (k, body) => { store.set(k, typeof body === 'string' ? body : await new Response(body).text()); },
-  get: async (k) => store.has(k) ? { body: store.get(k), text: async () => store.get(k), json: async () => JSON.parse(store.get(k)) } : null,
-  delete: async (k) => store.delete(k),
-  list: async ({ prefix }) => ({ objects: [...store.keys()].filter((k) => k.startsWith(prefix)).map((key) => ({ key })) }),
-};
-const env = { DB, PAPERS, SITE_URL: 'https://fz.example', SESSION_SECRET: 's'.repeat(32), ENC_KEY: 'k'.repeat(32), BUILD_TOKEN: 'build-tok',
-  GITHUB_TOKEN: 'gh', GITHUB_REPO: 'rcf4765/daily-fantasizer', YAHOO_CLIENT_ID: 'cid', YAHOO_CLIENT_SECRET: 'csec' };
+import { fakeGitHub } from './fake_github.mjs';
+// ---- the data repo on GitHub (faked) ----
+const gh = fakeGitHub('me/data');
+const env = { DATA_REPO: 'me/data', SITE_URL: 'https://fz.example', SESSION_SECRET: 's'.repeat(32), ENC_KEY: 'k'.repeat(32), BUILD_TOKEN: 'build-tok',
+  GITHUB_TOKEN: 'gh', YAHOO_CLIENT_ID: 'cid', YAHOO_CLIENT_SECRET: 'csec' };
 const ctx = { waitUntil: () => {} };
 
 // ---- fake outside world ----
@@ -32,7 +16,11 @@ const dispatched = [];
 const YX = (inner) => `<?xml version="1.0"?><fantasy_content xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng">${inner}</fantasy_content>`;
 globalThis.fetch = async (url, init = {}) => {
   url = String(url);
-  if (url.includes('api.github.com')) { dispatched.push(JSON.parse(init.body).inputs.slug); return new Response(null, { status: 204 }); }
+  if (url.includes('api.github.com')) {
+    const r = await gh.handle(url, init);
+    if (url.includes('print.yml/dispatches')) dispatched.push(gh.starts.at(-1).inputs.slug);
+    return r;
+  }
   if (url.includes('get_token')) {
     const b = new URLSearchParams(init.body);
     assert.equal(init.headers.Authorization, 'Basic ' + btoa('cid:csec'));
@@ -104,7 +92,7 @@ jar = {};
 r = await call('POST', '/espn', { form: { league: '777', season: '2026', espn_s2: 'S2BOSS', swid: '{aaaa-1111}' } });
 assert.equal(r.headers.get('Location').split('/')[2], privSlug); ok('same league → same paper, no duplicate');
 r = await call('GET', `/l/${privSlug}/settings`); assert.equal(r.status, 200); assert.match(await text(r), /Optional tabs/); ok('ESPN manager opens settings');
-const row = sql.prepare('SELECT espn_s2, swid, feat_rules, feat_bets FROM leagues WHERE slug=?').get(privSlug);
+const row = gh.json(`leagues/${privSlug}.json`);
 assert.ok(!row.espn_s2.includes('S2BOSS')); assert.equal(row.feat_rules, 0); assert.equal(row.feat_bets, 0); ok('cookies stored sealed; both tabs default off');
 
 r = await call('POST', `/l/${privSlug}/settings`, { form: { rules: 'on', bets: 'on', accent: '#2d6a4f' } });
@@ -117,12 +105,12 @@ r = await call('GET', '/api/build/leagues', { headers: { Authorization: 'Bearer 
 let L = (await r.json()).leagues; const priv = L.find((x) => x.slug === privSlug);
 assert.equal(priv.espn_s2, 'S2BOSS'); assert.equal(priv.swid, '{aaaa-1111}'); assert.deepEqual(priv.features, { rules: true, bets: true }); assert.equal(priv.accent, '#2d6a4f');
 ok('printer gets decrypted cookies, features, accent, office URL');
-r = await call('PUT', `/api/build/${privSlug}/file?path=../../etc`, { headers: { Authorization: 'Bearer build-tok' }, body: 'x' }); assert.equal(r.status, 400); ok('upload paths are whitelisted');
-await call('PUT', `/api/build/${privSlug}/file?path=index.html`, { headers: { Authorization: 'Bearer build-tok' }, body: '<title>The Daily Fantasizer</title><p>paper</p>' });
-await call('PUT', `/api/build/${privSlug}/file?path=week8.html`, { headers: { Authorization: 'Bearer build-tok' }, body: '<p>w8</p>' });
+// the printer writes editions straight into the data repo
+gh.write(`papers/${privSlug}/index.html`, '<title>The Daily Fantasizer</title><header class="mast">M</header><p>paper</p>');
+gh.write(`papers/${privSlug}/week8.html`, '<p>w8</p>');
 const lineFile = { week: 9, nfl: [{ id: 'N:G1', title: 'CAR @ GB', lock: '2099-01-01T00:00:00Z', markets: [{ m: 'ml', label: 'Moneyline', sel: [{ id: 'N:G1:ml:a', name: 'CAR', odds: 150 }, { id: 'N:G1:ml:h', name: 'GB', odds: -170 }] }] },
   { id: 'N:G2', title: 'NYJ @ BUF', lock: '2000-01-01T00:00:00Z', markets: [{ m: 'ml', label: 'Moneyline', sel: [{ id: 'N:G2:ml:a', name: 'NYJ', odds: 300 }] }] }] };
-await call('PUT', `/api/build/${privSlug}/file?path=bets/lines9.json`, { headers: { Authorization: 'Bearer build-tok' }, body: JSON.stringify(lineFile) });
+gh.write(`papers/${privSlug}/bets/lines9.json`, JSON.stringify(lineFile));
 await call('POST', `/api/build/${privSlug}/status`, { headers: { Authorization: 'Bearer build-tok' }, body: JSON.stringify({ status: 'ok', week: 8 }) });
 r = await call('GET', `/l/${privSlug}/`); let t = await text(r); assert.match(t, /<p>paper<\/p>/); assert.match(t, /\/settings"/); ok('paper served, commissioner sees a Settings button');
 jar = {}; r = await call('GET', `/l/${privSlug}/`); t = await text(r); assert.doesNotMatch(t, /\/settings"/); ok('everyone else sees only the paper');
@@ -184,7 +172,7 @@ console.log('ESPN extension sync (one account, several leagues)');
   r = await post('/api/espn/link', { espn_s2: GOOD, swid: SW }); let j = await r.json();
   assert.equal(j.ok, true); assert.deepEqual(j.leagues.map((l) => l.id), ['4001', '4002']);
   assert.equal(j.leagues[0].commissioner, true); assert.equal(j.leagues[1].team, 'My Squad 4002'); ok('lists both football leagues on the account, this season only');
-  const u = sql.prepare("SELECT espn_s2, swid FROM users WHERE id='espn:CCCCCCCC-1111-2222-3333-444444444444'").get();
+  const u = gh.json('users/espn_CCCCCCCC-1111-2222-3333-444444444444.json');
   assert.ok(u && !u.espn_s2.includes('GOOD') && !u.swid.includes('CCCC')); ok('ESPN session stored encrypted on the account');
   const token = j.token;
   r = await post('/api/espn/check', { token, league: '4777' }); assert.equal(r.status, 403); ok('a league the account is not in is refused');
@@ -200,9 +188,9 @@ console.log('ESPN extension sync (one account, several leagues)');
   r = await call('GET', '/mine?added=3'); const page = await text(r);
   for (const n of ['Office League', 'Family League', 'Old College League']) assert.ok(page.includes(n));
   assert.match(page, /3 papers set up/); ok('My leagues shows all three');
-  const off = sql.prepare("SELECT slug FROM leagues WHERE league_id='4001'").get().slug;
+  const off = gh.slugOf('4001');
   r = await call('GET', `/l/${off}/settings`); assert.equal(r.status, 200); ok('commissioner of Office League gets Settings');
-  const fam = sql.prepare("SELECT slug FROM leagues WHERE league_id='4002'").get().slug;
+  const fam = gh.slugOf('4002');
   r = await call('GET', `/l/${fam}/settings`); assert.equal(r.status, 403); ok('not commissioner of Family League → Settings locked');
   r = await call('GET', '/api/build/leagues?slug=' + fam, { headers: { Authorization: 'Bearer build-tok' } }); j = await r.json();
   assert.equal(j.leagues[0].espn_s2, GOOD); ok('printer gets the ESPN session for each league');
@@ -231,26 +219,26 @@ console.log('Log in with ESPN (server signs in; user only logs in)');
   r = await login('me@example.com', 'right'); assert.equal(r.status, 303); assert.match(r.headers.get('Location'), /^\/mine\?added=\d+&found=2$/); ok('one login → every league on the account');
   r = await call('GET', r.headers.get('Location')); let page = await text(r);
   assert.ok(page.includes('Office League') && page.includes('Family League')); ok('My leagues lists them, signed in');
-  const dump = JSON.stringify(sql.prepare('SELECT * FROM users').all()) + JSON.stringify(sql.prepare('SELECT * FROM login_traces').all());
+  const dump = gh.dump();
   assert.ok(!dump.includes('right') && !dump.includes('me@example.com')); ok('password and email never stored; traces have step names only');
   jar = {};
   r = await login('code@example.com', 'right'); assert.match(await text(r), /emailed a code/); assert.ok(jar.fz_login); ok('ESPN code step shown when ESPN asks');
   r = await call('POST', '/login/code', { form: { code: '999999' } }); assert.match(await text(r), /didn’t work/); ok('wrong code: ask again');
   r = await call('POST', '/login/code', { form: { code: '123 456' } }); assert.equal(r.status, 303); assert.match(r.headers.get('Location'), /found=2/); ok('right code → signed in, leagues set up');
   r = await call('POST', '/login/code', { form: { code: '123456' } }); assert.equal(r.status, 400); ok('code sign-in is single-use');
-  { const slugs = sql.prepare("SELECT slug, name FROM leagues WHERE league_id IN ('4001','4002')").all();
-    for (const sl of slugs) store.set(`papers/${sl.slug}/index.html`, `<!doctype html><title>x</title><header class="mast">${sl.name} paper</header>`);
+  { const slugs = ['4001', '4002'].map((id) => ({ slug: gh.slugOf(id), name: gh.json(`leagues/${gh.slugOf(id)}.json`).name }));
+    for (const sl of slugs) gh.write(`papers/${sl.slug}/index.html`, `<!doctype html><title>x</title><header class="mast">${sl.name} paper</header>`);
     r = await call('GET', `/l/${slugs[0].slug}/`); page = await text(r);
-    assert.ok(page.indexOf('fz-lgbar') < page.indexOf('class="mast"') && page.includes('Office League') && page.includes('Family League')); ok('paper shows a switcher to every league you are in, above the masthead');
+    assert.ok(page.includes('fz-lgbar') && page.includes("querySelector('header.mast')") && page.includes('Office League') && page.includes('Family League')); ok('paper carries a switcher to every league you are in (placed above the masthead)');
     assert.equal((page.match(/aria-current="page"/g) || []).length, 1); ok('current league highlighted');
     const saved = { ...jar }; jar = {}; r = await call('GET', `/l/${slugs[0].slug}/`); assert.ok(!(await text(r)).includes('fz-lgbar')); jar = saved; ok('people reading a shared link see no switcher'); }
   r = await call('POST', '/mine/add', { form: { league: '4777' } }); assert.match(r.headers.get('Location'), /err=/); ok('add by ID refuses a league you are not in');
   r = await call('POST', '/mine/add', { form: { league: 'https://fantasy.espn.com/football/league?leagueId=4003' } }); assert.match(r.headers.get('Location'), /added=1/); ok('add by ID from a league link');
   globalThis.JOINED_4004 = true; const before = dispatched.length;
-  await worker.scheduled({}, env, { waitUntil: async (p) => p }); await new Promise((res) => setTimeout(res, 50));
-  assert.ok(sql.prepare("SELECT slug FROM leagues WHERE league_id='4004'").get()); ok('Tuesday refresh adds a league joined since');
-  assert.ok(dispatched.length > before); ok('then prints every league');
-  sql.prepare('DELETE FROM login_attempts').run();
+  r = await call('POST', '/api/build/refresh', { headers: { Authorization: 'Bearer build-tok' }, keepCookies: false }); assert.equal(r.status, 200);
+  assert.ok(gh.slugOf('4004')); ok('Tuesday refresh (asked by the printer) adds a league joined since');
+  assert.ok(dispatched.length > before); ok('and queues its first print');
+  for (const k of [...gh.files.keys()]) if (k.startsWith('limits/')) gh.files.delete(k);
   for (let i = 0; i < 6; i++) await login('me@example.com', 'bad');
   r = await login('me@example.com', 'right'); assert.equal(r.status, 429); ok('six tries in 15 minutes, then wait');
   r = await call('GET', '/api/build/login-traces', { headers: { Authorization: 'Bearer build-tok' } }); assert.ok((await r.json()).traces.length > 3); ok('sign-in traces readable for fixing ESPN changes');
@@ -259,7 +247,7 @@ console.log('Log in with ESPN (server signs in; user only logs in)');
 
 console.log('cleanup');
 await call('POST', `/l/${ySlug}/delete`, { form: {} });
-assert.equal(sql.prepare('SELECT COUNT(*) n FROM leagues WHERE slug=?').get(ySlug).n, 0); ok('commissioner can remove a league');
+assert.equal(gh.json(`leagues/${ySlug}.json`), null); assert.ok(!Object.values(gh.json('index/leagues.json')).includes(ySlug)); ok('commissioner can remove a league');
 r = await worker.fetch(new Request('https://fz.example/l/' + privSlug + '/settings', { method: 'POST', headers: { Origin: 'https://evil.example', Cookie: '' }, body: 'rules=on' }), env, ctx);
 assert.equal(r.status, 403); ok('cross-site form posts refused');
 console.log('\nall passed');
