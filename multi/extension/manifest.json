@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Daily Fantasizer: ESPN link",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Links your ESPN Fantasy leagues to The Daily Fantasizer so it can print each league's weekly paper. Read-only: it never changes anything in your leagues.",
   "permissions": [
     "cookies",
@@ -42,5 +42,11 @@
   ],
   "icons": {
     "128": "icon128.png"
+  },
+  "action": {
+    "default_title": "Daily Fantasizer: ESPN test page",
+    "default_icon": {
+      "128": "icon128.png"
+    }
   }
 }
