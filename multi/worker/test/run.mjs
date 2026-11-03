@@ -40,6 +40,22 @@ globalThis.fetch = async (url, init = {}) => {
   }
   if (url.includes('games;game_keys=nfl/leagues')) return new Response(YX('<users><user><games><game><leagues><league><league_key>461.l.555</league_key><name>Sunday Funday</name><num_teams>10</num_teams><season>2026</season></league><league><league_key>461.l.556</league_key><name>Work League</name><num_teams>12</num_teams><season>2026</season></league></leagues></game></games></user></users>'));
   if (url.includes('games;game_keys=nfl/teams')) return new Response(YX('<users><user><games><game><teams><team><team_key>461.l.555.t.3</team_key><name>Taco Tuesday</name><managers><manager><is_commissioner>1</is_commissioner><is_current_login>1</is_current_login></manager></managers></team><team><team_key>461.l.556.t.7</team_key><name>Spreadsheet Kings</name><managers><manager><is_current_login>1</is_current_login></manager></managers></team></teams></game></games></user></users>'));
+  if (url.includes('fan.api.espn.com')) {
+    if (!(init.headers?.Cookie || '').includes('espn_s2=GOOD')) return new Response('no', { status: 401 });
+    return Response.json({ preferences: [
+      { metaData: { entry: { abbrev: 'FFL', gameId: 1, seasonId: 2026, groups: [{ groupId: 4001 }] } } },
+      { metaData: { entry: { abbrev: 'FFL', gameId: 1, seasonId: 2026, groups: [{ groupId: 4002 }] } } },
+      { metaData: { entry: { abbrev: 'FFL', gameId: 1, seasonId: 2025, groups: [{ groupId: 3999 }] } } },   // last season: skipped
+      { metaData: { entry: { abbrev: 'FBA', gameId: 3, seasonId: 2026, groups: [{ groupId: 5001 }] } } },   // basketball: skipped
+      { type: { code: 'team' } } ] });
+  }
+  if (url.includes('lm-api-reads.fantasy.espn.com') && /leagues\/(400[1-3]|4777)/.test(url)) {
+    const id = url.match(/leagues\/(\d+)/)[1], me = '{CCCCCCCC-1111-2222-3333-444444444444}';
+    const mine = id !== '4777';
+    return Response.json({ settings: { name: { 4001: 'Office League', 4002: 'Family League', 4003: 'Old College League', 4777: 'Strangers' }[id] },
+      teams: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: i === 2 ? 'My Squad ' + id : 'T' + i, owners: i === 2 && mine ? [me] : ['{X}'] })),
+      members: mine ? [{ id: me, isLeagueManager: id === '4001' }, { id: '{X}' }] : [{ id: '{X}' }] });
+  }
   if (url.includes('lm-api-reads.fantasy.espn.com')) {
     const ck = init.headers?.Cookie || '';
     if (url.includes('/leagues/999')) return new Response('nope', { status: 401 });
@@ -153,6 +169,48 @@ r = await call('POST', '/yahoo/league', { form: { key: '461.l.999' } }); assert.
 r = await call('GET', `/api/build/leagues?slug=${ySlug}`, { headers: { Authorization: 'Bearer build-tok' } });
 assert.equal((await r.json()).leagues[0].yahoo_token, 'AT-refresh_token'); ok('printer gets a fresh Yahoo access token');
 r = await call('GET', '/mine'); t = await text(r); assert.match(t, /Sunday Funday/); assert.match(t, /Work League/); ok('My leagues');
+
+console.log('ESPN extension sync (one account, several leagues)');
+{
+  const savedJar = { ...jar };
+  const ext = { 'X-Fantasizer-Extension': '0.1.0', 'Content-Type': 'application/json' };
+  const post = (path, b) => call('POST', path, { body: JSON.stringify(b), headers: ext, keepCookies: false });
+  const SW = '{CCCCCCCC-1111-2222-3333-444444444444}', GOOD = 'GOOD' + 'x'.repeat(60);
+  r = await call('POST', '/api/espn/link', { body: JSON.stringify({ espn_s2: GOOD, swid: SW }), headers: { 'Content-Type': 'application/json' } });
+  assert.equal(r.status, 400); ok('only the extension may call it');
+  r = await post('/api/espn/link', { espn_s2: 'BAD' + 'x'.repeat(60), swid: SW }); assert.equal(r.status, 401); ok('a bad ESPN sign-in is refused');
+  r = await post('/api/espn/link', { espn_s2: GOOD, swid: 'nope' }); assert.equal(r.status, 400); ok('malformed SWID refused');
+  r = await post('/api/espn/link', { espn_s2: GOOD, swid: SW }); let j = await r.json();
+  assert.equal(j.ok, true); assert.deepEqual(j.leagues.map((l) => l.id), ['4001', '4002']);
+  assert.equal(j.leagues[0].commissioner, true); assert.equal(j.leagues[1].team, 'My Squad 4002'); ok('lists both football leagues on the account, this season only');
+  const u = sql.prepare("SELECT espn_s2, swid FROM users WHERE id='espn:CCCCCCCC-1111-2222-3333-444444444444'").get();
+  assert.ok(u && !u.espn_s2.includes('GOOD') && !u.swid.includes('CCCC')); ok('ESPN session stored encrypted on the account');
+  const token = j.token;
+  r = await post('/api/espn/check', { token, league: '4777' }); assert.equal(r.status, 403); ok('a league the account is not in is refused');
+  r = await post('/api/espn/check', { token, league: '4003' }); j = await r.json(); assert.equal(j.league.name, 'Old College League'); ok('a league the list missed can be added by ID');
+  r = await post('/api/espn/sync', { token, leagues: ['4777'] }); assert.equal(r.status, 400); ok('cannot sync a league that was never offered');
+  const before = dispatched.length;
+  r = await post('/api/espn/sync', { token, leagues: ['4001', '4002', '4003'] }); j = await r.json();
+  assert.equal(j.ok, true); assert.equal(j.results.filter((x) => x.slug).length, 3); assert.equal(dispatched.length - before, 3); ok('three leagues added, three first prints queued');
+  r = await post('/api/espn/sync', { token, leagues: ['4001'] }); assert.equal(r.status, 401); ok('token is single-use');
+  jar = {};
+  r = await call('GET', j.next); assert.equal(r.status, 303); assert.match(r.headers.get('Location'), /added=3/); ok('back on the site, signed in');
+  r = await call('GET', j.next); assert.equal(r.status, 400); ok('return link is single-use');
+  r = await call('GET', '/mine?added=3'); const page = await text(r);
+  for (const n of ['Office League', 'Family League', 'Old College League']) assert.ok(page.includes(n));
+  assert.match(page, /Added 3 leagues/); ok('My leagues shows all three');
+  const off = sql.prepare("SELECT slug FROM leagues WHERE league_id='4001'").get().slug;
+  r = await call('GET', `/l/${off}/settings`); assert.equal(r.status, 200); ok('commissioner of Office League gets Settings');
+  const fam = sql.prepare("SELECT slug FROM leagues WHERE league_id='4002'").get().slug;
+  r = await call('GET', `/l/${fam}/settings`); assert.equal(r.status, 403); ok('not commissioner of Family League → Settings locked');
+  r = await call('GET', '/api/build/leagues?slug=' + fam, { headers: { Authorization: 'Bearer build-tok' } }); j = await r.json();
+  assert.equal(j.leagues[0].espn_s2, GOOD); ok('printer gets the ESPN session for each league');
+  r = await call('POST', '/api/espn/link', { body: JSON.stringify({ espn_s2: GOOD, swid: SW }), headers: ext, keepCookies: false }); j = await r.json();
+  assert.ok(j.leagues.every((l) => l.linked)); ok('linking again marks leagues that already have a paper');
+  r = await call('GET', '/'); assert.match(await text(r), /Link ESPN Fantasy account/); ok('home page has the Link ESPN button');
+  r = await call('GET', '/extension.zip'); assert.equal(r.headers.get('Content-Type'), 'application/zip'); assert.ok((await r.arrayBuffer()).byteLength > 2000); ok('extension download');
+  jar = savedJar;
+}
 
 console.log('cleanup');
 await call('POST', `/l/${ySlug}/delete`, { form: {} });

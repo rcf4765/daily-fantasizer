@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Daily Fantasizer: ESPN link",
+  "version": "0.1.0",
+  "description": "Links your ESPN Fantasy leagues to The Daily Fantasizer so it can print each league's weekly paper. Read-only: it never changes anything in your leagues.",
+  "permissions": [
+    "cookies",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://*.espn.com/*",
+    "https://*.workers.dev/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.workers.dev/*",
+        "http://127.0.0.1/*",
+        "http://localhost/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://fantasy.espn.com/*"
+      ],
+      "js": [
+        "espn_panel.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "128": "icon128.png"
+  }
+}

@@ -58,6 +58,26 @@ export function layout(title, body, { head = '' } = {}) {
 <footer>The Daily Fantasizer · a weekly paper for your fantasy league · read-only: it never changes anything in your league</footer></main></body></html>`;
 }
 
+// The "Link ESPN Fantasy account" button: hands off to the browser extension when it's installed (it marks the page
+// with data-fz-ext), otherwise shows how to get it. Any page can include it next to a [data-espn-link] button.
+export const ESPN_LINK_UI = `<div class="note" id="fz-espn-status" role="status" hidden></div>
+<dialog id="fz-ext-dlg" style="border:3px solid var(--ink);background:var(--sheet);color:var(--ink);max-width:min(560px,calc(100vw - 32px));padding:22px">
+ <h3>Add the Chrome extension first</h3>
+ <p>ESPN has no sign-in for other websites. Like FantasyPros, The Daily Fantasizer uses a small Chrome extension to read the leagues on your ESPN account after you sign in on ESPN's own page. It's read-only and only talks to this site.</p>
+ <ol class="hint"><li>Use Chrome or Edge on a computer.</li><li><a href="/extension.zip">Download the extension</a> and unzip it.</li><li>Open <b>chrome://extensions</b>, turn on <b>Developer mode</b> (top right), click <b>Load unpacked</b> and pick the unzipped folder.</li><li>Come back to this page and press <b>Link ESPN Fantasy account</b> again.</li></ol>
+ <p class="row"><button class="btn alt" type="button" onclick="this.closest('dialog').close()">Close</button><a class="btn alt" href="/espn">Enter a league ID instead</a></p>
+</dialog>
+<script>(function(){
+ var st=document.getElementById('fz-espn-status');
+ function say(t){st.textContent=t;st.hidden=!t}
+ document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-espn-link]');if(!b)return;
+  if(!document.documentElement.dataset.fzExt){var d=document.getElementById('fz-ext-dlg');d.showModal?d.showModal():location.assign('/espn');return}
+  say('An ESPN tab is open. Sign in there, tick your leagues and press Add leagues.');
+  window.postMessage({fz:'espn-link'},location.origin)});
+ window.addEventListener('message',function(e){if(e.source!==window||!e.data||e.data.fz!=='espn-link-result')return;
+  var r=e.data;if(r.pending)return;if(r.ok&&r.next){say('Linked. Opening your leagues…');location.assign(r.next)}else say(r.error||'That didn’t work. Try again.')});
+})();</script>`;
+
 const mast = (kicker) => `<header class="mast"><span class="kicker">${esc(kicker)}</span><h1>The Daily<span>Fantasizer</span></h1></header>`;
 
 export function home(env, signedIn) {
@@ -68,9 +88,10 @@ export function home(env, signedIn) {
  <section class="card y"><span class="kicker">Yahoo leagues</span><h3>Sign in with Yahoo</h3>
   <p>Yahoo asks you to approve read-only access to your fantasy leagues. Then pick the league.</p>
   <p><a class="btn y" href="/auth/yahoo">Sign in with Yahoo</a></p></section>
- <section class="card e"><span class="kicker">ESPN leagues</span><h3>Use your ESPN league</h3>
-  <p>ESPN has no sign-in for other sites, so you paste your league ID (and, for a private league, two cookies from ESPN).</p>
-  <p><a class="btn" href="/espn">Set up an ESPN league</a></p></section>
+ <section class="card e"><span class="kicker">ESPN leagues</span><h3>Link your ESPN account</h3>
+  <p>Sign in on ESPN and tick the leagues you want: every league on your account can get its own paper. Needs our free Chrome extension, once, on a computer.</p>
+  <p class="row"><button class="btn" type="button" data-espn-link>Link ESPN Fantasy account</button></p>
+  <p class="hint">No computer handy? <a href="/espn">Enter a league ID instead</a>.</p></section>
 </div>
 <h2>How it works</h2>
 <ol class="steps">
@@ -78,6 +99,7 @@ export function home(env, signedIn) {
  <li><div><b>Get your link.</b> The first paper prints in a few minutes. Share the link in your group chat.</div></li>
  <li><div><b>A new edition every Tuesday</b> after Monday Night Football, with last week's archive kept.</div></li>
 </ol>
+${ESPN_LINK_UI}
 ${signedIn ? '<p class="row" style="margin-top:22px"><a class="btn alt" href="/mine">My leagues</a><a class="btn alt" href="/signout">Sign out</a></p>' : ''}`);
 }
 
@@ -147,9 +169,11 @@ ${code ? `<p class="code">${esc(code)}</p><p class="hint">Write it down: it won'
 <p class="hint" style="margin-top:22px"><a href="/l/${esc(L.slug)}/">Open the paper</a> · <a href="/mine">My leagues</a></p>`);
 }
 
-export function mine(rows) {
-  return layout('My leagues · The Daily Fantasizer', `${mast('My leagues')}<ul class="lg-list">${rows.length ? rows.map((L) => `<li><div><b>${esc(L.name)}</b>${L.is_comm ? '<span class="badge">Commissioner</span>' : ''}<br><span class="hint">${L.platform === 'yahoo' ? 'Yahoo' : 'ESPN'} · ${L.teams} teams</span></div><div class="row"><a class="btn alt" href="/l/${esc(L.slug)}/">Paper</a>${L.is_comm ? `<a class="btn alt" href="/l/${esc(L.slug)}/settings">Settings</a>` : ''}</div></li>`).join('') : '<li><div>No leagues yet.</div></li>'}</ul>
-<p class="row" style="margin-top:16px"><a class="btn" href="/">Add a league</a><a class="btn alt" href="/signout">Sign out</a></p>`);
+export function mine(rows, { added = 0, failed = [] } = {}) {
+  const flash = (added ? `<div class="note" role="status">Added ${added} league${added > 1 ? 's' : ''}. Each first paper prints in a few minutes; share each league's link from its Settings.</div>` : '')
+    + failed.map((f) => `<div class="err">${esc(f)}</div>`).join('');
+  return layout('My leagues · The Daily Fantasizer', `${mast('My leagues')}${flash}<ul class="lg-list">${rows.length ? rows.map((L) => `<li><div><b>${esc(L.name)}</b>${L.is_comm ? '<span class="badge">Commissioner</span>' : ''}<br><span class="hint">${L.platform === 'yahoo' ? 'Yahoo' : 'ESPN'} · ${L.teams} teams</span></div><div class="row"><a class="btn alt" href="/l/${esc(L.slug)}/">Paper</a>${L.is_comm ? `<a class="btn alt" href="/l/${esc(L.slug)}/settings">Settings</a>` : ''}</div></li>`).join('') : '<li><div>No leagues yet.</div></li>'}</ul>
+<p class="row" style="margin-top:16px"><a class="btn" href="/">Add a league</a><button class="btn alt" type="button" data-espn-link>Add more ESPN leagues</button><a class="btn alt" href="/signout">Sign out</a></p>${ESPN_LINK_UI}`);
 }
 
 export function message(title, text, back = '/') {

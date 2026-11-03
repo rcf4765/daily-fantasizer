@@ -29,6 +29,31 @@ edition prints for their league every Tuesday.
 - **Not included for other leagues**: Optimal Lineup (your private tool), auto-applying rules to ESPN, league lore and
   announcements, the home-screen install page.
 
+## ESPN: the Chrome extension (works like FantasyPros' ESPN sync)
+
+ESPN has no sign-in for other websites, so ESPN leagues link through a small Chrome extension (`multi/extension`):
+
+1. On the site, **Link ESPN Fantasy account** opens fantasy.espn.com in a new tab.
+2. The extension's panel on that page says to sign in with ESPN's own **Log In** button (the password only goes to ESPN).
+3. Once signed in, the panel lists every football league on that ESPN account this season, with the commissioner ones
+   marked. One account in several leagues: tick any or all; a league the list missed can be added by ID.
+4. **Add leagues** sends the ESPN session (espn_s2 + SWID) and the ticked league IDs straight from the extension to the
+   site's server (`/api/espn/link`, `/api/espn/check`, `/api/espn/sync`). The web page never sees the cookies. The server
+   checks the account is really in each league, stores the session encrypted on the account and on each league, starts
+   each league's first print, and sends the tab back to My leagues, signed in (`/espn/done`, single-use).
+
+Members of a league never need the extension: one person links it, everyone reads the link on their phone.
+Without the extension (phones, Safari) the old "enter a league ID" page at `/espn` still works.
+
+**Small-group rollout (no Chrome Web Store):** `npm run deploy` (or `python3 ../extension/pack.py`) puts your SITE_URL into
+the extension and serves it at `SITE_URL/extension.zip`. Testers unzip it, open `chrome://extensions`, turn on Developer
+mode and choose **Load unpacked**. Publishing to the Chrome Web Store later removes that step (one-time $5 developer fee
+and a review of a few days).
+
+**Not yet tested against the real ESPN site:** the list of leagues comes from ESPN's fan profile
+(`fan.api.espn.com/apis/v2/fans/{SWID}`), which ESPN doesn't document. If it lists nothing, the panel falls back to
+"add it by ID" and everything else still works. First real test: link an account that's in two leagues.
+
 ## One-time setup (about 30 minutes)
 
 You need a free Cloudflare account and a free Yahoo developer account. Commands run in `multi/worker` with Node 18+.
@@ -62,6 +87,9 @@ You need a free Cloudflare account and a free Yahoo developer account. Commands 
    npx wrangler secret put YAHOO_CLIENT_SECRET  # from step 2
    ```
    Random strings: `openssl rand -hex 32`.
+
+4b. **Extension**: `cd multi/worker && npm run deploy` packs the extension with your SITE_URL (`multi/extension/pack.py`).
+   In `multi/extension/config.js`, `SITES` must list the same SITE_URL for anyone loading the folder directly.
 
 5. **GitHub repo settings** (Settings → Secrets and variables → Actions):
    - Secret `FZ_BUILD_TOKEN` = the same value as BUILD_TOKEN.
@@ -97,6 +125,10 @@ error shows on that league's page. The site's own cron starts a full run Tuesday
 
 - `node --no-warnings multi/worker/test/run.mjs`: the whole site against fake Yahoo/ESPN/GitHub (sign-up, commissioner
   checks, encrypted storage, build API, league office votes and bets). No Cloudflare account needed.
+- The run above includes the ESPN extension sync: one account in two leagues, a league added by ID, refused leagues,
+  single-use tokens, encrypted storage.
+- `node --no-warnings multi/worker/test/serve_ext.mjs` serves the site on 127.0.0.1:8787 with ESPN faked, for trying the
+  real extension in Chrome (load `multi/extension` unpacked; on a fake ESPN page set the espn_s2/SWID cookies).
 - `python3 multi/platforms/test_yahoo.py`: the Yahoo adapter against a fixture league (ties, trades, lineup slots).
 - A push to `multi-league` runs the workflow's self-test: the Men Fantasizing league printed through the generic path
   from real ESPN data, saved as a workflow artifact.

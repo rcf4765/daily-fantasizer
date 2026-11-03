@@ -66,6 +66,10 @@ export async function yahooLeagues(token) {
 // ESPN has no sign-in for outside sites. Public leagues need only the league ID; private leagues need the two
 // cookies from a signed-in ESPN session (espn_s2 and SWID). With cookies we can tell who the commissioner is:
 // SWID identifies the person, and ESPN marks league managers in the member list.
+export const espnSeason = (d = new Date()) => d.getUTCFullYear() - (d.getUTCMonth() < 2 ? 1 : 0);  // Jan–Feb still belong to last season
+const normSwid = (s) => String(s || '').toUpperCase().replace(/[{}]/g, '');
+export const validSwid = (s) => /^\{?[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}?$/i.test(String(s || '').trim());
+
 export async function espnLeague(leagueId, season, s2, swid) {
   const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?view=mSettings&view=mTeam`;
   const headers = { 'User-Agent': 'Mozilla/5.0 (DailyFantasizer)', Accept: 'application/json' };
@@ -76,8 +80,34 @@ export async function espnLeague(leagueId, season, s2, swid) {
   if (r.status === 404) return { error: `No ESPN league ${leagueId} in the ${season} season.` };
   if (!r.ok || !type.includes('json')) return { error: `ESPN didn’t answer (status ${r.status}). Try again in a minute.` };
   const j = await r.json();
-  const norm = (s) => String(s || '').toUpperCase().replace(/[{}]/g, '');
-  const me = swid ? (j.members || []).find((m) => norm(m.id) === norm(swid)) : null;
+  const me = swid ? (j.members || []).find((m) => normSwid(m.id) === normSwid(swid)) : null;
+  const myTeam = me ? (j.teams || []).find((t) => (t.owners || []).some((o) => normSwid(o) === normSwid(swid)) || normSwid(t.primaryOwner) === normSwid(swid)) : null;
+  const teamName = myTeam ? (myTeam.name || [myTeam.location, myTeam.nickname].filter(Boolean).join(' ')) : '';
   return { name: j.settings?.name || `League ${leagueId}`, teams: (j.teams || []).length, member: !!me,
-    commissioner: !!(me && me.isLeagueManager), isPublic: !!j.settings?.isPublic };
+    commissioner: !!(me && me.isLeagueManager), isPublic: !!j.settings?.isPublic, team: teamName };
+}
+
+/** Every football league on one ESPN account this season (an account can be in several). ESPN's fan profile lists the
+ *  account's fantasy entries; each candidate is then checked against the league itself, so a guess never becomes a league. */
+export async function espnUserLeagues(s2, swid, season) {
+  const id = encodeURIComponent('{' + normSwid(swid) + '}');
+  const r = await fetch(`https://fan.api.espn.com/apis/v2/fans/${id}?displayHiddenPrefs=true&context=fantasy&useCookieAuth=true&source=fantasyapp-ios&featureFlags=challengeEntries`,
+    { headers: { 'User-Agent': 'Mozilla/5.0 (DailyFantasizer)', Accept: 'application/json', Cookie: `espn_s2=${s2}; SWID=${swid}` } });
+  if (r.status === 401 || r.status === 403) return { error: 'ESPN didn’t accept this sign-in. Sign out of ESPN, sign in again and retry.', auth: true };
+  const j = r.ok ? await r.json().catch(() => null) : null;
+  if (!j) return { leagues: [], listError: 'ESPN didn’t send the list of your leagues.' };
+  const ids = new Set();
+  for (const p of j.preferences || []) {
+    const e = p?.metaData?.entry;
+    if (!e) continue;
+    const football = e.abbrev === 'FFL' || e.gameId === 1 || /football/i.test(String(e.name || e.entryURL || ''));
+    if (!football || (e.seasonId && +e.seasonId !== +season)) continue;
+    for (const g of e.groups || []) if (g && g.groupId) ids.add(String(g.groupId));
+  }
+  const leagues = [];
+  for (const lid of [...ids].slice(0, 20)) {
+    const info = await espnLeague(lid, season, s2, swid);
+    if (!info.error && info.member) leagues.push({ id: lid, name: info.name, teams: info.teams, team: info.team, commissioner: info.commissioner, season });
+  }
+  return { leagues, listError: ids.size ? '' : 'ESPN didn’t list any football leagues for this account this season.' };
 }

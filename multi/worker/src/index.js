@@ -2,7 +2,8 @@
 // Cloudflare Worker + D1 (accounts, leagues, votes, bets) + R2 (the printed papers). The papers themselves are
 // printed by the GitHub Actions workflow "fantasizer-leagues.yml", which this Worker starts and which uploads back here.
 import { sign, verify, seal, open, sha256, randomId, randomCode, cookie, setCookie, same } from './crypto.js';
-import { yahooAuthUrl, yahooExchange, yahooAccess, yahooUser, yahooLeagues, espnLeague } from './platforms.js';
+import { yahooAuthUrl, yahooExchange, yahooAccess, yahooUser, yahooLeagues, espnLeague, espnUserLeagues, espnSeason, validSwid } from './platforms.js';
+import { EXTENSION_ZIP } from './extension_zip.js';
 import { officeGet, officePost } from './office.js';
 import * as P from './pages.js';
 
@@ -145,10 +146,87 @@ async function route(req, env, ctx) {
     return redirect(`/l/${L.slug}/`, { 'Set-Cookie': await startSession(env, uid, 'ESPN') });
   }
 
+  // ---- ESPN through the browser extension (works like FantasyPros' ESPN sync) ----
+  // /api/espn/link: the extension sends the ESPN session after you sign in on ESPN → we store it encrypted on your
+  //   account and answer with every football league on that account plus a short-lived, single-use token.
+  // /api/espn/check: a league the list missed, by ID. /api/espn/sync: the leagues you ticked → one paper each.
+  // /espn/done: back on this site with a session; the token is used up.
+  if (path.startsWith('/api/espn/') && method === 'POST') {
+    if (!req.headers.get('X-Fantasizer-Extension')) return json({ ok: false, error: 'Use the Daily Fantasizer extension.' }, 400);
+    let b = {};
+    try { b = await req.json(); } catch (e) { return json({ ok: false, error: 'Bad request.' }, 400); }
+    const season = espnSeason();
+    if (path === '/api/espn/link') {
+      const s2 = String(b.espn_s2 || '').trim(), swid = String(b.swid || '').trim();
+      if (s2.length < 40 || !validSwid(swid)) return json({ ok: false, error: 'ESPN’s sign-in looks incomplete. Sign out of ESPN, sign in again and retry.' }, 400);
+      const res = await espnUserLeagues(s2, swid, season);
+      if (res.error) return json({ ok: false, error: res.error }, 401);
+      const uid = `espn:${swid.toUpperCase().replace(/[{}]/g, '')}`;
+      await env.DB.prepare(`INSERT INTO users (id, platform, espn_s2, swid, created_at) VALUES (?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET espn_s2=excluded.espn_s2, swid=excluded.swid`).bind(uid, 'espn', await seal(env, s2), await seal(env, swid), new Date().toISOString()).run();
+      for (const l of res.leagues) {
+        l.linked = !!(await env.DB.prepare("SELECT slug FROM leagues WHERE platform='espn' AND league_id=? AND season=?").bind(l.id, season).first());
+      }
+      const token = randomId(32);
+      await env.DB.prepare('INSERT INTO espn_links (token_hash, uid, leagues, created_at) VALUES (?,?,?,?)')
+        .bind(await sha256(token), uid, JSON.stringify(res.leagues.map((l) => l.id)), new Date().toISOString()).run();
+      return json({ ok: true, token, leagues: res.leagues, listError: res.listError || '' });
+    }
+    const link = await env.DB.prepare('SELECT * FROM espn_links WHERE token_hash=? AND synced=0').bind(await sha256(String(b.token || ''))).first();
+    if (!link || Date.now() - Date.parse(link.created_at) > 30 * 60000) return json({ ok: false, error: 'This link expired. Start again from The Daily Fantasizer.' }, 401);
+    const u = await env.DB.prepare('SELECT espn_s2, swid FROM users WHERE id=?').bind(link.uid).first();
+    const s2 = await open(env, u.espn_s2), swid = await open(env, u.swid);
+    const known = JSON.parse(link.leagues || '[]');
+    if (path === '/api/espn/check') {
+      const id = String(b.league || '').match(/^\d{3,12}$/)?.[0];
+      if (!id) return json({ ok: false, error: 'That doesn’t look like an ESPN league ID.' }, 400);
+      const info = await espnLeague(id, season, s2, swid);
+      if (info.error) return json({ ok: false, error: info.error }, 400);
+      if (!info.member) return json({ ok: false, error: `This ESPN account isn’t in ${info.name}.` }, 403);
+      if (!known.includes(id)) await env.DB.prepare('UPDATE espn_links SET leagues=? WHERE token_hash=?').bind(JSON.stringify([...known, id]), link.token_hash).run();
+      const linked = !!(await env.DB.prepare("SELECT slug FROM leagues WHERE platform='espn' AND league_id=? AND season=?").bind(id, season).first());
+      return json({ ok: true, league: { id, name: info.name, teams: info.teams, team: info.team, commissioner: info.commissioner, season, linked } });
+    }
+    if (path === '/api/espn/sync') {
+      const ids = [...new Set((Array.isArray(b.leagues) ? b.leagues : []).map(String))].filter((id) => known.includes(id)).slice(0, 20);
+      if (!ids.length) return json({ ok: false, error: 'Pick at least one league.' }, 400);
+      const results = [];
+      for (const id of ids) {
+        const info = await espnLeague(id, season, s2, swid);
+        if (info.error || !info.member) { results.push({ id, error: info.error || 'This ESPN account isn’t in that league.' }); continue; }
+        const L = await createOrUpdateLeague(env, { platform: 'espn', leagueId: id, season, name: info.name, teams: info.teams, uid: link.uid,
+          commissioner: info.commissioner, s2, swid });
+        results.push({ id, name: info.name, slug: L.slug });
+      }
+      const added = results.filter((r) => r.slug).length;
+      if (!added) return json({ ok: false, error: results[0].error, results }, 400);
+      const done = randomId(32);
+      await env.DB.prepare('UPDATE espn_links SET synced=1, done_hash=?, leagues=? WHERE token_hash=?')
+        .bind(await sha256(done), JSON.stringify(results), link.token_hash).run();
+      return json({ ok: true, next: `/espn/done?t=${done}`, results });
+    }
+    return json({ ok: false, error: 'Not found.' }, 404);
+  }
+  if (path === '/espn/done' && method === 'GET') {
+    const link = await env.DB.prepare('SELECT * FROM espn_links WHERE done_hash=? AND done_used=0').bind(await sha256(url.searchParams.get('t') || '')).first();
+    if (!link || Date.now() - Date.parse(link.created_at) > 60 * 60000) return html(P.message('Link expired', 'Start again with Link ESPN Fantasy account.'), 400);
+    await env.DB.prepare('UPDATE espn_links SET done_used=1 WHERE token_hash=?').bind(link.token_hash).run();
+    const res = JSON.parse(link.leagues || '[]');
+    const failed = res.filter((r) => r.error).map((r) => `League ${r.id}: ${r.error}`);
+    const q = new URLSearchParams({ added: String(res.filter((r) => r.slug).length) });
+    if (failed.length) q.set('failed', failed.join('|').slice(0, 600));
+    return redirect(`/mine?${q}`, { 'Set-Cookie': await startSession(env, link.uid, 'ESPN') });
+  }
+  if (path === '/extension.zip') {
+    return new Response(Uint8Array.from(atob(EXTENSION_ZIP), (c) => c.charCodeAt(0)), { headers: { 'Content-Type': 'application/zip',
+      'Content-Disposition': 'attachment; filename="daily-fantasizer-espn-extension.zip"' } });
+  }
+
   if (path === '/mine') {
     if (!s) return redirect('/');
     const { results } = await env.DB.prepare('SELECT l.*, m.is_comm FROM members m JOIN leagues l ON l.slug=m.slug WHERE m.uid=? ORDER BY l.created_at DESC').bind(s.uid).all();
-    return html(P.mine(results.map((L) => ({ ...L, is_comm: L.commissioner_uid === s.uid }))));
+    return html(P.mine(results.map((L) => ({ ...L, is_comm: L.commissioner_uid === s.uid })),
+      { added: +url.searchParams.get('added') || 0, failed: (url.searchParams.get('failed') || '').split('|').filter(Boolean) }));
   }
 
   // ---- a league's paper ----

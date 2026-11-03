@@ -1,8 +1,9 @@
 -- The Daily Fantasizer for any league: D1 schema. Apply with: npx wrangler d1 execute fantasizer --remote --file schema.sql
 CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,               -- yahoo:<guid> (ESPN users have no stored account; their id is espn:<SWID>)
+  id TEXT PRIMARY KEY,               -- yahoo:<guid> or espn:<SWID>
   platform TEXT NOT NULL,
   yahoo_refresh TEXT,                -- AES-GCM sealed refresh token (read-only fantasy scope)
+  espn_s2 TEXT, swid TEXT,           -- ESPN accounts linked with the extension: sealed cookies (one account, many leagues)
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS leagues (
@@ -33,3 +34,6 @@ CREATE TABLE IF NOT EXISTS votes (slug TEXT NOT NULL, proposal TEXT NOT NULL, te
 CREATE TABLE IF NOT EXISTS bets (slug TEXT NOT NULL, seq INTEGER NOT NULL, id TEXT NOT NULL, week INTEGER, team INTEGER, stake REAL, legs TEXT, dec REAL, win REAL,
   placed_at TEXT, status TEXT, PRIMARY KEY (slug, id));
 CREATE TABLE IF NOT EXISTS office_log (slug TEXT NOT NULL, at TEXT NOT NULL, action TEXT, team INTEGER, detail TEXT);
+-- ESPN links from the browser extension: a short-lived, single-use token between "signed in on ESPN" and "back on the site"
+CREATE TABLE IF NOT EXISTS espn_links (token_hash TEXT PRIMARY KEY, uid TEXT NOT NULL, leagues TEXT, created_at TEXT NOT NULL,
+  synced INTEGER NOT NULL DEFAULT 0, done_hash TEXT, done_used INTEGER NOT NULL DEFAULT 0);
