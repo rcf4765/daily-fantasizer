@@ -1,0 +1,158 @@
+{
+ "week": 8,
+ "hero": {
+  "winner": 3,
+  "loser": 6,
+  "big": "36.9",
+  "label": "won by, starting four zeros"
+ },
+ "lead": {
+  "kicker": "Page one",
+  "headline": "8D Starts Four Zeros, Wins",
+  "deck": "Left 71.68 on the bench and still won by 36.9.",
+  "paragraphs": [
+   "{T3} started Dart, Skattebo, McLaurin and Tate, all projected for zero. Chase 31.1, Jacobs 23.2 and McBride 20.2 did the rest.",
+   "{S6} posted a season-low 52.6, went 0–11 in all-play and lost a fourth straight. {S3} has won two in a row after an 0–6 start."
+  ]
+ },
+ "sidebar": [
+  {
+   "style": "hi",
+   "kicker": "Strange but true",
+   "title": "The Bench Back Went Off",
+   "viz": {
+    "type": "bars",
+    "rows": [
+     {
+      "label": "Allgeier (bench)",
+      "value": 36.1,
+      "alt": true
+     },
+     {
+      "label": "Love",
+      "value": 2.3
+     },
+     {
+      "label": "Dobbins",
+      "value": 1.3
+     }
+    ]
+   },
+   "text": "{S2} benched Tyler Allgeier for 36.1. The two backs who started, Jeremiyah Love and J.K. Dobbins, combined for 3.6."
+  }
+ ],
+ "recaps": {
+  "11-12": {
+   "headline": "Kazakhstan Takes Down No. 1",
+   "text": "Hubbard 24.9, Nacua 25.0, Steelers D/ST 16.0. Mahomes 25.44 sat behind Burrow."
+  },
+  "5-1": {
+   "headline": "Swift Ends the Streak",
+   "text": "Swift 27.9, new pickup Jaguars D/ST 21.0. Tuten's 29.9 wasn't enough for Chimpanzini."
+  },
+  "9-10": {
+   "headline": "Pickup Pays Off Again",
+   "text": "New add Jonah Coleman 20.4 on a 7.0 projection. Pony left nothing on the bench."
+  },
+  "3-6": {
+   "headline": "See Page One",
+   "text": "Michael Wilson 26.8 and Bo Nix 19.28 watched from the 8D bench."
+  },
+  "2-4": {
+   "headline": "Higgins Goes for 37.5",
+   "text": "Tee Higgins 37.5 from the flex, Fannin 23.4. Bruisers drop to 1–7."
+  },
+  "8-7": {
+   "headline": "Blowout of the Week",
+   "text": "Allen 26.56, Gibbs 24.8, Warren 21.3. Waddle's 14.9 sat for Magnificent."
+  }
+ },
+ "honor": {
+  "team": 5,
+  "big": "0.00",
+  "big_label": "pts left on bench",
+  "kicker": "Manager of the week",
+  "title": "Big CeeDeez Nuts",
+  "text": "One of three perfect lineups this week, and the highest of them at 121.32. A week earlier: a season-low 76.82."
+ },
+ "blotter": [
+  {
+   "team": 6,
+   "title": "Started two projected zeros",
+   "text": "A.J. Brown and Fairbairn, projected for zero, started. Both scored zero."
+  },
+  {
+   "team": 4,
+   "title": "Repeat offense at receiver",
+   "text": "Nico Collins and the Texans D/ST: projected zero, scored zero."
+  },
+  {
+   "team": 10,
+   "title": "Started him a week late",
+   "text": "Emanuel Wilson sat for 18.5 last week. Started this week: 0.0."
+  },
+  {
+   "team": 9,
+   "title": "Cut the 20-point QB",
+   "text": "Dropped Kirk Cousins, added Kyle Pitts Sr. Pitts: 2.6. Won, so no charges."
+  }
+ ],
+ "missing": [
+  {
+   "team": 6,
+   "player": "Lamar Jackson",
+   "text": "Projected 16.5. Found: zero."
+  },
+  {
+   "team": 9,
+   "player": "Javonte Williams",
+   "text": "Last week 21.5. This week 6.7."
+  },
+  {
+   "team": 4,
+   "player": "Bijan Robinson",
+   "text": "7.6 on an 18.8 projection."
+  },
+  {
+   "team": 10,
+   "player": "Drake London",
+   "text": "1.8 points. Pony lost by 25.92."
+  }
+ ],
+ "pecking_notes": {
+  "12": "Still first in all-play.",
+  "8": "Week's high, first on points for.",
+  "5": "Perfect lineup, third in all-play.",
+  "2": "Won by 40.5, second-biggest margin.",
+  "1": "Three-game win streak over.",
+  "11": "Back to .500 by beating No. 1.",
+  "7": "Lost by 59.38, worst of the week.",
+  "9": "Three straight wins.",
+  "10": "Two straight losses.",
+  "4": "Five straight losses, now 1–7.",
+  "6": "Four straight losses.",
+  "3": "Still last in all-play, 11–77."
+ },
+ "forecast_blurbs": {
+  "1-3": "Biggest spread of the week: 38.",
+  "6-10": "Closest line of the week.",
+  "5-4": "Bruisers trying to stop five straight.",
+  "9-11": "Travis's three-game streak on the line.",
+  "2-8": "Highest total of the week: 255.",
+  "12-7": "Both coming off a loss."
+ },
+ "upsets": {
+  "11-12": {
+   "headline": "The Throne Falls to Kazakhstan",
+   "text": "{S11} came in 3–4 and dethroned first place. Bowers 28.2, Bass 16.0. {S12} got 39.48 from Burrow, went 9–2 in all-play and lost anyway. Perfect lineup still short."
+  },
+  "5-1": {
+   "headline": "Flowers Wilt, Chimpanzini Streak Dies",
+   "text": "{S1}'s three-game streak died with Zay Flowers and Will Reichard at 0.0 each. {S5} played a zero at flex, left nothing on the bench and won by 22.2."
+  },
+  "8-7": {
+   "headline": "Beefy Boys Bury the Magnificent",
+   "text": "{S8} posted the week's high, 154.16, and went 11–0 in all-play. Pollard 28.7 from the flex, again. {S7} arrived 5–2 and got 8.28 from Stafford."
+  }
+ }
+}
