@@ -1,0 +1,17 @@
+{
+ "name": "fantasizer-site",
+ "private": true,
+ "type": "module",
+ "scripts": {
+  "dev": "wrangler dev",
+  "deploy": "wrangler deploy",
+  "predeploy": "python3 ../extension/pack.py",
+  "test": "python3 ../extension/pack.py && node --no-warnings test/run.mjs"
+ },
+ "devDependencies": {
+  "wrangler": "^4"
+ },
+ "dependencies": {
+  "@cloudflare/puppeteer": "^1.1.0"
+ }
+}

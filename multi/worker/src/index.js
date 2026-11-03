@@ -1,0 +1,566 @@
+// The Daily Fantasizer for any league: sign-up site, paper host, commissioner settings, league office and build API.
+// Cloudflare Worker + D1 (accounts, leagues, votes, bets) + R2 (the printed papers). The papers themselves are
+// printed by the GitHub Actions workflow "fantasizer-leagues.yml", which this Worker starts and which uploads back here.
+import { sign, verify, seal, open, sha256, randomId, randomCode, cookie, setCookie, same, jobSeal, hmacHex } from './crypto.js';
+import { yahooAuthUrl, yahooExchange, yahooAccess, yahooUser, yahooLeagues, espnLeague, espnUserLeagues, espnSeason, validSwid } from './platforms.js';
+import { EXTENSION_ZIP } from './extension_zip.js';
+import { espnLoginStart, espnLoginCode } from './espn_login.js';
+import { officeGet, officePost } from './office.js';
+import * as P from './pages.js';
+
+const html = (body, status = 200, headers = {}) => new Response(body, { status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'same-origin', ...headers } });
+const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+const redirect = (to, headers = {}) => new Response(null, { status: 303, headers: { Location: to, ...headers } });
+const SESSION_DAYS = 60;
+const FILE_OK = /^(index\.html|week\d{1,2}\.html|meta\.json|bets\/lines\d{1,2}\.json|cache\/data\.tgz)$/;
+
+async function session(req, env) { return verify(env, cookie(req, 'fz_s')); }
+async function startSession(env, uid, display) {
+  return setCookie('fz_s', await sign(env, { uid, display, exp: Date.now() + SESSION_DAYS * 864e5 }), SESSION_DAYS * 86400);
+}
+async function form(req) { return Object.fromEntries((await req.formData()).entries()); }
+async function league(env, slug) { return env.DB.prepare('SELECT * FROM leagues WHERE slug=?').bind(slug).first(); }
+const isComm = (L, s) => !!(s && L && L.commissioner_uid && s.uid === L.commissioner_uid);
+
+async function remember(env, uid, slug, comm) {
+  await env.DB.prepare('INSERT INTO members (uid, slug, is_comm) VALUES (?,?,?) ON CONFLICT(uid, slug) DO UPDATE SET is_comm=MAX(is_comm, excluded.is_comm)')
+    .bind(uid, slug, comm ? 1 : 0).run();
+}
+
+/** Ask GitHub Actions to print one league (or every league when slug is empty). */
+async function dispatch(env, slug = '') {
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) return false;
+  if (slug) {
+    const L = await league(env, slug);
+    if (L && L.last_dispatch_at && Date.now() - Date.parse(L.last_dispatch_at) < 120000) return true;  // a run was just started
+    await env.DB.prepare("UPDATE leagues SET last_dispatch_at=?, status=CASE WHEN status='ok' THEN status ELSE 'queued' END WHERE slug=?").bind(new Date().toISOString(), slug).run();
+  }
+  const r = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/fantasizer-leagues.yml/dispatches`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'daily-fantasizer-site', 'X-GitHub-Api-Version': '2022-11-28' },
+    body: JSON.stringify({ ref: env.GITHUB_REF || 'main', inputs: { slug, site: env.SITE_URL, sig: await hmacHex(env.BUILD_TOKEN || '', `${env.SITE_URL}|${slug}`) } }),
+  });
+  if (!r.ok) console.log('dispatch failed', r.status, await r.text());
+  return r.ok;
+}
+
+/** Start the free ESPN sign-in job on GitHub Actions (espn-login.yml) for one queued login. */
+async function dispatchLogin(env, job) {
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) return false;
+  const r = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/espn-login.yml/dispatches`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'daily-fantasizer-site', 'X-GitHub-Api-Version': '2022-11-28' },
+    body: JSON.stringify({ ref: env.GITHUB_REF || 'main', inputs: { job, site: env.SITE_URL, sig: await hmacHex(env.BUILD_TOKEN || '', `${env.SITE_URL}|${job}`) } }),
+  });
+  if (!r.ok) console.log('login dispatch failed', r.status, await r.text());
+  return r.ok;
+}
+
+/** Papers live in R2 (paid accounts) or Workers KV (free plan, no card): one small adapter gives both the R2 shape. */
+function kvPapers(kv) {
+  const wrap = (buf) => ({ body: buf, text: async () => new TextDecoder().decode(buf), json: async () => JSON.parse(new TextDecoder().decode(buf)) });
+  return {
+    put: async (k, body) => kv.put(k, typeof body === 'string' ? body : await new Response(body).arrayBuffer()),
+    get: async (k) => { const v = await kv.get(k, 'arrayBuffer'); return v ? wrap(v) : null; },
+    delete: (k) => kv.delete(k),
+    list: async ({ prefix }) => {
+      const out = []; let cursor;
+      do { const r = await kv.list({ prefix, cursor }); out.push(...r.keys.map((x) => ({ key: x.name }))); cursor = r.list_complete ? null : r.cursor; } while (cursor);
+      return { objects: out };
+    },
+  };
+}
+const withStore = (env) => (!env.PAPERS && env.PAPERS_KV ? { ...env, PAPERS: kvPapers(env.PAPERS_KV) } : env);
+
+async function createOrUpdateLeague(env, { platform, leagueId, season, name, teams, uid, commissioner, s2, swid, tokenUid }) {
+  let L = await env.DB.prepare('SELECT * FROM leagues WHERE platform=? AND league_id=? AND season=?').bind(platform, String(leagueId), season).first();
+  if (!L) {
+    const slug = randomId(10);
+    await env.DB.prepare(`INSERT INTO leagues (slug, platform, league_id, season, name, teams, commissioner_uid, token_uid, espn_s2, swid, feat_rules, feat_bets, accent, status, created_by, created_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,0,0,'#33658a','queued',?,?)`)
+      .bind(slug, platform, String(leagueId), season, name, teams, commissioner ? uid : null, tokenUid || null, await seal(env, s2), await seal(env, swid), uid, new Date().toISOString()).run();
+    L = await league(env, slug);
+    await dispatch(env, slug);
+  } else {
+    // fresher credentials win; a verified commissioner takes over the settings
+    const sets = [], vals = [];
+    if (s2 && swid) { sets.push('espn_s2=?', 'swid=?'); vals.push(await seal(env, s2), await seal(env, swid)); }
+    if (tokenUid) { sets.push('token_uid=?'); vals.push(tokenUid); }
+    if (commissioner) { sets.push('commissioner_uid=?'); vals.push(uid); }
+    sets.push('name=?', 'teams=?'); vals.push(name, teams);
+    await env.DB.prepare(`UPDATE leagues SET ${sets.join(', ')} WHERE slug=?`).bind(...vals, L.slug).run();
+    L = await league(env, L.slug);
+    if (L.status === 'error' && (s2 || tokenUid)) await dispatch(env, L.slug);  // new credentials: try again
+  }
+  await remember(env, uid, L.slug, commissioner);
+  return L;
+}
+
+/** One ESPN account → every football league on it gets a paper. Used by the login, the extension and the weekly refresh. */
+async function linkEspnAccount(env, s2, swid) {
+  const season = espnSeason();
+  const uid = `espn:${String(swid).toUpperCase().replace(/[{}]/g, '')}`;
+  await env.DB.prepare(`INSERT INTO users (id, platform, espn_s2, swid, created_at) VALUES (?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET espn_s2=excluded.espn_s2, swid=excluded.swid`).bind(uid, 'espn', await seal(env, s2), await seal(env, swid), new Date().toISOString()).run();
+  const res = await espnUserLeagues(s2, swid, season);
+  if (res.error) return { uid, error: res.error, leagues: [] };
+  const leagues = [];
+  for (const l of res.leagues) {
+    const had = await env.DB.prepare("SELECT slug FROM leagues WHERE platform='espn' AND league_id=? AND season=?").bind(l.id, season).first();
+    const L = await createOrUpdateLeague(env, { platform: 'espn', leagueId: l.id, season, name: l.name, teams: l.teams, uid, commissioner: l.commissioner, s2, swid });
+    leagues.push({ ...l, slug: L.slug, isNew: !had });
+  }
+  return { uid, leagues, listError: res.listError || '' };
+}
+/** Weekly: every linked ESPN account picks up leagues it joined since; expired sessions are marked so the user is asked to log in again. */
+async function refreshEspnAccounts(env) {
+  const { results } = await env.DB.prepare("SELECT id, espn_s2, swid FROM users WHERE platform='espn' AND espn_s2 IS NOT NULL").all();
+  for (const u of results) {
+    try {
+      const r = await linkEspnAccount(env, await open(env, u.espn_s2), await open(env, u.swid));
+      if (r.error) await env.DB.prepare("UPDATE leagues SET status='error', status_msg=? WHERE created_by=? AND platform='espn'")
+        .bind('ESPN sign-in expired. Log in with ESPN again to keep this paper printing.', u.id).run();
+    } catch (e) { console.log('refresh failed', u.id, e.message); }
+  }
+}
+const signer = (env) => env.__espnLogin || { start: espnLoginStart, code: espnLoginCode };
+async function trace(env, ok, steps) {
+  await env.DB.prepare('INSERT INTO login_traces (at, ok, steps) VALUES (?,?,?)').bind(new Date().toISOString(), ok ? 1 : 0, (steps || []).join('\n').slice(0, 4000)).run();
+}
+async function finishLogin(env, r) {
+  const acct = await linkEspnAccount(env, r.s2, r.swid);
+  const headers = new Headers({ Location: `/mine?added=${acct.leagues.filter((l) => l.isNew).length}&found=${acct.leagues.length}` });
+  headers.append('Set-Cookie', await startSession(env, acct.uid, 'ESPN'));
+  headers.append('Set-Cookie', setCookie('fz_login', '', 0));
+  return new Response(null, { status: 303, headers });
+}
+
+// ---------------- pages ----------------
+async function route(req, env, ctx) {
+  const url = new URL(req.url), path = url.pathname, method = req.method;
+  const s = await session(req, env);
+
+  if (method === 'POST' && !path.startsWith('/api/')) {  // forms: same-site only
+    const o = req.headers.get('Origin');
+    if (o && o !== new URL(env.SITE_URL).origin) return html(P.message('Not allowed', 'That form came from another site.'), 403);
+  }
+
+  if (path === '/' && method === 'GET') return html(P.home(env, !!s));
+  if (path === '/signout') return redirect('/', { 'Set-Cookie': setCookie('fz_s', '', 0) });
+
+  // ---- Yahoo ----
+  if (path === '/auth/yahoo') {
+    if (!env.YAHOO_CLIENT_ID) return html(P.message('Yahoo isn’t set up yet', 'The site owner still has to register the Yahoo app (see the setup guide).'), 503);
+    const state = randomId(24);
+    return redirect(yahooAuthUrl(env, state), { 'Set-Cookie': setCookie('fz_oauth', state, 600) });
+  }
+  if (path === '/auth/yahoo/callback') {
+    const state = url.searchParams.get('state'), code = url.searchParams.get('code');
+    if (!code || !state || state !== cookie(req, 'fz_oauth')) return html(P.message('Sign-in expired', 'Start again from the home page.'), 400);
+    try {
+      const tok = await yahooExchange(env, code);
+      const guid = tok.xoauth_yahoo_guid || (await yahooUser(tok.access_token)).guid;
+      const uid = `yahoo:${guid}`;
+      await env.DB.prepare('INSERT INTO users (id, platform, yahoo_refresh, created_at) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET yahoo_refresh=excluded.yahoo_refresh')
+        .bind(uid, 'yahoo', await seal(env, tok.refresh_token), new Date().toISOString()).run();
+      const headers = new Headers({ Location: '/yahoo' });
+      headers.append('Set-Cookie', await startSession(env, uid, 'Yahoo'));
+      headers.append('Set-Cookie', setCookie('fz_oauth', '', 0));
+      return new Response(null, { status: 303, headers });
+    } catch (e) {
+      return html(P.message('Yahoo sign-in failed', e.message), 502);
+    }
+  }
+  if (path === '/yahoo' && method === 'GET') {
+    if (!s || !s.uid.startsWith('yahoo:')) return redirect('/auth/yahoo');
+    try {
+      const leagues = await yahooLeagues(await yahooAccess(env, s.uid));
+      const existing = {};
+      for (const l of leagues) {
+        const row = await env.DB.prepare("SELECT slug FROM leagues WHERE platform='yahoo' AND league_id=? AND season=?").bind(l.key, l.season).first();
+        if (row) existing[l.key] = row.slug;
+      }
+      return html(P.pickYahoo(leagues, existing));
+    } catch (e) {
+      return html(P.message('Couldn’t read your Yahoo leagues', e.message), 502);
+    }
+  }
+  if (path === '/yahoo/league' && method === 'POST') {
+    if (!s || !s.uid.startsWith('yahoo:')) return redirect('/auth/yahoo');
+    const f = await form(req);
+    const leagues = await yahooLeagues(await yahooAccess(env, s.uid));
+    const l = leagues.find((x) => x.key === f.key);
+    if (!l) return html(P.message('Not your league', 'That league isn’t on your Yahoo account.', '/yahoo'), 403);
+    const L = await createOrUpdateLeague(env, { platform: 'yahoo', leagueId: l.key, season: l.season, name: l.name, teams: l.teams,
+      uid: s.uid, commissioner: l.commissioner, tokenUid: s.uid });
+    return redirect(`/l/${L.slug}/`);
+  }
+
+  // ---- ESPN: log in once (the server signs in to ESPN; the password is used once, never stored) ----
+  if (path === '/login' && method === 'GET') return html(P.espnLogin());
+  if (path === '/login' && method === 'POST') {
+    const f = await form(req);
+    const email = String(f.email || '').trim(), password = String(f.password || '');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !password) return html(P.espnLogin({ error: 'Enter the email and password you use for ESPN.', email }), 400);
+    const ip = req.headers.get('CF-Connecting-IP') || 'local';
+    const since = new Date(Date.now() - 15 * 60000).toISOString();
+    const n = (await env.DB.prepare('SELECT COUNT(*) n FROM login_attempts WHERE ip=? AND at>?').bind(ip, since).first()).n;
+    if (n >= 6) return html(P.espnLogin({ error: 'Too many tries. Wait 15 minutes and try again.', email }), 429);
+    await env.DB.prepare('INSERT INTO login_attempts (ip, at) VALUES (?,?)').bind(ip, new Date().toISOString()).run();
+    if (!env.BROWSER && !env.__espnLogin) {   // free plan: a GitHub Actions run signs in (espn-login.yml)
+      if (!env.LOGIN_KEY) return html(P.espnLogin({ error: 'ESPN sign-in isn’t switched on yet.', email }), 503);
+      if (email.length + password.length > 300) return html(P.espnLogin({ error: 'That email or password is too long.', email }), 400);
+      const id = randomId(16), t = randomId(32), now = new Date().toISOString();
+      await env.DB.prepare('INSERT INTO login_jobs (id, token_hash, status, enc, created_at, updated_at) VALUES (?,?,?,?,?,?)')
+        .bind(id, await sha256(t), 'queued', await jobSeal(env, JSON.stringify({ email, password })), now, now).run();
+      if (!(await dispatchLogin(env, id))) {
+        await env.DB.prepare("UPDATE login_jobs SET status='error', enc=NULL WHERE id=?").bind(id).run();
+        return html(P.espnLogin({ error: 'Couldn’t start the ESPN sign-in. Try again in a minute.', email }), 502);
+      }
+      return redirect('/login/wait', { 'Set-Cookie': setCookie('fz_job', t, 900) });
+    }
+    const r = await signer(env).start(env, email, password);
+    await trace(env, r.status !== 'error', r.trace);
+    if (r.status === 'ok') return finishLogin(env, r);
+    if (r.status === 'code') {
+      const t = randomId(32);
+      await env.DB.prepare('INSERT INTO espn_logins (token_hash, session_id, created_at) VALUES (?,?,?)').bind(await sha256(t), r.sessionId, new Date().toISOString()).run();
+      return html(P.espnCode({ email }), 200, { 'Set-Cookie': setCookie('fz_login', t, 600) });
+    }
+    return html(P.espnLogin({ error: r.error, email }), 400);
+  }
+  // ---- free-plan sign-in: waiting page, status, code, finish ----
+  const job = async () => {
+    const t = cookie(req, 'fz_job');
+    const j = t ? await env.DB.prepare('SELECT * FROM login_jobs WHERE token_hash=?').bind(await sha256(t)).first() : null;
+    return j && Date.now() - Date.parse(j.created_at) < 15 * 60000 ? j : null;
+  };
+  if (path === '/login/status' && method === 'GET') {
+    const j = await job();
+    return json({ status: j ? j.status : 'expired' });
+  }
+  if (path === '/login/wait' && method === 'GET') {
+    const j = await job();
+    if (!j) return html(P.espnLogin({ error: 'That sign-in timed out. Log in again.' }), 400);
+    if (j.status === 'ok') return redirect('/login/finish');
+    if (j.status === 'error') return html(P.espnLogin({ error: j.msg || 'Signing in to ESPN failed. Try again in a minute.' }), 400);
+    if (j.status === 'code' || j.status === 'code_wrong') return html(P.espnCode({ error: j.status === 'code_wrong' ? 'That code didn’t work. Check the newest email from ESPN.' : '', wait: true }));
+    return html(P.loginWait(j.status, Date.now() - Date.parse(j.created_at)));
+  }
+  if (path === '/login/finish' && method === 'GET') {
+    const j = await job();
+    if (!j || j.status !== 'ok' || j.finished) return redirect(s ? '/mine' : '/login');
+    await env.DB.prepare('UPDATE login_jobs SET finished=1 WHERE id=?').bind(j.id).run();
+    const headers = new Headers({ Location: `/mine?added=${j.added || 0}&found=${j.found || 0}` });
+    headers.append('Set-Cookie', await startSession(env, j.uid, 'ESPN'));
+    headers.append('Set-Cookie', setCookie('fz_job', '', 0));
+    return new Response(null, { status: 303, headers });
+  }
+  if (path === '/login/code' && method === 'POST' && cookie(req, 'fz_job')) {
+    const j = await job();
+    if (!j) return html(P.espnLogin({ error: 'That sign-in timed out. Log in again.' }), 400);
+    const f = await form(req);
+    const code = String(f.code || '').replace(/\D/g, '');
+    if (code.length < 4 || code.length > 8) return html(P.espnCode({ error: 'Enter the code from ESPN’s email.', wait: true }), 400);
+    await env.DB.prepare("UPDATE login_jobs SET code_enc=?, status='code_sent', updated_at=? WHERE id=?")
+      .bind(await jobSeal(env, code), new Date().toISOString(), j.id).run();
+    return redirect('/login/wait');
+  }
+  if (path === '/login/code' && method === 'POST') {
+    const f = await form(req);
+    const row = await env.DB.prepare('SELECT * FROM espn_logins WHERE token_hash=?').bind(await sha256(cookie(req, 'fz_login') || '')).first();
+    if (!row || Date.now() - Date.parse(row.created_at) > 10 * 60000) return html(P.espnLogin({ error: 'That sign-in timed out. Log in again.' }), 400);
+    const code = String(f.code || '').replace(/\D/g, '');
+    if (code.length < 4 || code.length > 8) return html(P.espnCode({ error: 'Enter the code from ESPN’s email.' }), 400);
+    if (row.tries >= 4) return html(P.espnLogin({ error: 'Too many wrong codes. Log in again.' }), 400);
+    await env.DB.prepare('UPDATE espn_logins SET tries=tries+1 WHERE token_hash=?').bind(row.token_hash).run();
+    const r = await signer(env).code(env, row.session_id, code);
+    await trace(env, r.status !== 'error', r.trace);
+    if (r.status === 'ok') { await env.DB.prepare('DELETE FROM espn_logins WHERE token_hash=?').bind(row.token_hash).run(); return finishLogin(env, r); }
+    if (r.status === 'code') return html(P.espnCode({ error: 'That code didn’t work. Check the newest email from ESPN.' }), 400);
+    return html(P.espnLogin({ error: r.error }), 400);
+  }
+  if (path === '/mine/add' && method === 'POST') {   // a league ESPN's list missed, by ID, with the stored ESPN session
+    if (!s || !s.uid.startsWith('espn:')) return redirect('/login');
+    const f = await form(req);
+    const id = String(f.league || '').match(/leagueId=(\d+)/)?.[1] || String(f.league || '').trim().match(/^\d{3,12}$/)?.[0];
+    const u = await env.DB.prepare('SELECT espn_s2, swid FROM users WHERE id=?').bind(s.uid).first();
+    if (!id || !u || !u.espn_s2) return redirect('/mine?err=' + encodeURIComponent('That doesn’t look like an ESPN league ID.'));
+    const s2 = await open(env, u.espn_s2), swid = await open(env, u.swid), season = espnSeason();
+    const info = await espnLeague(id, season, s2, swid);
+    if (info.error || !info.member) return redirect('/mine?err=' + encodeURIComponent(info.error || `Your ESPN account isn’t in ${info.name}.`));
+    await createOrUpdateLeague(env, { platform: 'espn', leagueId: id, season, name: info.name, teams: info.teams, uid: s.uid, commissioner: info.commissioner, s2, swid });
+    return redirect('/mine?added=1');
+  }
+
+  // ---- ESPN by league ID (no sign-in; public leagues, or pasted cookies) ----
+  if (path === '/espn' && method === 'GET') return html(P.espnForm());
+  if (path === '/espn' && method === 'POST') {
+    const f = await form(req);
+    const m = String(f.league || '').match(/leagueId=(\d+)/) || String(f.league || '').match(/^\s*(\d{3,12})\s*$/);
+    const season = parseInt(f.season, 10) || new Date().getUTCFullYear();
+    if (!m) return html(P.espnForm({ error: 'That doesn’t look like an ESPN league ID.', leagueId: f.league, season }), 400);
+    const s2 = String(f.espn_s2 || '').trim(), swid = String(f.swid || '').trim();
+    if ((s2 && !swid) || (!s2 && swid)) return html(P.espnForm({ error: 'Add both cookies, espn_s2 and SWID, or neither.', leagueId: f.league, season }), 400);
+    const info = await espnLeague(m[1], season, s2, swid);
+    if (info.error) return html(P.espnForm({ error: info.error, leagueId: f.league, season }), 400);
+    if (s2 && !info.member) return html(P.espnForm({ error: 'Those cookies belong to an ESPN account that isn’t in this league.', leagueId: f.league, season }), 403);
+    const uid = s2 ? `espn:${swid.toUpperCase().replace(/[{}]/g, '')}` : (s && s.uid) || `anon:${randomId(16)}`;
+    const L = await createOrUpdateLeague(env, { platform: 'espn', leagueId: m[1], season, name: info.name, teams: info.teams, uid,
+      commissioner: info.commissioner, s2: s2 || null, swid: swid || null });
+    return redirect(`/l/${L.slug}/`, { 'Set-Cookie': await startSession(env, uid, 'ESPN') });
+  }
+
+  // ---- ESPN through the browser extension (works like FantasyPros' ESPN sync) ----
+  // /api/espn/link: the extension sends the ESPN session after you sign in on ESPN → we store it encrypted on your
+  //   account and answer with every football league on that account plus a short-lived, single-use token.
+  // /api/espn/check: a league the list missed, by ID. /api/espn/sync: the leagues you ticked → one paper each.
+  // /espn/done: back on this site with a session; the token is used up.
+  if (path.startsWith('/api/espn/') && method === 'POST') {
+    if (!req.headers.get('X-Fantasizer-Extension')) return json({ ok: false, error: 'Use the Daily Fantasizer extension.' }, 400);
+    let b = {};
+    try { b = await req.json(); } catch (e) { return json({ ok: false, error: 'Bad request.' }, 400); }
+    const season = espnSeason();
+    if (path === '/api/espn/link') {
+      const s2 = String(b.espn_s2 || '').trim(), swid = String(b.swid || '').trim();
+      if (s2.length < 40 || !validSwid(swid)) return json({ ok: false, error: 'ESPN’s sign-in looks incomplete. Sign out of ESPN, sign in again and retry.' }, 400);
+      const res = await espnUserLeagues(s2, swid, season);
+      if (res.error) return json({ ok: false, error: res.error }, 401);
+      const uid = `espn:${swid.toUpperCase().replace(/[{}]/g, '')}`;
+      await env.DB.prepare(`INSERT INTO users (id, platform, espn_s2, swid, created_at) VALUES (?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET espn_s2=excluded.espn_s2, swid=excluded.swid`).bind(uid, 'espn', await seal(env, s2), await seal(env, swid), new Date().toISOString()).run();
+      for (const l of res.leagues) {
+        l.linked = !!(await env.DB.prepare("SELECT slug FROM leagues WHERE platform='espn' AND league_id=? AND season=?").bind(l.id, season).first());
+      }
+      const token = randomId(32);
+      await env.DB.prepare('INSERT INTO espn_links (token_hash, uid, leagues, created_at) VALUES (?,?,?,?)')
+        .bind(await sha256(token), uid, JSON.stringify(res.leagues.map((l) => l.id)), new Date().toISOString()).run();
+      return json({ ok: true, token, leagues: res.leagues, listError: res.listError || '' });
+    }
+    const link = await env.DB.prepare('SELECT * FROM espn_links WHERE token_hash=? AND synced=0').bind(await sha256(String(b.token || ''))).first();
+    if (!link || Date.now() - Date.parse(link.created_at) > 30 * 60000) return json({ ok: false, error: 'This link expired. Start again from The Daily Fantasizer.' }, 401);
+    const u = await env.DB.prepare('SELECT espn_s2, swid FROM users WHERE id=?').bind(link.uid).first();
+    const s2 = await open(env, u.espn_s2), swid = await open(env, u.swid);
+    const known = JSON.parse(link.leagues || '[]');
+    if (path === '/api/espn/check') {
+      const id = String(b.league || '').match(/^\d{3,12}$/)?.[0];
+      if (!id) return json({ ok: false, error: 'That doesn’t look like an ESPN league ID.' }, 400);
+      const info = await espnLeague(id, season, s2, swid);
+      if (info.error) return json({ ok: false, error: info.error }, 400);
+      if (!info.member) return json({ ok: false, error: `This ESPN account isn’t in ${info.name}.` }, 403);
+      if (!known.includes(id)) await env.DB.prepare('UPDATE espn_links SET leagues=? WHERE token_hash=?').bind(JSON.stringify([...known, id]), link.token_hash).run();
+      const linked = !!(await env.DB.prepare("SELECT slug FROM leagues WHERE platform='espn' AND league_id=? AND season=?").bind(id, season).first());
+      return json({ ok: true, league: { id, name: info.name, teams: info.teams, team: info.team, commissioner: info.commissioner, season, linked } });
+    }
+    if (path === '/api/espn/sync') {
+      const ids = [...new Set((Array.isArray(b.leagues) ? b.leagues : []).map(String))].filter((id) => known.includes(id)).slice(0, 20);
+      if (!ids.length) return json({ ok: false, error: 'Pick at least one league.' }, 400);
+      const results = [];
+      for (const id of ids) {
+        const info = await espnLeague(id, season, s2, swid);
+        if (info.error || !info.member) { results.push({ id, error: info.error || 'This ESPN account isn’t in that league.' }); continue; }
+        const L = await createOrUpdateLeague(env, { platform: 'espn', leagueId: id, season, name: info.name, teams: info.teams, uid: link.uid,
+          commissioner: info.commissioner, s2, swid });
+        results.push({ id, name: info.name, slug: L.slug });
+      }
+      const added = results.filter((r) => r.slug).length;
+      if (!added) return json({ ok: false, error: results[0].error, results }, 400);
+      const done = randomId(32);
+      await env.DB.prepare('UPDATE espn_links SET synced=1, done_hash=?, leagues=? WHERE token_hash=?')
+        .bind(await sha256(done), JSON.stringify(results), link.token_hash).run();
+      return json({ ok: true, next: `/espn/done?t=${done}`, results });
+    }
+    return json({ ok: false, error: 'Not found.' }, 404);
+  }
+  if (path === '/espn/done' && method === 'GET') {
+    const link = await env.DB.prepare('SELECT * FROM espn_links WHERE done_hash=? AND done_used=0').bind(await sha256(url.searchParams.get('t') || '')).first();
+    if (!link || Date.now() - Date.parse(link.created_at) > 60 * 60000) return html(P.message('Link expired', 'Start again with Link ESPN Fantasy account.'), 400);
+    await env.DB.prepare('UPDATE espn_links SET done_used=1 WHERE token_hash=?').bind(link.token_hash).run();
+    const res = JSON.parse(link.leagues || '[]');
+    const failed = res.filter((r) => r.error).map((r) => `League ${r.id}: ${r.error}`);
+    const q = new URLSearchParams({ added: String(res.filter((r) => r.slug).length) });
+    if (failed.length) q.set('failed', failed.join('|').slice(0, 600));
+    return redirect(`/mine?${q}`, { 'Set-Cookie': await startSession(env, link.uid, 'ESPN') });
+  }
+  if (path === '/extension.zip') {
+    return new Response(Uint8Array.from(atob(EXTENSION_ZIP), (c) => c.charCodeAt(0)), { headers: { 'Content-Type': 'application/zip',
+      'Content-Disposition': 'attachment; filename="daily-fantasizer-espn-extension.zip"' } });
+  }
+
+  if (path === '/mine') {
+    if (!s) return redirect('/');
+    const { results } = await env.DB.prepare('SELECT l.*, m.is_comm FROM members m JOIN leagues l ON l.slug=m.slug WHERE m.uid=? ORDER BY l.created_at DESC').bind(s.uid).all();
+    return html(P.mine(results.map((L) => ({ ...L, is_comm: L.commissioner_uid === s.uid })),
+      { added: +url.searchParams.get('added') || 0, found: url.searchParams.get('found'), espn: s.uid.startsWith('espn:'),
+        failed: (url.searchParams.get('failed') || '').split('|').concat(url.searchParams.get('err') || '').filter(Boolean) }));
+  }
+
+  // ---- a league's paper ----
+  let m = path.match(/^\/l\/([a-z0-9]{6,16})(\/.*)?$/);
+  if (m) {
+    const L = await league(env, m[1]);
+    if (!L) return html(P.message('No such paper', 'Check the link, or set your league up from the home page.'), 404);
+    const rest = m[2] || '';
+    if (!rest) return redirect(`/l/${L.slug}/`);
+    if (rest === '/settings' || rest === '/code' || rest === '/rebuild' || rest === '/delete') {
+      if (!isComm(L, s)) {
+        const how = L.platform === 'yahoo' ? 'Sign in with Yahoo as the league’s commissioner, then open this page again.'
+          : 'Set the league up again from the ESPN page with the commissioner’s espn_s2 and SWID cookies, then open this page again.';
+        return html(P.message('Commissioners only', how, `/l/${L.slug}/`), 403);
+      }
+      if (rest === '/settings' && method === 'GET') return html(P.settings(env, L));
+      if (rest === '/settings' && method === 'POST') {
+        const f = await form(req);
+        const rules = f.rules ? 1 : 0, bets = f.bets ? 1 : 0;
+        const accent = /^#[0-9a-f]{6}$/i.test(f.accent || '') ? f.accent : L.accent;
+        let code = '';
+        if ((rules || bets) && !L.comm_code_hash) code = randomCode();
+        await env.DB.prepare('UPDATE leagues SET feat_rules=?, feat_bets=?, accent=?' + (code ? ', comm_code_hash=?' : '') + ' WHERE slug=?')
+          .bind(rules, bets, accent, ...(code ? [await sha256(code)] : []), L.slug).run();
+        await dispatch(env, L.slug);
+        return html(P.settings(env, await league(env, L.slug), { saved: true, code }));
+      }
+      if (rest === '/code' && method === 'POST') {
+        const code = randomCode();
+        await env.DB.prepare('UPDATE leagues SET comm_code_hash=? WHERE slug=?').bind(await sha256(code), L.slug).run();
+        return html(P.settings(env, await league(env, L.slug), { code }));
+      }
+      if (rest === '/rebuild' && method === 'POST') {
+        await dispatch(env, L.slug);
+        return html(P.settings(env, await league(env, L.slug), { saved: true }));
+      }
+      if (rest === '/delete' && method === 'POST') {
+        const keys = await env.PAPERS.list({ prefix: `papers/${L.slug}/` });
+        for (const o of keys.objects) await env.PAPERS.delete(o.key);
+        await env.DB.batch(['claims', 'proposals', 'votes', 'bets', 'office_log', 'members'].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE slug=?`).bind(L.slug))
+          .concat(env.DB.prepare('DELETE FROM leagues WHERE slug=?').bind(L.slug)));
+        return html(P.message('League removed', 'Every paper and record for that league is gone from this site.'));
+      }
+    }
+    if (rest === '/archive') {
+      const keys = await env.PAPERS.list({ prefix: `papers/${L.slug}/week` });
+      const weeks = keys.objects.map((o) => +o.key.match(/week(\d+)\.html$/)?.[1]).filter(Boolean).sort((a, b) => b - a);
+      return html(P.archive(L, weeks));
+    }
+    if (rest === '/rulebook.json') return json({ entries: {} });
+    const file = rest === '/' ? 'index.html' : rest.slice(1);
+    if (/^(index\.html|week\d{1,2}\.html|bets\/lines\d{1,2}\.json)$/.test(file)) {
+      const obj = await env.PAPERS.get(`papers/${L.slug}/${file}`);
+      if (!obj) return file === 'index.html' ? html(P.status(L, null, isComm(L, s))) : html(P.message('Not printed', 'That edition doesn’t exist.', `/l/${L.slug}/`), 404);
+      if (s) ctx.waitUntil(remember(env, s.uid, L.slug, isComm(L, s)));
+      if (!file.endsWith('.html')) return new Response(obj.body, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' } });
+      // Signed in: a bar above the masthead to switch between every league you're in (and Settings for commissioners).
+      let mineRows = [];
+      if (s) mineRows = (await env.DB.prepare('SELECT l.slug, l.name, l.commissioner_uid FROM members m JOIN leagues l ON l.slug=m.slug WHERE m.uid=? ORDER BY l.name').bind(s.uid).all()).results;
+      if (s && !mineRows.some((r) => r.slug === L.slug)) mineRows.push({ slug: L.slug, name: L.name, commissioner_uid: L.commissioner_uid });
+      const bar = s ? P.leagueBar(L.slug, mineRows, isComm(L, s), file !== 'index.html') : '';
+      let body = obj.body;
+      if (bar) { const t = await obj.text(); const i = t.indexOf('<header class="mast"'); body = i > 0 ? t.slice(0, i) + bar + t.slice(i) : bar + t; }
+      return html(body, 200, { 'Cache-Control': 'private, max-age=60' });
+    }
+    return html(P.message('Not found', 'Nothing here.', `/l/${L.slug}/`), 404);
+  }
+
+  // ---- league office (the paper's Rule Changes / Betting tabs) ----
+  m = path.match(/^\/api\/office\/([a-z0-9]{6,16})$/);
+  if (m) {
+    const L = await league(env, m[1]);
+    if (!L) return json({ ok: false, error: 'No such league.' }, 404);
+    if (!L.feat_rules && !L.feat_bets) return json({ ok: false, error: 'The commissioner hasn’t turned this on.' });
+    try {
+      return json(method === 'POST' ? await officePost(env, L, req) : await officeGet(env, L));
+    } catch (e) {
+      return json({ ok: false, error: 'Server error: ' + e.message });
+    }
+  }
+
+  // ---- build API (the GitHub Actions printer) ----
+  if (path.startsWith('/api/build/')) {
+    const auth = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/, '');
+    if (!same(auth, env.BUILD_TOKEN || '')) return json({ error: 'unauthorized' }, 401);
+    m = path.match(/^\/api\/build\/login\/([a-z0-9]{16})$/);
+    if (m) {   // the GitHub sign-in job: read what to type (once), report progress and the result
+      const j = await env.DB.prepare('SELECT * FROM login_jobs WHERE id=?').bind(m[1]).first();
+      if (!j || Date.now() - Date.parse(j.created_at) > 15 * 60000) return json({ error: 'gone' }, 410);
+      if (method === 'GET') {
+        if (j.enc || j.code_enc) await env.DB.prepare('UPDATE login_jobs SET enc=NULL, code_enc=NULL WHERE id=?').bind(j.id).run();
+        return json({ status: j.status, enc: j.enc || null, code_enc: j.code_enc || null });
+      }
+      const b = await req.json();
+      const st = ['running', 'code', 'code_wrong', 'ok', 'error'].includes(b.status) ? b.status : 'error';
+      if (b.trace) await trace(env, st !== 'error', b.trace);
+      if (st === 'ok') {
+        const acct = await linkEspnAccount(env, String(b.s2 || ''), String(b.swid || ''));
+        if (acct.error) {
+          await env.DB.prepare("UPDATE login_jobs SET status='error', msg=?, updated_at=? WHERE id=?").bind(acct.error, new Date().toISOString(), j.id).run();
+          return json({ ok: false, error: acct.error });
+        }
+        await env.DB.prepare("UPDATE login_jobs SET status='ok', uid=?, added=?, found=?, updated_at=? WHERE id=?")
+          .bind(acct.uid, acct.leagues.filter((l) => l.isNew).length, acct.leagues.length, new Date().toISOString(), j.id).run();
+        return json({ ok: true });
+      }
+      await env.DB.prepare('UPDATE login_jobs SET status=?, msg=?, updated_at=? WHERE id=?').bind(st, String(b.msg || '').slice(0, 300), new Date().toISOString(), j.id).run();
+      return json({ ok: true });
+    }
+    if (path === '/api/build/login-traces') {
+      const { results } = await env.DB.prepare('SELECT * FROM login_traces ORDER BY at DESC LIMIT 30').all();
+      return json({ traces: results });
+    }
+    if (path === '/api/build/leagues') {
+      const only = url.searchParams.get('slug');
+      const { results } = only ? await env.DB.prepare('SELECT * FROM leagues WHERE slug=?').bind(only).all()
+        : await env.DB.prepare('SELECT * FROM leagues ORDER BY created_at').all();
+      const out = [];
+      for (const L of results) {
+        const c = { slug: L.slug, platform: L.platform, league_id: L.league_id, season: L.season, accent: L.accent,
+          features: { rules: !!L.feat_rules, bets: !!L.feat_bets }, office_api: `${env.SITE_URL}/api/office/${L.slug}` };
+        try {
+          if (L.platform === 'espn' && L.espn_s2) { c.espn_s2 = await open(env, L.espn_s2); c.swid = await open(env, L.swid); }
+          if (L.platform === 'yahoo') c.yahoo_token = await yahooAccess(env, L.token_uid);
+        } catch (e) {
+          c.error = e.message;
+        }
+        out.push(c);
+      }
+      return json({ leagues: out });
+    }
+    m = path.match(/^\/api\/build\/([a-z0-9]{6,16})\/(file|status)$/);
+    if (m) {
+      const L = await league(env, m[1]);
+      if (!L) return json({ error: 'no such league' }, 404);
+      if (m[2] === 'status' && method === 'POST') {
+        const b = await req.json();
+        const st = ['ok', 'waiting', 'error', 'building'].includes(b.status) ? b.status : 'error';
+        await env.DB.prepare('UPDATE leagues SET status=?, status_msg=?' + (st === 'ok' ? ', last_week=?, last_built_at=?' : '') + ' WHERE slug=?')
+          .bind(st, String(b.message || '').slice(0, 400), ...(st === 'ok' ? [b.week || null, new Date().toISOString()] : []), L.slug).run();
+        return json({ ok: true });
+      }
+      const fp = url.searchParams.get('path') || '';
+      if (!FILE_OK.test(fp)) return json({ error: 'bad path' }, 400);
+      const key = `papers/${L.slug}/${fp}`;
+      if (method === 'PUT') { await env.PAPERS.put(key, req.body); return json({ ok: true }); }
+      if (method === 'GET') { const o = await env.PAPERS.get(key); return o ? new Response(o.body) : json({ error: 'missing' }, 404); }
+    }
+    return json({ error: 'not found' }, 404);
+  }
+  return html(P.message('Not found', 'Nothing here.'), 404);
+}
+
+export default {
+  async fetch(req, env, ctx) {
+    try {
+      return await route(req, withStore(env), ctx);
+    } catch (e) {
+      console.log(e.stack || e);
+      return html(P.message('Something broke', 'Try again in a minute.'), 500);
+    }
+  },
+  // Tuesday (and a Wednesday retry, for weeks ESPN or Yahoo finalize late): print every league.
+  async scheduled(event, env, ctx) {
+    env = withStore(env);
+    ctx.waitUntil((async () => {
+      await refreshEspnAccounts(env);
+      await dispatch(env, '');
+    })());
+  },
+};

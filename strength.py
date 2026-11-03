@@ -25,6 +25,30 @@ import players as _players
 SLOTS = ["QB", "RB1", "RB2", "WR1", "WR2", "TE", "FLEX", "D/ST", "K"]
 ELIG = {"QB": ["QB"], "RB1": ["RB"], "RB2": ["RB"], "WR1": ["WR"], "WR2": ["WR"], "TE": ["TE"], "FLEX": ["RB", "WR", "TE"],
         "D/ST": ["D/ST"], "K": ["K"]}
+
+
+def _league_lineup():
+    """Multi-league builds put the league's real starting lineup in league.json "lineup" (e.g. QB, RB, RB, WR, WR,
+    WR, TE, FLEX, OP, D/ST, K). Without it (the Men Fantasizing paper) the slots above stay exactly as they are."""
+    try:
+        lu = json.load(open("league.json")).get("lineup")
+    except Exception:
+        lu = None
+    if not lu:
+        return None
+    FLEXE = {"FLEX": ["RB", "WR", "TE"], "RB/WR": ["RB", "WR"], "WR/TE": ["WR", "TE"], "OP": ["QB", "RB", "WR", "TE"]}
+    order = ["QB", "RB", "WR", "TE", "RB/WR", "WR/TE", "FLEX", "OP", "D/ST", "K"]
+    slots, elig = [], {}
+    for s in order:
+        n = lu.count(s)
+        for i in range(n):
+            name = s if n == 1 else f"{s}{i + 1}"
+            slots.append(name); elig[name] = FLEXE.get(s, [s])
+    return (slots, elig) if slots else None
+
+
+if _league_lineup():
+    SLOTS, ELIG = _league_lineup()
 Q, DEP = 0.75, 0.25
 MODES = [("season", "Weeks 1–{W}"), ("next", "Week {N}"), ("ros", "Rest of season")]
 esc = lambda s: html.escape(str(s))

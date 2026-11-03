@@ -26,8 +26,8 @@ Sources stay in the background on the page; this file is where they are listed."
 import csv, html, io, json, os, re, sys, time, datetime
 import requests
 
-SEASON, LEAGUE = 2026, 1196354715
-HERE = os.path.dirname(os.path.abspath(__file__))
+LEAGUE, SEASON = int(os.environ.get("FZ_LEAGUE_ID") or 1196354715), int(os.environ.get("FZ_SEASON") or 2026)
+HERE = os.environ.get("FZ_HOME") or os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "data", "players")
 os.makedirs(OUT, exist_ok=True)
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36"
@@ -36,7 +36,8 @@ E = requests.Session(); E.headers["User-Agent"] = UA
 if os.environ.get("ESPN_S2"):
     E.cookies.set("espn_s2", os.environ["ESPN_S2"].strip(), domain=".espn.com")
     E.cookies.set("SWID", os.environ["ESPN_SWID"].strip(), domain=".espn.com")
-BASE = f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{SEASON}/segments/0/leagues/{LEAGUE}"
+# FZ_ESPN_BASE: Yahoo leagues read the player pool from ESPN's public default PPR league instead
+BASE = os.environ.get("FZ_ESPN_BASE") or f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{SEASON}/segments/0/leagues/{LEAGUE}"
 POS = {1: "QB", 2: "RB", 3: "WR", 4: "TE"}
 TEAM = {0: "FA", 1: "ATL", 2: "BUF", 3: "CHI", 4: "CIN", 5: "CLE", 6: "DAL", 7: "DEN", 8: "DET", 9: "GB", 10: "TEN",
         11: "IND", 12: "KC", 13: "LV", 14: "LAR", 15: "MIA", 16: "MIN", 17: "NE", 18: "NO", 19: "NYG", 20: "NYJ",
@@ -64,10 +65,12 @@ def espn():
     st = E.get(BASE, params={"view": "mStatus"}, timeout=30)
     if st.status_code != 200 or "json" not in st.headers.get("content-type", ""):
         sys.exit(f"ESPN status {st.status_code}; check ESPN_S2/ESPN_SWID secrets")
-    status = st.json()["status"]
+    status = st.json().get("status")
     cur = st.json()["scoringPeriodId"]  # the week being played / about to be played
-    sched = E.get(BASE, params={"view": "mMatchupScore"}, timeout=30).json()["schedule"]
+    sched = E.get(BASE, params={"view": "mMatchupScore"}, timeout=30).json().get("schedule") or []
     final = sorted({s["matchupPeriodId"] for s in sched} - {s["matchupPeriodId"] for s in sched if s.get("winner", "UNDECIDED") == "UNDECIDED"})
+    if not sched:  # FZ_ESPN_BASE = ESPN's default league (Yahoo leagues): no schedule, every earlier week is final
+        final = list(range(1, cur))
     flt = {"players": {"filterSlotIds": {"value": [0, 2, 4, 6]}, "limit": 600,
                        "sortPercOwned": {"sortPriority": 1, "sortAsc": False},
                        "filterStatsForTopScoringPeriodIds": {"value": 40, "additionalValue":
@@ -419,7 +422,7 @@ def advanced():
 def main():
     cur, final = espn()
     try:
-        espn_waivers()
+        if os.environ.get("FZ_PLATFORM", "espn") == "espn": espn_waivers()
     except Exception as e:
         print("waivers failed:", e)
     try:

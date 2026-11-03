@@ -26,6 +26,10 @@ import strength as S
 
 esc = lambda s: html.escape(str(s))
 LINE = [("QB", ["QB"]), ("RB", ["RB"]), ("RB", ["RB"]), ("WR", ["WR"]), ("WR", ["WR"]), ("TE", ["TE"]), ("FLEX", ["RB", "WR", "TE"])]
+KD_SLOTS = ["D/ST", "K"]
+if S._league_lineup():  # multi-league builds: the league's own lineup (see strength._league_lineup)
+    LINE = [(s.rstrip("0123456789") if s[:2] in ("RB", "WR") and s[-1].isdigit() else s, S.ELIG[s]) for s in S.SLOTS if s not in ("D/ST", "K")]
+    KD_SLOTS = [s for s in ("D/ST", "K") if s in S.SLOTS]
 
 
 def lg(t, size="lg-sm"): return f'<i class="lg lg-{t} {size}" aria-hidden="true"></i>'
@@ -293,7 +297,7 @@ def matchup(short, W, F, records):
     kf = "data/players/espn_kdst.json"
     KD = json.load(open(kf)) if os.path.exists(kf) else []
     for t in lines:
-        for pos in ("D/ST", "K"):
+        for pos in KD_SLOTS:
             c = [x for x in KD if x.get("owner") == t and x["pos"] == pos and x.get("proj", {}).get(str(nxt)) is not None]
             best = max(c, key=lambda x: x["proj"][str(nxt)], default=None)
             lines[t].append((pos, {"name": best["name"]} if best else None, float(best["proj"][str(nxt)]) if best else 0.0))
@@ -301,10 +305,10 @@ def matchup(short, W, F, records):
     h, w = pick["home"], pick["away"]
     a, b = (h, w) if tot[h] >= tot[w] else (w, h)
     g = dict(spread=round((tot[a] - tot[b]) * 2) / 2, ou=round((tot[h] + tot[w]) * 2) / 2)
-    has_kd = all(lines[t][-1][1] and lines[t][-2][1] for t in (a, b))
+    has_kd = all(all(lines[t][-1 - i][1] for i in range(len(KD_SLOTS))) for t in (a, b))
     mx = max(v for t in (a, b) for _, _, v in lines[t]) or 1
     rows = ""
-    labels = ["QB", "RB1", "RB2", "WR1", "WR2", "TE", "FLEX", "D/ST", "K"]
+    labels = ["QB", "RB1", "RB2", "WR1", "WR2", "TE", "FLEX", "D/ST", "K"] if not S._league_lineup() else list(S.SLOTS)
     for i, lab in enumerate(labels):
         (_, xa, va), (_, xb, vb) = lines[a][i], lines[b][i]
         wa = va >= vb

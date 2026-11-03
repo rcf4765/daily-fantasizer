@@ -8,9 +8,9 @@ Read-only; never proposes, accepts or changes anything."""
 import json, os, sys, datetime
 import requests
 
-LEAGUE, SEASON = 1196354715, 2026
+LEAGUE, SEASON = int(os.environ.get("FZ_LEAGUE_ID") or 1196354715), int(os.environ.get("FZ_SEASON") or 2026)
 BASE = f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{SEASON}/segments/0/leagues/{LEAGUE}"
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.environ.get("FZ_HOME") or os.path.dirname(os.path.abspath(__file__))
 POS = {1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "D/ST"}
 S = requests.Session()
 S.headers["User-Agent"] = "Mozilla/5.0 (DailyFantasizer)"
