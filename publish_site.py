@@ -8,7 +8,8 @@ Usage: python3 publish_site.py N
 - docs/archive.html = list of every edition in docs/
 - docs/.nojekyll    = serve the files as-is
 
-The edition HTML is copied byte for byte; the design is never touched here. The only
+The edition HTML is copied byte for byte; the design is never touched here. The homepage
+(docs/index.html only) also gets the sign-in gate from gate.py. The other
 addition is the home-screen app tags (icon, manifest, offline worker) placed right after
 the <title> of the copies in docs/, between <!--app--> and <!--/app-->. The install page
 (docs/install.html), manifest, sw.js and icons/ are static files that live in docs/.
@@ -17,6 +18,8 @@ import pathlib
 import re
 import shutil
 import sys
+
+import gate
 
 ROOT = pathlib.Path(__file__).resolve().parent
 DOCS = ROOT / "docs"
@@ -99,6 +102,10 @@ def main():
         add_app_tags(DOCS / f"week{w}.html")
     # The homepage always shows the newest edition, even when an older week is re-published.
     shutil.copyfile(DOCS / f"week{latest}.html", DOCS / "index.html")
+    # The homepage opens behind the sign-in gate (gate.py): blurred, with Link ESPN / Link Yahoo / Continue to
+    # Men Fantasizing league. Remove these two lines (and run gate.py --remove docs/index.html) to take it down.
+    idx = DOCS / "index.html"
+    idx.write_text(gate.add(idx.read_text(encoding="utf-8")), encoding="utf-8")
 
     items = "\n".join(
         f'<li><a href="week{w}.html">Week {w}'
