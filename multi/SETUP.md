@@ -29,6 +29,30 @@ edition prints for their league every Tuesday.
 - **Not included for other leagues**: Optimal Lineup (your private tool), auto-applying rules to ESPN, league lore and
   announcements, the home-screen install page.
 
+## Free setup (no paid plans, about 15 minutes, works from a phone)
+
+1. **Merge `release-multi` into `main`** (GitHub only runs the site's jobs from `main`). The Men Fantasizing paper is
+   unchanged by it.
+2. **Cloudflare** (free account, no card): sign up at dash.cloudflare.com.
+   - My Profile → API Tokens → Create Token → template **Edit Cloudflare Workers** → add permission **Account · D1 · Edit**
+     → Create. Copy the token.
+   - Workers & Pages: copy your **Account ID** (right-hand side).
+3. **GitHub token**: github.com → Settings → Developer settings → Fine-grained tokens → Generate. Repository access:
+   only `rcf4765/daily-fantasizer`. Permissions: **Actions: Read and write**. Copy it.
+4. **Four repo secrets** (repo → Settings → Secrets and variables → Actions → New repository secret):
+   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `FZ_GITHUB_TOKEN`, and `FZ_MASTER_KEY` = any long random text
+   (24+ characters, e.g. from a password manager; never change it later: the site's keys come from it).
+5. **Actions → "Deploy the sign-up site (Cloudflare, free plan)" → Run workflow.** It creates the database and paper
+   storage, sets the keys, deploys, and its summary shows the site's address. Re-run it after code changes.
+6. Open `SITE/login` and log in with ESPN. The first real login is the real test of ESPN's login page.
+
+How the free sign-in works: the site keeps the login encrypted for at most 15 minutes and starts the **ESPN sign-in
+(free)** workflow, which signs in on ESPN's real page with a browser on GitHub's machines (about a minute; the waiting
+page moves on by itself), handles ESPN's emailed code, and sends back only ESPN's session. The login is wiped as soon as
+the job reads it, masked in the job's log, and the job refuses any site address the website didn't sign. GitHub's free
+minutes cover a few hundred logins a month. ESPN's bot checks may block GitHub's machines now and then; the user is
+then asked to try again later.
+
 ## ESPN: Log in with ESPN (the main way, phone and desktop)
 
 The user only logs in. `/login` takes their ESPN email and password; the server opens ESPN's real login page in a
