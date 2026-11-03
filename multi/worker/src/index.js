@@ -371,10 +371,14 @@ async function route(req, env, ctx) {
       const obj = await env.PAPERS.get(`papers/${L.slug}/${file}`);
       if (!obj) return file === 'index.html' ? html(P.status(L, null, isComm(L, s))) : html(P.message('Not printed', 'That edition doesn’t exist.', `/l/${L.slug}/`), 404);
       if (s) ctx.waitUntil(remember(env, s.uid, L.slug, isComm(L, s)));
-      const bar = isComm(L, s) && file.endsWith('.html')
-        ? `<a href="/l/${L.slug}/settings" style="position:fixed;left:12px;bottom:12px;z-index:60;font:600 13px/1 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;background:#151a24;color:#fff;padding:10px 12px;text-decoration:none">Settings</a>` : '';
       if (!file.endsWith('.html')) return new Response(obj.body, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' } });
-      const body = bar ? (await obj.text()) + bar : obj.body;
+      // Signed in: a bar above the masthead to switch between every league you're in (and Settings for commissioners).
+      let mineRows = [];
+      if (s) mineRows = (await env.DB.prepare('SELECT l.slug, l.name, l.commissioner_uid FROM members m JOIN leagues l ON l.slug=m.slug WHERE m.uid=? ORDER BY l.name').bind(s.uid).all()).results;
+      if (s && !mineRows.some((r) => r.slug === L.slug)) mineRows.push({ slug: L.slug, name: L.name, commissioner_uid: L.commissioner_uid });
+      const bar = s ? P.leagueBar(L.slug, mineRows, isComm(L, s), file !== 'index.html') : '';
+      let body = obj.body;
+      if (bar) { const t = await obj.text(); const i = t.indexOf('<header class="mast"'); body = i > 0 ? t.slice(0, i) + bar + t.slice(i) : bar + t; }
       return html(body, 200, { 'Cache-Control': 'private, max-age=60' });
     }
     return html(P.message('Not found', 'Nothing here.', `/l/${L.slug}/`), 404);

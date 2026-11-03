@@ -238,6 +238,12 @@ console.log('Log in with ESPN (server signs in; user only logs in)');
   r = await call('POST', '/login/code', { form: { code: '999999' } }); assert.match(await text(r), /didn’t work/); ok('wrong code: ask again');
   r = await call('POST', '/login/code', { form: { code: '123 456' } }); assert.equal(r.status, 303); assert.match(r.headers.get('Location'), /found=2/); ok('right code → signed in, leagues set up');
   r = await call('POST', '/login/code', { form: { code: '123456' } }); assert.equal(r.status, 400); ok('code sign-in is single-use');
+  { const slugs = sql.prepare("SELECT slug, name FROM leagues WHERE league_id IN ('4001','4002')").all();
+    for (const sl of slugs) store.set(`papers/${sl.slug}/index.html`, `<!doctype html><title>x</title><header class="mast">${sl.name} paper</header>`);
+    r = await call('GET', `/l/${slugs[0].slug}/`); page = await text(r);
+    assert.ok(page.indexOf('fz-lgbar') < page.indexOf('class="mast"') && page.includes('Office League') && page.includes('Family League')); ok('paper shows a switcher to every league you are in, above the masthead');
+    assert.equal((page.match(/aria-current="page"/g) || []).length, 1); ok('current league highlighted');
+    const saved = { ...jar }; jar = {}; r = await call('GET', `/l/${slugs[0].slug}/`); assert.ok(!(await text(r)).includes('fz-lgbar')); jar = saved; ok('people reading a shared link see no switcher'); }
   r = await call('POST', '/mine/add', { form: { league: '4777' } }); assert.match(r.headers.get('Location'), /err=/); ok('add by ID refuses a league you are not in');
   r = await call('POST', '/mine/add', { form: { league: 'https://fantasy.espn.com/football/league?leagueId=4003' } }); assert.match(r.headers.get('Location'), /added=1/); ok('add by ID from a league link');
   globalThis.JOINED_4004 = true; const before = dispatched.length;

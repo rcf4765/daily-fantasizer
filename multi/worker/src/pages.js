@@ -212,3 +212,16 @@ export function message(title, text, back = '/') {
 export function archive(L, weeks) {
   return layout(`${L.name} · every edition`, `${mast(`${L.name} · every edition`)}<ul class="lg-list">${weeks.map((w) => `<li><div><b>Week ${w}</b></div><a class="btn alt" href="/l/${esc(L.slug)}/week${w}.html">Read</a></li>`).join('') || '<li><div>No editions yet.</div></li>'}</ul><p class="hint" style="margin-top:16px"><a href="/l/${esc(L.slug)}/">← Latest edition</a></p>`);
 }
+
+/** The league switcher shown above the masthead of a signed-in reader's paper. Same look as the paper (it uses the
+ *  paper's own CSS variables), one row of league buttons that wraps on phones. */
+export function leagueBar(current, rows, comm, older) {
+  const btn = (r) => `<a href="/l/${esc(r.slug)}/" ${r.slug === current ? 'aria-current="page"' : ''}>${esc(r.name)}</a>`;
+  return `<nav class="fz-lgbar" aria-label="Your leagues"><style>
+.fz-lgbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 18px;padding:10px 0;border-bottom:2px solid var(--line,#c9cdc3)}
+.fz-lgbar b{font:600 11px/1 var(--mono,ui-monospace,monospace);letter-spacing:.1em;text-transform:uppercase;color:var(--muted,#59606c);margin-right:4px}
+.fz-lgbar a{display:inline-flex;align-items:center;min-height:38px;padding:0 12px;border:2px solid var(--ink,#151a24);color:var(--ink,#151a24);text-decoration:none;font:700 13px/1.1 var(--mono,ui-monospace,monospace);text-transform:uppercase;letter-spacing:.03em}
+.fz-lgbar a[aria-current]{background:var(--blue,#1c3fae);border-color:var(--blue,#1c3fae);color:var(--blue-ink,#fff)}
+.fz-lgbar .fz-sp{flex:1}.fz-lgbar .fz-q{border-color:var(--line,#c9cdc3);color:var(--muted,#59606c)}
+</style><b>${rows.length > 1 ? 'Your leagues' : 'Your league'}</b>${rows.map(btn).join('')}<span class="fz-sp"></span>${older ? `<a class="fz-q" href="/l/${esc(current)}/">Latest edition</a>` : ''}${comm ? `<a class="fz-q" href="/l/${esc(current)}/settings">Settings</a>` : ''}<a class="fz-q" href="/mine">My leagues</a></nav>`;
+}
