@@ -1,26 +1,29 @@
-# The Daily Fantasizer for any league. Setup steps: multi/SETUP.md
+# The Daily Fantasizer for any league. Setup: multi/SETUP.md. Deployed by .github/workflows/site-deploy.yml, which
+# fills in the two ids and SITE_URL below at deploy time (they stay placeholders in the repo).
+# Runs on Cloudflare's free plan: papers in Workers KV, ESPN sign-in on a free GitHub Actions run (espn-login.yml).
 name = "fantasizer"
 main = "src/index.js"
 compatibility_date = "2026-06-01"
 compatibility_flags = ["nodejs_compat"]
 
-# A real browser for "Log in with ESPN" (Cloudflare Browser Rendering; Workers Paid plan)
-browser = { binding = "BROWSER" }
+# Paid plan only (optional): sign in to ESPN on Cloudflare's own browser instead of GitHub Actions (faster).
+# browser = { binding = "BROWSER" }
 
 [vars]
-SITE_URL = "https://fantasizer.YOUR-SUBDOMAIN.workers.dev"   # no trailing slash; Yahoo's redirect URI is SITE_URL/auth/yahoo/callback
+SITE_URL = "https://fantasizer.YOUR-SUBDOMAIN.workers.dev"   # no trailing slash
 GITHUB_REPO = "rcf4765/daily-fantasizer"
 GITHUB_REF = "main"
-# Secrets (npx wrangler secret put NAME): SESSION_SECRET, ENC_KEY, BUILD_TOKEN, GITHUB_TOKEN, YAHOO_CLIENT_ID, YAHOO_CLIENT_SECRET
+# Secrets (set by the deploy workflow from FZ_MASTER_KEY and FZ_GITHUB_TOKEN): SESSION_SECRET, ENC_KEY, BUILD_TOKEN,
+# LOGIN_KEY, GITHUB_TOKEN; optional YAHOO_CLIENT_ID, YAHOO_CLIENT_SECRET
 
 [[d1_databases]]
 binding = "DB"
 database_name = "fantasizer"
-database_id = "REPLACE-WITH-ID-FROM-wrangler-d1-create"
+database_id = "REPLACE-WITH-D1-ID"
 
-[[r2_buckets]]
-binding = "PAPERS"
-bucket_name = "fantasizer-papers"
+[[kv_namespaces]]
+binding = "PAPERS_KV"
+id = "REPLACE-WITH-KV-ID"
 
 [triggers]
 crons = ["17 10 * * 2", "17 10 * * 3"]   # Tuesday 10:17 UTC (5-6am Eastern), Wednesday retry

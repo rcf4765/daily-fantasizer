@@ -29,8 +29,9 @@ function tracer() {
   return { steps, add: (s) => steps.push(`${((Date.now() - t0) / 1000).toFixed(1)}s ${s}`) };
 }
 
+let extraCookieUrl = null;   // tests point the login at a mock ESPN; read its cookies too
 async function sessionCookies(page) {
-  const all = await page.cookies(...COOKIE_URLS);
+  const all = await page.cookies(...COOKIE_URLS, ...(extraCookieUrl ? [extraCookieUrl] : []));
   const s2 = all.find((c) => c.name === 'espn_s2'), swid = all.find((c) => c.name === 'SWID');
   return s2 && swid ? { s2: decodeURIComponent(s2.value), swid: swid.value } : null;
 }
@@ -79,6 +80,7 @@ async function outcome(page, frame, tr, ms = 25000, { codeGrace = 0 } = {}) {
 /** Step 1: email + password. Returns {status:'ok', s2, swid} | {status:'code', sessionId} | {status:'error', error}. */
 export async function espnLoginStart(env, email, password) {
   const tr = tracer();
+  extraCookieUrl = env.ESPN_LOGIN_URL ? new URL(env.ESPN_LOGIN_URL).origin : null;
   if (!env.BROWSER) return { status: 'error', error: 'ESPN sign-in isn’t set up on this site yet.', trace: ['no BROWSER binding'] };
   let browser;
   try {
@@ -127,6 +129,7 @@ export async function espnLoginStart(env, email, password) {
 /** Step 2 (only when ESPN asked): the one-time code ESPN emailed. */
 export async function espnLoginCode(env, sessionId, code) {
   const tr = tracer();
+  extraCookieUrl = env.ESPN_LOGIN_URL ? new URL(env.ESPN_LOGIN_URL).origin : null;
   let browser;
   try {
     browser = await (env.__browserLib || await browserLib()).connect(env.BROWSER, sessionId);

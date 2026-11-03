@@ -79,3 +79,13 @@ export function same(a, b) {
   for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return x === 0;
 }
+
+/** Encrypt for the ESPN sign-in job with LOGIN_KEY (shared only with that GitHub job, derived from FZ_MASTER_KEY).
+ *  Same format as seal(); the job opens it with open({ ENC_KEY: LOGIN_KEY }, …) from this file. */
+export const jobSeal = (env, text) => seal({ ENC_KEY: env.LOGIN_KEY }, text);
+
+/** HMAC-SHA256 hex: the site signs the address it gives a GitHub job, so a job never talks to a look-alike site. */
+export async function hmacHex(secret, text) {
+  const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret), enc.encode(text));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}

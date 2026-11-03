@@ -112,7 +112,7 @@ ${error ? `<div class="err" role="alert">${esc(error)}</div>` : ''}
 <p class="hint" style="margin-top:22px"><a href="/">← Back</a></p>${BUSY}`);
 }
 
-export function espnCode({ error = '', email = '' } = {}) {
+export function espnCode({ error = '', email = '', wait = false } = {}) {
   return layout('Enter ESPN’s code · The Daily Fantasizer', `${mast('One more step')}
 ${error ? `<div class="err" role="alert">${esc(error)}</div>` : ''}
 <p class="lede">ESPN just emailed a code${email ? ` to ${esc(email)}` : ''}. Enter it here.</p>
@@ -121,7 +121,7 @@ ${error ? `<div class="err" role="alert">${esc(error)}</div>` : ''}
  <p><button class="btn" type="submit" style="width:100%" data-busy="Checking the code…">Continue</button></p>
  <p class="note" id="busy" hidden>Almost there. Keep this page open.</p>
 </form>
-<p class="hint" style="margin-top:22px">No email? Check spam, or <a href="/login">start again</a>. The code works for 10 minutes.</p>${BUSY}`);
+<p class="hint" style="margin-top:22px">No email? Check spam, or <a href="/login">start again</a>. The code works for 10 minutes.</p>${wait ? '' : BUSY}`);
 }
 
 export function espnForm({ error = '', leagueId = '', season = '' } = {}) {
@@ -224,4 +224,19 @@ export function leagueBar(current, rows, comm, older) {
 .fz-lgbar a[aria-current]{background:var(--blue,#1c3fae);border-color:var(--blue,#1c3fae);color:var(--blue-ink,#fff)}
 .fz-lgbar .fz-sp{flex:1}.fz-lgbar .fz-q{border-color:var(--line,#c9cdc3);color:var(--muted,#59606c)}
 </style><b>${rows.length > 1 ? 'Your leagues' : 'Your league'}</b>${rows.map(btn).join('')}<span class="fz-sp"></span>${older ? `<a class="fz-q" href="/l/${esc(current)}/">Latest edition</a>` : ''}${comm ? `<a class="fz-q" href="/l/${esc(current)}/settings">Settings</a>` : ''}<a class="fz-q" href="/mine">My leagues</a></nav>`;
+}
+
+/** Free-plan sign-in in progress (a GitHub Actions run is signing in to ESPN). Polls and moves on by itself. */
+export function loginWait(status, ageMs) {
+  const msg = { queued: 'Starting the ESPN sign-in…', running: 'Signing in to ESPN and finding your leagues…', code_sent: 'Checking the code…' }[status] || 'Working…';
+  return layout('Signing in · The Daily Fantasizer', `${mast('Log in with ESPN')}
+<p class="lede" role="status" aria-live="polite">${esc(msg)}</p>
+<div style="height:10px;border:2px solid var(--ink);background:var(--paper);overflow:hidden;max-width:440px;margin:16px 0"><i id="bar" style="display:block;height:100%;width:${Math.min(95, 10 + Math.round(ageMs / 1000))}%;background:var(--blue);transition:width 1s linear"></i></div>
+<p class="hint">This takes about a minute. Keep this page open; it moves on by itself.</p>
+<p class="hint" id="slow" hidden>Taking longer than usual. ESPN can be slow; give it another minute.</p>
+<script>(function(){var cur=${JSON.stringify(status)},t0=Date.now()-${Math.round(ageMs)},b=document.getElementById('bar');
+ setInterval(function(){var s=(Date.now()-t0)/1000;b.style.width=Math.min(95,10+s)+'%';if(s>150)document.getElementById('slow').hidden=false},1000);
+ (function poll(){fetch('/login/status',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
+  if(j.status!==cur){location.replace(j.status==='ok'?'/login/finish':'/login/wait');return}setTimeout(poll,3000)}).catch(function(){setTimeout(poll,5000)})})();
+})();</script>`);
 }

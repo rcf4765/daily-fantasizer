@@ -15,6 +15,13 @@ import requests
 SITE = sys.argv[1].rstrip("/")
 ONLY = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] else None
 TOK = os.environ["BUILD_TOKEN"]
+# A site named by the dispatch (not the repo variable FZ_SITE_URL) must carry the website's signature of site|slug,
+# so the build token and league data never go to a look-alike address.
+if SITE != (os.environ.get("FZ_VAR_SITE") or "").rstrip("/"):
+    import hmac, hashlib
+    want = hmac.new(TOK.encode(), f"{SITE}|{ONLY or ''}".encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(want, os.environ.get("SIG", "")):
+        sys.exit("site signature does not match; not contacting it")
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 H = {"Authorization": f"Bearer {TOK}"}
 ROOT = os.environ.get("FZ_RUN_DIR") or tempfile.mkdtemp(prefix="fz-")

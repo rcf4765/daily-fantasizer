@@ -1,7 +1,7 @@
 // The Daily Fantasizer for any league: sign-up site, paper host, commissioner settings, league office and build API.
 // Cloudflare Worker + D1 (accounts, leagues, votes, bets) + R2 (the printed papers). The papers themselves are
 // printed by the GitHub Actions workflow "fantasizer-leagues.yml", which this Worker starts and which uploads back here.
-import { sign, verify, seal, open, sha256, randomId, randomCode, cookie, setCookie, same } from './crypto.js';
+import { sign, verify, seal, open, sha256, randomId, randomCode, cookie, setCookie, same, jobSeal, hmacHex } from './crypto.js';
 import { yahooAuthUrl, yahooExchange, yahooAccess, yahooUser, yahooLeagues, espnLeague, espnUserLeagues, espnSeason, validSwid } from './platforms.js';
 import { EXTENSION_ZIP } from './extension_zip.js';
 import { espnLoginStart, espnLoginCode } from './espn_login.js';
@@ -38,11 +38,39 @@ async function dispatch(env, slug = '') {
   const r = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/fantasizer-leagues.yml/dispatches`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'daily-fantasizer-site', 'X-GitHub-Api-Version': '2022-11-28' },
-    body: JSON.stringify({ ref: env.GITHUB_REF || 'main', inputs: { slug } }),
+    body: JSON.stringify({ ref: env.GITHUB_REF || 'main', inputs: { slug, site: env.SITE_URL, sig: await hmacHex(env.BUILD_TOKEN || '', `${env.SITE_URL}|${slug}`) } }),
   });
   if (!r.ok) console.log('dispatch failed', r.status, await r.text());
   return r.ok;
 }
+
+/** Start the free ESPN sign-in job on GitHub Actions (espn-login.yml) for one queued login. */
+async function dispatchLogin(env, job) {
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) return false;
+  const r = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/espn-login.yml/dispatches`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'daily-fantasizer-site', 'X-GitHub-Api-Version': '2022-11-28' },
+    body: JSON.stringify({ ref: env.GITHUB_REF || 'main', inputs: { job, site: env.SITE_URL, sig: await hmacHex(env.BUILD_TOKEN || '', `${env.SITE_URL}|${job}`) } }),
+  });
+  if (!r.ok) console.log('login dispatch failed', r.status, await r.text());
+  return r.ok;
+}
+
+/** Papers live in R2 (paid accounts) or Workers KV (free plan, no card): one small adapter gives both the R2 shape. */
+function kvPapers(kv) {
+  const wrap = (buf) => ({ body: buf, text: async () => new TextDecoder().decode(buf), json: async () => JSON.parse(new TextDecoder().decode(buf)) });
+  return {
+    put: async (k, body) => kv.put(k, typeof body === 'string' ? body : await new Response(body).arrayBuffer()),
+    get: async (k) => { const v = await kv.get(k, 'arrayBuffer'); return v ? wrap(v) : null; },
+    delete: (k) => kv.delete(k),
+    list: async ({ prefix }) => {
+      const out = []; let cursor;
+      do { const r = await kv.list({ prefix, cursor }); out.push(...r.keys.map((x) => ({ key: x.name }))); cursor = r.list_complete ? null : r.cursor; } while (cursor);
+      return { objects: out };
+    },
+  };
+}
+const withStore = (env) => (!env.PAPERS && env.PAPERS_KV ? { ...env, PAPERS: kvPapers(env.PAPERS_KV) } : env);
 
 async function createOrUpdateLeague(env, { platform, leagueId, season, name, teams, uid, commissioner, s2, swid, tokenUid }) {
   let L = await env.DB.prepare('SELECT * FROM leagues WHERE platform=? AND league_id=? AND season=?').bind(platform, String(leagueId), season).first();
@@ -179,6 +207,18 @@ async function route(req, env, ctx) {
     const n = (await env.DB.prepare('SELECT COUNT(*) n FROM login_attempts WHERE ip=? AND at>?').bind(ip, since).first()).n;
     if (n >= 6) return html(P.espnLogin({ error: 'Too many tries. Wait 15 minutes and try again.', email }), 429);
     await env.DB.prepare('INSERT INTO login_attempts (ip, at) VALUES (?,?)').bind(ip, new Date().toISOString()).run();
+    if (!env.BROWSER && !env.__espnLogin) {   // free plan: a GitHub Actions run signs in (espn-login.yml)
+      if (!env.LOGIN_KEY) return html(P.espnLogin({ error: 'ESPN sign-in isn’t switched on yet.', email }), 503);
+      if (email.length + password.length > 300) return html(P.espnLogin({ error: 'That email or password is too long.', email }), 400);
+      const id = randomId(16), t = randomId(32), now = new Date().toISOString();
+      await env.DB.prepare('INSERT INTO login_jobs (id, token_hash, status, enc, created_at, updated_at) VALUES (?,?,?,?,?,?)')
+        .bind(id, await sha256(t), 'queued', await jobSeal(env, JSON.stringify({ email, password })), now, now).run();
+      if (!(await dispatchLogin(env, id))) {
+        await env.DB.prepare("UPDATE login_jobs SET status='error', enc=NULL WHERE id=?").bind(id).run();
+        return html(P.espnLogin({ error: 'Couldn’t start the ESPN sign-in. Try again in a minute.', email }), 502);
+      }
+      return redirect('/login/wait', { 'Set-Cookie': setCookie('fz_job', t, 900) });
+    }
     const r = await signer(env).start(env, email, password);
     await trace(env, r.status !== 'error', r.trace);
     if (r.status === 'ok') return finishLogin(env, r);
@@ -188,6 +228,43 @@ async function route(req, env, ctx) {
       return html(P.espnCode({ email }), 200, { 'Set-Cookie': setCookie('fz_login', t, 600) });
     }
     return html(P.espnLogin({ error: r.error, email }), 400);
+  }
+  // ---- free-plan sign-in: waiting page, status, code, finish ----
+  const job = async () => {
+    const t = cookie(req, 'fz_job');
+    const j = t ? await env.DB.prepare('SELECT * FROM login_jobs WHERE token_hash=?').bind(await sha256(t)).first() : null;
+    return j && Date.now() - Date.parse(j.created_at) < 15 * 60000 ? j : null;
+  };
+  if (path === '/login/status' && method === 'GET') {
+    const j = await job();
+    return json({ status: j ? j.status : 'expired' });
+  }
+  if (path === '/login/wait' && method === 'GET') {
+    const j = await job();
+    if (!j) return html(P.espnLogin({ error: 'That sign-in timed out. Log in again.' }), 400);
+    if (j.status === 'ok') return redirect('/login/finish');
+    if (j.status === 'error') return html(P.espnLogin({ error: j.msg || 'Signing in to ESPN failed. Try again in a minute.' }), 400);
+    if (j.status === 'code' || j.status === 'code_wrong') return html(P.espnCode({ error: j.status === 'code_wrong' ? 'That code didn’t work. Check the newest email from ESPN.' : '', wait: true }));
+    return html(P.loginWait(j.status, Date.now() - Date.parse(j.created_at)));
+  }
+  if (path === '/login/finish' && method === 'GET') {
+    const j = await job();
+    if (!j || j.status !== 'ok' || j.finished) return redirect(s ? '/mine' : '/login');
+    await env.DB.prepare('UPDATE login_jobs SET finished=1 WHERE id=?').bind(j.id).run();
+    const headers = new Headers({ Location: `/mine?added=${j.added || 0}&found=${j.found || 0}` });
+    headers.append('Set-Cookie', await startSession(env, j.uid, 'ESPN'));
+    headers.append('Set-Cookie', setCookie('fz_job', '', 0));
+    return new Response(null, { status: 303, headers });
+  }
+  if (path === '/login/code' && method === 'POST' && cookie(req, 'fz_job')) {
+    const j = await job();
+    if (!j) return html(P.espnLogin({ error: 'That sign-in timed out. Log in again.' }), 400);
+    const f = await form(req);
+    const code = String(f.code || '').replace(/\D/g, '');
+    if (code.length < 4 || code.length > 8) return html(P.espnCode({ error: 'Enter the code from ESPN’s email.', wait: true }), 400);
+    await env.DB.prepare("UPDATE login_jobs SET code_enc=?, status='code_sent', updated_at=? WHERE id=?")
+      .bind(await jobSeal(env, code), new Date().toISOString(), j.id).run();
+    return redirect('/login/wait');
   }
   if (path === '/login/code' && method === 'POST') {
     const f = await form(req);
@@ -401,6 +478,30 @@ async function route(req, env, ctx) {
   if (path.startsWith('/api/build/')) {
     const auth = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/, '');
     if (!same(auth, env.BUILD_TOKEN || '')) return json({ error: 'unauthorized' }, 401);
+    m = path.match(/^\/api\/build\/login\/([a-z0-9]{16})$/);
+    if (m) {   // the GitHub sign-in job: read what to type (once), report progress and the result
+      const j = await env.DB.prepare('SELECT * FROM login_jobs WHERE id=?').bind(m[1]).first();
+      if (!j || Date.now() - Date.parse(j.created_at) > 15 * 60000) return json({ error: 'gone' }, 410);
+      if (method === 'GET') {
+        if (j.enc || j.code_enc) await env.DB.prepare('UPDATE login_jobs SET enc=NULL, code_enc=NULL WHERE id=?').bind(j.id).run();
+        return json({ status: j.status, enc: j.enc || null, code_enc: j.code_enc || null });
+      }
+      const b = await req.json();
+      const st = ['running', 'code', 'code_wrong', 'ok', 'error'].includes(b.status) ? b.status : 'error';
+      if (b.trace) await trace(env, st !== 'error', b.trace);
+      if (st === 'ok') {
+        const acct = await linkEspnAccount(env, String(b.s2 || ''), String(b.swid || ''));
+        if (acct.error) {
+          await env.DB.prepare("UPDATE login_jobs SET status='error', msg=?, updated_at=? WHERE id=?").bind(acct.error, new Date().toISOString(), j.id).run();
+          return json({ ok: false, error: acct.error });
+        }
+        await env.DB.prepare("UPDATE login_jobs SET status='ok', uid=?, added=?, found=?, updated_at=? WHERE id=?")
+          .bind(acct.uid, acct.leagues.filter((l) => l.isNew).length, acct.leagues.length, new Date().toISOString(), j.id).run();
+        return json({ ok: true });
+      }
+      await env.DB.prepare('UPDATE login_jobs SET status=?, msg=?, updated_at=? WHERE id=?').bind(st, String(b.msg || '').slice(0, 300), new Date().toISOString(), j.id).run();
+      return json({ ok: true });
+    }
     if (path === '/api/build/login-traces') {
       const { results } = await env.DB.prepare('SELECT * FROM login_traces ORDER BY at DESC LIMIT 30').all();
       return json({ traces: results });
@@ -448,7 +549,7 @@ async function route(req, env, ctx) {
 export default {
   async fetch(req, env, ctx) {
     try {
-      return await route(req, env, ctx);
+      return await route(req, withStore(env), ctx);
     } catch (e) {
       console.log(e.stack || e);
       return html(P.message('Something broke', 'Try again in a minute.'), 500);
@@ -456,6 +557,7 @@ export default {
   },
   // Tuesday (and a Wednesday retry, for weeks ESPN or Yahoo finalize late): print every league.
   async scheduled(event, env, ctx) {
+    env = withStore(env);
     ctx.waitUntil((async () => {
       await refreshEspnAccounts(env);
       await dispatch(env, '');

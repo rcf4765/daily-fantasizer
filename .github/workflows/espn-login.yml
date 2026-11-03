@@ -1,0 +1,59 @@
+name: ESPN sign-in (free)
+
+# Started by the website (multi/worker) for each "Log in with ESPN" on the free Cloudflare plan: signs in on ESPN's
+# real login page with a browser, waits for ESPN's emailed code when asked, and sends ESPN's session back to the site.
+# The login arrives encrypted (LOGIN_KEY); it is masked in the log and never written to disk.
+# Needs repo secret FZ_MASTER_KEY (the site's keys are derived from it, see site-deploy.yml).
+
+on:
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Login job id (from the website)"
+        required: true
+      site:
+        description: "The website's address"
+        required: true
+      sig:
+        description: "The website's signature of site|job"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: espn-login-${{ github.event.inputs.job }}
+  cancel-in-progress: false
+
+jobs:
+  signin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            multi/worker/src
+            multi/login_runner
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Browser
+        run: |
+          cd multi/login_runner
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.63.0 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+      - name: Keys
+        env:
+          MASTER: ${{ secrets.FZ_MASTER_KEY }}
+        run: |
+          k() { printf %s "$1" | openssl dgst -sha256 -hmac "$MASTER" -r | cut -d' ' -f1; }
+          b=$(k build); l=$(k login); echo "::add-mask::$b"; echo "::add-mask::$l"
+          echo "BUILD_TOKEN=$b" >> "$GITHUB_ENV"; echo "LOGIN_KEY=$l" >> "$GITHUB_ENV"
+      - name: Sign in
+        env:
+          SITE: ${{ github.event.inputs.site }}
+          JOB: ${{ github.event.inputs.job }}
+          SIG: ${{ github.event.inputs.sig }}
+        run: node multi/login_runner/run.mjs

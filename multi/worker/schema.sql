@@ -42,3 +42,7 @@ CREATE TABLE IF NOT EXISTS espn_logins (token_hash TEXT PRIMARY KEY, session_id 
 CREATE TABLE IF NOT EXISTS login_attempts (ip TEXT NOT NULL, at TEXT NOT NULL);
 -- what each sign-in did, for fixing it when ESPN changes its login page (step names only: no emails, passwords or codes)
 CREATE TABLE IF NOT EXISTS login_traces (at TEXT NOT NULL, ok INTEGER NOT NULL, steps TEXT);
+-- Free-plan ESPN sign-in: the site queues a job, a GitHub Actions run signs in to ESPN with a real browser and reports
+-- back. enc / code_enc are encrypted with LOGIN_KEY (shared with that job only); each is wiped as soon as the job reads it.
+CREATE TABLE IF NOT EXISTS login_jobs (id TEXT PRIMARY KEY, token_hash TEXT NOT NULL, status TEXT NOT NULL, msg TEXT,
+  enc TEXT, code_enc TEXT, uid TEXT, added INTEGER, found INTEGER, finished INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT);
