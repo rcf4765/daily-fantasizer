@@ -484,6 +484,7 @@ forecast = (f'<section class="sec" id="forecast"><div class="sec-head"><h2>Week 
 # Player Stats tab (players.py, data from fetch_players.py); empty if data/players is missing
 import players as _players
 ps_html = _players.build(LG["short_names"], W) if os.path.exists("data/players/meta.json") else ""
+lu_html = _players.LU_BLOCK or "<!--LU--><!--/LU-->"  # Optimal Lineup, shown in League & Teams (user, 2026-11-03)
 
 # Roster Radar (strength.py): lineup-slot strength per team, season so far vs. rest of season
 import strength as _strength
@@ -499,7 +500,7 @@ race_html = _teams.race(LG["short_names"], W)
 matchmaker_html = _teams.matchmaker(LG["short_names"], W) if os.path.exists("data/players/meta.json") else ""
 
 out = open("template.html", encoding="utf-8").read()
-for k, v in {"<!--PLAYERSTATS-->": ps_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
+for k, v in {"<!--PLAYERSTATS-->": ps_html, "<!--LU--><!--/LU-->": lu_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
              "<!--CRESTS-->": crests, "<!--POTEAMS-->": json.dumps({t: {"name": teams[t]["name"], "short": SHORT[t]} for t in sorted(teams)}).replace("</", "<\\/"), "{{PROPOSALS_API}}": LG.get("proposals_api", ""), "<!--RCPRESETS-->": json.dumps({k: {f: v[f] for f in ("category", "title", "pitch", "now_label", "new_label") if f in v} for k, v in json.load(open("rules_presets.json")).items()}).replace("</", "<\\/"), "<!--UPSETS-->": upsets_html, "<!--ANNOUNCE-->": announce_html, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
              "<!--SIDEBAR-->": sidebar,
              "<!--SCOREBOARD-->": scoreboard, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
@@ -512,7 +513,7 @@ import bets as _bets  # Betting tab (user, 2026-10-26): grade week W, post the w
 out = out.replace("<!--BETS-->", _bets.build(W, LG["short_names"], LG.get("proposals_api", "")))
 import mobile as _mobile
 out = _mobile.tag(out)  # phone card layout: tag every table cell with its role and column label
-left = re.findall(r"<!--(?!PS-->)[A-Z0-9]+-->|\{\{[A-Z_]+\}\}|\{[TS]\d+\}", out)
+left = re.findall(r"<!--(?!PS-->|LU-->)[A-Z0-9]+-->|\{\{[A-Z_]+\}\}|\{[TS]\d+\}", out)
 # Rule Changes tab is in every edition (user, 2026-10-21); stop rather than publish a paper without it.
 missing_tab = [k for k in ('id="tab-props"', 'id="proposals"', 'href="#proposals" data-tab="proposals"', 'id="po-data"') if k not in out]
 if missing_tab:

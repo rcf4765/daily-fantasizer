@@ -7,7 +7,7 @@ section keeps its id (so links still land), its charts and its caption; only its
   Standings       Power Rankings · Playoff Odds · Full table (the Pecking Order; desktop only, as before)
   Season Scoring  Heat Map · Floor & Ceiling · Good or Lucky?
   Managers        Bench Hall of Shame · One-Man Show · Report Card
-  Roster Radar    (unchanged)
+  Optimal Lineup  (standalone, owner only; Roster Radar moved to the paper, user 2026-11-03)
   Moves           Matchmaker · On the Block · Trade Desk (when there is a completed trade) · Waiver Wire MVP
 
 Idempotent: a page that already has <!--cmb--> is returned unchanged. A section missing that week just has no button;
@@ -27,7 +27,9 @@ GROUPS = [
     ("lg-moves", "Moves", "Pickups, trades and trade ideas", [
         ("matchmaker", "Matchmaker"), ("trading-block", "On the Block"), ("trades", "Trade Desk"), ("waiver-mvp", "Waivers")]),
 ]
-ANCHOR_BEFORE = "roster-radar"  # Standings, Scoring and Managers go before Roster Radar; Moves after it
+# Standings, Scoring and Managers go before the Optimal Lineup slot (<!--LU-->…<!--/LU-->, players.lineup_block); Moves after it.
+# Roster Radar used to be the anchor; it moved to the paper (user, 2026-11-03).
+LU_A, LU_B = "<!--LU-->", "<!--/LU-->"
 
 CSS = """<style>
 /* League & Teams combined sections (combine.py) */
@@ -113,10 +115,11 @@ def combine(html):
     html = re.sub(r'<section class="twocol">\s*</section>', "", html)
     before = "".join(built.get(g, "") for g in ("lg-standings", "lg-scoring", "lg-managers"))
     after = built.get("lg-moves", "")
-    sp = _find(html, ANCHOR_BEFORE)
-    if sp:
-        html = html[:sp[0]] + before + html[sp[0]:sp[1]] + after + html[sp[1]:]
-    else:  # no radar that week: put everything after the League & Teams hero
+    a, b = html.find(LU_A), html.find(LU_B)
+    if a >= 0 and b > a:
+        b += len(LU_B)
+        html = html[:a] + before + html[a:b] + after + html[b:]
+    else:  # no slot: put everything after the League & Teams hero
         h = html.index('<section class="lg-hero"')
         _, e = _span(html, h)
         html = html[:e] + before + after + html[e:]
@@ -127,7 +130,7 @@ def combine(html):
 
 PS_GROUPS = [
     ("ps-compare", "Compare Players", "Two players, head to head", [
-        ("ps-startsit", "Start / Sit"), ("ps-faceoff", "Face-Off"), ("ps-lineup", "Optimal Lineup")]),
+        ("ps-startsit", "Start / Sit"), ("ps-faceoff", "Face-Off")]),  # Optimal Lineup moved to League & Teams (user, 2026-11-03)
     ("ps-trends", "Player Trends", "Volume and consistency", [
         ("ps-volume", "Volume vs. Scoring"), ("ps-steady", "Steady or Streaky")]),
     ("ps-ranks", "Rankings & Matchups", "Next week, rest of season and who they face", [

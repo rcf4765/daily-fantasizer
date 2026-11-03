@@ -165,6 +165,9 @@ def sec(id_, title, kicker, body):
     return f'<section class="sec" id="{id_}"><div class="sec-head"><h2>{title}</h2><span class="kicker">{kicker}</span></div>{body}</section>'
 
 
+LU_BLOCK = ""  # filled by build(): the Optimal Lineup block for League & Teams
+
+
 def build(short_names, week=None):
     d = Data(short_names, week)
     if not d.P:
@@ -435,17 +438,21 @@ def build(short_names, week=None):
     extra.update(desk.sections2(d, W_, short_names, int(d.meta.get("owner_team") or (json.load(open("league.json")).get("owner_team") if os.path.exists("league.json") else 1) or 1)))
     after("ps-lookup", extra.get("trend")); after("ps-volume", extra.get("steady"))
     after("ps-startsit", extra.get("defense")); after("ps-startsit", extra.get("faceoff"))
-    # Optimal Lineup (lineup.py, user 2026-10-28): owner's phone only, third tab of Compare Players
+    # Optimal Lineup (lineup.py, user 2026-10-28): owner's phone only. Built here so the midweek refresh updates it,
+    # but shown in League & Teams where Roster Radar was (user, 2026-11-03): see lineup_block() / LU markers
     import lineup as _lu
+    global LU_BLOCK
     _own = int(d.meta.get("owner_team") or (json.load(open("league.json")).get("owner_team") if os.path.exists("league.json") else 1) or 1)
     try:
-        after("ps-faceoff", _lu.section(d, W_, d.short, _own))
+        _sec = _lu.section(d, W_, d.short, _own)
     except Exception as e:  # never lose the tab over one section
-        print("optimal lineup skipped:", e)
+        print("optimal lineup skipped:", e); _sec = ""
+    import mobile as _mob
+    LU_BLOCK = ("<!--LU-->\n<style>" + _lu.CSS + "</style>\n" + _mob.tag(_sec) + "\n" + (_lu.GATE % _own) + "\n<!--/LU-->") if _sec else "<!--LU--><!--/LU-->"
     # Reading order (user, 2026-10-19: "order the pages so the data makes sense as you scroll"):
     # season so far -> next week -> rest of season -> how the rankings did
     # Compare Players moved up to sit right after Player Data (user, 2026-10-27)
-    ORDER = ["ps-lookup", "ps-startsit", "ps-faceoff", "ps-lineup", "ps-volume", "ps-steady", "ps-trend",
+    ORDER = ["ps-lookup", "ps-startsit", "ps-faceoff", "ps-volume", "ps-steady", "ps-trend",
              "ps-next", "ps-proj", "ps-defense",
              "ps-variance"]
     secs = {}
@@ -460,10 +467,9 @@ def build(short_names, week=None):
     out.append(SCRIPT)
     out.append(desk.SCRIPT)
     out.append(lookup.SCRIPT)
-    out.append(_lu.GATE % _own)
     # the tab carries its own styles, so a midweek --patch also updates them
     import mobile  # phone card layout for the tables (tags each cell with its role and column label)
-    return "<!--PS-->\n<style>" + CSS + desk.CSS + lookup.CSS + _lu.CSS + "</style>\n" + mobile.tag("\n".join(out)) + "\n<!--/PS-->"
+    return "<!--PS-->\n<style>" + CSS + desk.CSS + lookup.CSS + "</style>\n" + mobile.tag("\n".join(out)) + "\n<!--/PS-->"
 
 
 def trend(p):
@@ -787,6 +793,10 @@ def patch(path, pane):
     if a < 0 or b < 0:
         print("no Player Stats markers in", path); return False
     s = s[:a] + pane + s[b + len("<!--/PS-->"):]
+    # Optimal Lineup lives in League & Teams (user, 2026-11-03); refresh it there too
+    a, b = s.find("<!--LU-->"), s.find("<!--/LU-->")
+    if a >= 0 and b > a and LU_BLOCK:
+        s = s[:a] + LU_BLOCK + s[b + len("<!--/LU-->"):]
     open(path, "w", encoding="utf-8").write(s)
     print("patched", path); return True
 
