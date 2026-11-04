@@ -90,13 +90,22 @@ def fetch_espn(work, env, cfg):
     run([sys.executable, "-c", "import fetch_players as f\ncur, final = f.espn()\n"
          "for step in (f.espn_waivers, lambda: f.espn_kdst(cur)):\n    try: step()\n    except Exception as e: print('optional step failed:', e)"],
         work, env, check=False)
+    apply_projections(work, env)
     return W
+
+
+def apply_projections(work, env):
+    """The league's own player pool was just rewritten (owners, scoring): put our projections back into it, as the
+    weekly Men Fantasizing run does. Without this, Rankings, Projections, Start/Sit, Rankings vs. Actuals and the
+    Trade Matchmaker come out empty."""
+    run([sys.executable, "-c", "import inhouse\ninhouse.apply()"], work, dict(env, FZ_HOME=work), check=False)
 
 
 def fetch_yahoo(work, env, cfg):
     env = dict(env, YAHOO_TOKEN=cfg.get("yahoo_token", ""), FZ_LEAGUE_KEY=str(cfg["league_id"]))
     run([sys.executable, os.path.join(MULTI, "platforms", "yahoo.py")], work, env)
     run([sys.executable, os.path.join(MULTI, "platforms", "yahoo.py"), "--players"], work, env)
+    apply_projections(work, env)
     lj = os.path.join(work, "data", "latest.json")
     return json.load(open(lj))["week"] if os.path.exists(lj) else 0
 

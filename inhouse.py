@@ -36,7 +36,7 @@ Usage: python3 inhouse.py            download + build + apply
 import csv, datetime, json, math, os, re, sys, urllib.request
 from collections import defaultdict
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.environ.get("FZ_HOME") or os.path.dirname(os.path.abspath(__file__))  # FZ_HOME = other leagues' builds (multi/)
 OUT = os.path.join(HERE, "data", "players")
 CACHE = os.environ.get("IH_CACHE") or os.path.join(HERE, ".cache", "nflverse")
 REL = "https://github.com/nflverse/nflverse-data/releases/download/"
