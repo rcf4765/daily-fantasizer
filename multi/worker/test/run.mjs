@@ -155,6 +155,8 @@ r = await call('POST', '/yahoo/league', { form: { key: '461.l.999' } }); assert.
 r = await call('GET', `/api/build/leagues?slug=${ySlug}`, { headers: { Authorization: 'Bearer build-tok' } });
 assert.equal((await r.json()).leagues[0].yahoo_token, 'AT-refresh_token'); ok('printer gets a fresh Yahoo access token');
 r = await call('GET', '/mine'); t = await text(r); assert.match(t, /Sunday Funday/); assert.match(t, /Work League/); ok('My leagues');
+assert.match(t, /id="a2hs-btn"[^>]*>[\s\S]*Add to home screen/); assert.match(t, /rel="manifest" href="\/manifest\.webmanifest"/);
+assert.match(t, /rel="apple-touch-icon" href="\/icons\/apple-touch-icon\.png"/); ok('My leagues has the Add to home screen button and app tags');
 
 console.log('ESPN extension sync (one account, several leagues)');
 {

@@ -49,9 +49,15 @@ footer{margin-top:44px;padding-top:12px;border-top:2px solid var(--ink);font:500
 a{color:var(--blue)}
 `;
 
+// Home-screen app tags (name, icon, colours). The manifest and icons are served from docs/ by index.js; there is
+// deliberately no offline worker any more (/sw.js clears the old one), so the app always opens the live site.
+const APP_TAGS = `<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><meta name="theme-color" content="#0b1433">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Fantasizer">`;
+
 export function layout(title, body, { head = '' } = {}) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)}</title><meta name="color-scheme" content="light dark">
+<title>${esc(title)}</title><meta name="color-scheme" content="light dark">${APP_TAGS}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=IBM+Plex+Mono:wght@500;600;700&family=Literata:wght@400;600&display=swap">
 <style>${CSS}</style>${head}</head><body><main class="sheet">${body}
@@ -203,9 +209,41 @@ export function mine(rows, { added = 0, found = null, espn = false, failed = [] 
   const add = espn ? `<details ${rows.length ? '' : 'open'}><summary>A league is missing?</summary>
 <form method="post" action="/mine/add" class="share" style="margin-top:10px"><input type="text" name="league" placeholder="League ID or league link" aria-label="ESPN league ID or link" required><button class="btn" type="submit">Add</button></form>
 <p class="hint" style="margin-top:6px">New leagues on your ESPN account are added automatically every Tuesday.</p></details>` : '';
-  return layout('My leagues · The Daily Fantasizer', `${mast('My leagues')}${flash}<ul class="lg-list">${list || '<li><div>No leagues yet.</div></li>'}</ul>${add}
+  return layout('My leagues · The Daily Fantasizer', `${mast('My leagues')}${flash}<ul class="lg-list">${list || '<li><div>No leagues yet.</div></li>'}</ul>${A2HS}${add}
 <p class="row" style="margin-top:16px"><a class="btn alt" href="/signout">Sign out</a></p>`);
 }
+
+// "Add to home screen" on My leagues. Android/Chrome: one tap opens the browser's own install prompt. iPhone: Apple
+// lets no button do it, so the button opens the three Share-sheet steps (or, inside GroupMe/Instagram etc., how to get
+// to Safari first). Hidden once the paper is already running from the home screen.
+const A2HS = `<section id="a2hs" class="a2hs" hidden>
+<button class="btn" type="button" id="a2hs-btn" aria-expanded="false" aria-controls="a2hs-help"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 8v7M8.5 11.5h7"/></svg>Add to home screen</button>
+<div id="a2hs-help" class="note" role="status" hidden></div>
+</section>
+<style>.a2hs{margin:16px 0 4px}.a2hs .note ol{margin:8px 0 0;padding-left:1.3em;display:grid;gap:6px}.a2hs .note p{margin:0}.a2hs .ico{width:1.15em;height:1.15em;vertical-align:-.2em;color:var(--blue)}</style>
+<script>(function(){
+ var w=document.getElementById('a2hs'),b=document.getElementById('a2hs-btn'),h=document.getElementById('a2hs-help');
+ if(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true)return;
+ var ua=navigator.userAgent,ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),
+  android=/Android/.test(ua),otherIOS=/CriOS|FxiOS|EdgiOS/.test(ua),
+  inApp=/FBAN|FBAV|Instagram|Snapchat|Line\\/|GroupMe|LinkedInApp|Twitter/.test(ua)||(ios&&!otherIOS&&!/Safari/.test(ua))||(android&&/; wv\\)/.test(ua)),
+  prompt=null,site=location.origin+'/';
+ var SHARE='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Share"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
+ function show(html){h.innerHTML=html;h.hidden=false;b.setAttribute('aria-expanded','true')}
+ function done(){b.style.display='none';show('<p><b>Done.</b> The Daily Fantasizer is on your home screen.</p>')}
+ window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();prompt=e});
+ window.addEventListener('appinstalled',done);
+ w.hidden=false;
+ b.addEventListener('click',function(){
+  if(!h.hidden&&!prompt){h.hidden=true;b.setAttribute('aria-expanded','false');return}
+  if(prompt&&!inApp&&(android||matchMedia('(pointer:coarse)').matches)){var p=prompt;prompt=null;p.prompt();p.userChoice.then(function(c){if(c.outcome==='accepted')done()});return}
+  if(inApp){show('<p>This page opened inside another app, which can\\'t add things to your home screen. Open it in <b>'+(ios?'Safari':'Chrome')+'</b> first: tap <b>Copy link</b>, paste it in '+(ios?'Safari':'Chrome')+' and press this button again.</p><p class="row" style="margin-top:10px"><button class="btn alt" type="button" id="a2hs-copy">Copy link</button></p>');
+   document.getElementById('a2hs-copy').onclick=function(){var t=this;(navigator.clipboard?navigator.clipboard.writeText(site):Promise.reject()).then(function(){t.textContent='Copied'},function(){t.textContent=site})};return}
+  if(ios){show('<ol><li>Tap the <b>Share</b> button '+SHARE+' '+(otherIOS?'(in the address bar or the <b>•••</b> menu).':'(on newer iPhones it\\'s inside the <b>•••</b> menu next to the address bar).')+'</li><li>Scroll down and tap <b>Add to Home Screen</b>. Don\\'t see it? Tap <b>View More</b> first.</li><li>Leave <b>Open as Web App</b> on and tap <b>Add</b>.</li></ol><p class="hint" style="margin-top:8px">The first time you open it from your home screen, log in with ESPN once more. iPhone keeps home-screen apps signed in separately from Safari.</p>');return}
+  if(android){show('<ol><li>Tap the <b>⋮</b> menu in the corner of your browser.</li><li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li><li>Tap <b>Install</b> or <b>Add</b>.</li></ol>');return}
+  show('<p>This is for your phone. Open <b>'+location.host+'</b> on your phone, log in, and tap <b>Add to home screen</b> on My leagues.</p>');
+ });
+})();</script>`;
 
 export function message(title, text, back = '/') {
   return layout(`${title} · The Daily Fantasizer`, `${mast(title)}<p class="lede">${esc(text)}</p><p style="margin-top:20px"><a class="btn alt" href="${esc(back)}">Back</a></p>`);
