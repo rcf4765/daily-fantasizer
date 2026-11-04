@@ -32,7 +32,7 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 | `ux.py` | Usability block (sticky one-row tab bar with short names on narrow screens, each tab remembers its scroll spot, Top button only while scrolling up, bigger touch targets); lives at the end of `template.html` before the glossary block, `python3 ux.py FILE…` adds it to built pages | no |
 | `glossary.py` | Tap-to-explain abbreviations (PPR, YAC, aDOT, WOPR, team codes, WR12…) on every tab, and the phone Top button pinned to the bottom-right corner; the block lives at the end of `template.html`, `python3 glossary.py FILE…` adds it to built pages | no |
 | `layout_check.py` | Compares a new edition's tabs, sections and order with the published paper (`docs/index.html`); step 7 | no |
-| `lineup.py` | Optimal Lineup (League & Teams, between Managers and Moves since 2026-11-03; owner's signed-in phone only): back-tested projection, exact lineup search, win chance; called by `players.build` | no |
+| `lineup.py` | Optimal Lineup (League & Teams, between Managers and Moves since 2026-11-03; owner's signed-in phone only in `docs/`, shown to every signed-in member on thedailyfantasizer.com via `sync-paper.yml`): back-tested projection, exact lineup search, win chance; called by `players.build` | no |
 | `gametheory.py` | Season stakes block inside Optimal Lineup (owner only): bye/playoff leverage of each remaining game, waiver and streaming notes from the real ESPN settings, trades excluded; called by `lineup.section`; `python3 gametheory.py [W]` prints the analysis and writes `data/gametheory_weekW.json` | no |
 | `desk.py` | Player Stats additions: Trend Lines, Steady or Streaky, Player Face-Off, Defense Matchups; called by `players.build` so the midweek refresh keeps them | no |
 | `data/players/` | Player Stats data (ESPN league data, nflverse) and our own projections (`ih_week*.json`, `ih_ros.json`, from `inhouse.py`) | refreshed by Actions |
@@ -355,3 +355,14 @@ User: "generalize this paper so it can be shared with other players … log into
 - The pipeline files read `FZ_LEAGUE_ID`, `FZ_SEASON`, `FZ_HOME`, `FZ_ESPN_BASE`, `FZ_PLATFORM` from the environment; unset (as in every Men Fantasizing run) they default to league 1196354715, 2026 and the repo folder, so nothing here changes. `strength.py`/`teams.py` follow `league.json` `lineup` only when that key exists (it doesn't in ours). The week 7 render was byte-identical before and after (ignoring the betting board's `made` timestamp).
 - Other leagues: Cloudflare Worker site (`multi/worker`: Yahoo sign-in, ESPN league ID + optional cookies, commissioner-only Settings, papers on R2, league office on D1), printed by `.github/workflows/fantasizer-leagues.yml` → `multi/run_all.py` → `multi/build_league.py` (automatic copy from `multi/autocopy.py`, no hand-written words; `multi/postprocess.py` removes Rule Changes/Betting unless the commissioner turned them on, removes Optimal Lineup, swaps the Lions accent for the league's color).
 - Never run `multi/` builds into this repo's `data/` or `docs/`; they work in their own folders.
+
+## 2026-11-03: what updates the website every Tuesday
+
+The website is https://thedailyfantasizer.com (Cloudflare Worker `multi/worker`, data in the private repo `rcf4765/daily-fantasizer-data`). It no longer forwards to GitHub Pages; the github.io address only shows a sign-in page. The weekly flow is unchanged for whoever makes the edition:
+
+1. Tue ~5:17am Eastern: `fetch.yml` commits the week's data.
+2. Tue ~6am Eastern: the scheduled task "Daily Fantasizer weekly edition" writes the copy, renders, runs `publish_site.py N` and pushes `docs/` to main. `docs/index.html` is still the layout reference for `layout_check.py`.
+3. That push runs `sync-paper.yml`, which copies `docs/week*.html`, `docs/rulebook.json` and `docs/bets/` into the data repo as the Men Fantasizing paper (`papers/dv6dqhzz2c/`, Optimal Lineup on for all members) and rebuilds the blurred public front page (`public/sample.html`, via `demo/demo.py --signin`). Check that this run succeeded after publishing.
+4. Pushes made by other workflows don't fire `push` triggers, so `sync-paper.yml` also runs after "Refresh Player Stats" (`players.yml`, midweek Player Stats / Optimal Lineup) and "Apply rule changes" (`rules.yml`, rulebook) finish.
+5. Other leagues on the site are printed by `print.yml` in the data repo (Tue/Wed 10:17 UTC); Men Fantasizing is `own_paper`, so the printer skips it.
+
