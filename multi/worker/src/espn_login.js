@@ -57,8 +57,25 @@ async function textOf(frame, sel) {
 }
 
 /** After a submit: wait for the session cookies, a code prompt, an error, or a bot check. */
+/** A bot check that is really on screen (Disney's login page also loads an invisible one in the background,
+ *  which must not count). Returns a short description of what matched, or ''. */
+async function visibleChallenge(f) {
+  try {
+    return await f.$$eval(SEL.challenge, (els) => {
+      for (const e of els) {
+        const r = e.getBoundingClientRect(), st = getComputedStyle(e);
+        if (r.width >= 40 && r.height >= 40 && st.visibility !== 'hidden' && st.display !== 'none' && +st.opacity !== 0) {
+          return `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''} ${Math.round(r.width)}x${Math.round(r.height)}`;
+        }
+      }
+      return '';
+    });
+  } catch (e) { return ''; }
+}
+
 async function outcome(page, frame, tr, ms = 25000, { codeGrace = 0 } = {}) {
   const t0 = Date.now(), end = t0 + ms;
+  let seenChallenge = 0;
   while (Date.now() < end) {
     try {   // ESPN's form reloads between steps; a check that lands mid-reload just tries again
       const c = await sessionCookies(page);
@@ -66,7 +83,11 @@ async function outcome(page, frame, tr, ms = 25000, { codeGrace = 0 } = {}) {
       const f = page.frames().find((x) => SEL.oneidFrame.test(x.url())) || frame;
       // right after a code is submitted the old boxes are still on screen; give ESPN a moment before calling it wrong
       if (f && Date.now() - t0 >= codeGrace && await f.$(SEL.code)) { tr.add('ESPN asked for a one-time code'); return { status: 'code' }; }
-      if (f && await f.$(SEL.challenge)) { tr.add('ESPN showed a bot check'); return { status: 'error', error: 'ESPN asked for an extra security check we can’t do from here. Try again in a few minutes.', retry: true }; }
+      // a bot check only counts when it is really on screen and stays there (no session after 12 seconds)
+      const ch = f ? await visibleChallenge(f) : '';
+      if (ch && !seenChallenge) { seenChallenge = Date.now(); tr.add(`bot check on screen (${ch}); waiting`); }
+      if (!ch) seenChallenge = 0;
+      if (seenChallenge && Date.now() - seenChallenge > 12000) { tr.add('ESPN kept the bot check up'); return { status: 'error', error: 'ESPN asked for an extra security check we can’t do from here. Try again in a few minutes.', retry: true }; }
       const err = f ? await textOf(f, SEL.error) : '';
       if (err && await f.$(SEL.code)) { tr.add('ESPN rejected the code'); return { status: 'code' }; }
       if (err) { tr.add(`ESPN error shown (${err.length} chars)`); return { status: 'error', error: /password|credential|match|incorrect|invalid/i.test(err) ? 'ESPN didn’t accept that email and password.' : `ESPN said: ${err}` }; }
@@ -105,7 +126,7 @@ export async function espnLoginStart(env, email, password) {
       pw = await find(frame, SEL.password, 15000);
     }
     if (!pw) {
-      const r = await outcome(page, frame, tr, 8000);   // passwordless accounts go straight to a code
+      const r = await outcome(page, frame, tr, 20000);   // passwordless accounts go straight to a code (or a bot check shows)
       if (r.status === 'code') { const sessionId = browser.sessionId(); await browser.disconnect(); browser = null; return { ...r, sessionId, trace: tr.steps }; }
       if (r.status === 'ok') return { ...r, trace: tr.steps };
       tr.add('password box not found');

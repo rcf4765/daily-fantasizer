@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PW_PKG || '/usr/local/lib/python3.13/site-packages/playwright/driver/package');
 
 // ---- mock ESPN (main site on :9101, Disney's form on :9102) ----
-const ONEID = (step, msg = '') => `<!doctype html><body><form method="post" action="/oneid/${step}">
+const ONEID = (step, msg = '') => `<!doctype html><body><iframe id="arkose-preload" src="about:blank" style="position:absolute;width:1px;height:1px;opacity:0"></iframe><form method="post" action="/oneid/${step}">
 ${msg ? `<div role="alert">${msg}</div>` : ''}
 ${step === 'email' ? '<input type="email" id="InputIdentityFlowValue" name="email"><button id="BtnSubmit" type="submit">Continue</button>' : ''}
 ${step === 'password' ? '<input type="password" id="InputPassword" name="password"><button id="BtnSubmit" type="submit">Log In</button>' : ''}
@@ -64,7 +64,8 @@ const ok = (n) => console.log('  ✓', n);
 
 console.log('ESPN sign-in script in a real browser (mock ESPN)');
 let r = await espnLoginStart(env, 'fan@example.com', 'right');
-assert.equal(r.status, 'ok', JSON.stringify(r)); assert.equal(r.s2, 'AEBfake+s2value'); assert.match(r.swid, /^\{ABCDEF12/); ok('email → continue → password → signed in, session captured');
+assert.equal(r.status, 'ok', JSON.stringify(r)); assert.equal(r.s2, 'AEBfake+s2value');
+assert.ok(!r.trace.join(' ').includes('bot check')); ok('Disney’s invisible background check is ignored (was a false alarm)'); assert.match(r.swid, /^\{ABCDEF12/); ok('email → continue → password → signed in, session captured');
 assert.ok(!r.trace.join(' ').includes('fan@example.com') && !r.trace.join(' ').includes('right')); ok('trace holds no email or password');
 console.log('    trace:', r.trace.join(' | '));
 r = await espnLoginStart(env, 'fan@example.com', 'wrong');
