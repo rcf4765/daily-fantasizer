@@ -9,6 +9,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { open } from '../worker/src/crypto.js';
 import { espnLoginStart, espnLoginCode } from '../worker/src/espn_login.js';
 import { makeLib } from './pw_shim.mjs';
+import { discoverLeagues } from './discover.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PW_PKG || 'playwright');
 
@@ -58,7 +59,12 @@ try {
   if (r.status === 'code') r = { status: 'error', error: 'Too many wrong codes. Log in again.' };
   if (r.status === 'ok') {
     mask(r.s2);
-    const a = await report({ status: 'ok', s2: r.s2, swid: r.swid, trace });
+    // find the account's leagues from a signed-in browser (ESPN may answer a server with nothing)
+    const d = new Date(), season = d.getUTCFullYear() - (d.getUTCMonth() < 2 ? 1 : 0);
+    const found = await discoverLeagues(chromium, process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH, args: ['--no-sandbox'] } : {},
+      { s2: r.s2, swid: r.swid, season, startUrl: process.env.ESPN_API_MOCK || '' });
+    trace.push(...found.notes);
+    const a = await report({ status: 'ok', s2: r.s2, swid: r.swid, leagues: found.leagues, trace });
     console.log(a.ok ? 'signed in; leagues set up' : `site refused: ${a.error}`);
   } else {
     await report({ status: 'error', msg: r.error || 'Signing in to ESPN failed. Try again in a minute.', trace });

@@ -33,6 +33,18 @@ http.createServer(async (req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(FORM(next, msg));
 }).listen(9102, '127.0.0.1');
 http.createServer((req, res) => {
+  // what ESPN's own site asks (the sign-in job's browser now does the league lookup itself)
+  if (req.url.startsWith('/apis/v2/fans/')) {
+    if (!/espn_s2=/.test(req.headers.cookie || '')) { res.writeHead(401); return res.end('{}'); }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ preferences: [4001, 4002].map((g) => ({ metaData: { entry: { abbrev: 'FFL', gameId: 1, seasonId: 2026, groups: [{ groupId: g }] } } })) }));
+  }
+  if (req.url.startsWith('/apis/v3/games/ffl/')) {
+    const id = req.url.match(/leagues\/(\d+)/)[1], names = { 4001: 'Office League', 4002: 'Family League' };
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ settings: { name: names[id] }, teams: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: 'T' + i, owners: i === 2 ? [ME] : ['{X}'] })),
+      members: [{ id: ME, isLeagueManager: id === '4001' }, { id: '{X}' }] }));
+  }
   if (req.url === '/set') { res.writeHead(204, { 'Set-Cookie': ['espn_s2=AEBfake%2Bs2value' + 'x'.repeat(50) + '; Path=/', `SWID=${ME}; Path=/`] }); return res.end(); }
   res.writeHead(200, { 'Content-Type': 'text/html' });
   res.end(`<!doctype html><title>ESPN</title><iframe src="http://127.0.0.1:9102/oneid/email" width="400" height="400"></iframe><script>addEventListener('message',function(e){if(e.data==='ok')fetch('/set')})</script>`);
@@ -52,17 +64,14 @@ globalThis.fetch = async (url, init = {}) => {
     await gh.handle(url, init);
     const p = spawn(process.execPath, ['--no-warnings', new URL('../../login_runner/run.mjs', import.meta.url).pathname], {
       env: { ...process.env, SITE: inputs.site, JOB: inputs.job, LOGIN: inputs.login, SIG: process.env.TAMPER ? 'bad' : inputs.sig, BUILD_TOKEN: 'build-tok', LOGIN_KEY,
-        FZ_LOCAL_TEST: '1', PW_PKG: PW, CHROME_PATH: '/usr/bin/google-chrome', ESPN_LOGIN_URL: 'http://127.0.0.1:9101/login' }, stdio: ['ignore', 'pipe', 'pipe'] });
+        FZ_LOCAL_TEST: '1', PW_PKG: PW, CHROME_PATH: '/usr/bin/google-chrome', ESPN_LOGIN_URL: 'http://127.0.0.1:9101/login', ESPN_API_MOCK: 'http://127.0.0.1:9101/' }, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = ''; p.stdout.on('data', (d) => (out += d)); p.stderr.on('data', (d) => (out += d));
     jobs.push(new Promise((res) => p.on('exit', (c) => res({ code: c, out }))));
     return new Response(null, { status: 204 });
   }
   if (url.includes('api.github.com')) return (await gh.handle(url, init)) || new Response(null, { status: 204 });
   const ck = init.headers?.Cookie || '';
-  if (url.includes('fan.api.espn.com')) {
-    if (!ck.includes('espn_s2=AEB')) return new Response('no', { status: 401 });
-    return Response.json({ preferences: [4001, 4002].map((g) => ({ metaData: { entry: { abbrev: 'FFL', gameId: 1, seasonId: 2026, groups: [{ groupId: g }] } } })) });
-  }
+  if (url.includes('fan.api.espn.com')) return Response.json({});   // a server asking gets nothing back
   if (url.includes('lm-api-reads.fantasy.espn.com')) {
     const id = url.match(/leagues\/(\d+)/)[1], names = { 4001: 'Office League', 4002: 'Family League' };
     return Response.json({ settings: { name: names[id] }, teams: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: 'T' + i, owners: i === 2 ? [ME] : ['{X}'] })),
@@ -100,7 +109,7 @@ console.log('Free-plan ESPN sign-in, end to end');
   if (!reached) { const j0 = await jobs[0]; console.log('URL', pg.url(), '\nJOB', j0.code, j0.out); }
   assert.ok(reached, 'never reached My leagues'); ok('job signed in → user lands on My leagues by itself');
   const t = await pg.textContent('body');
-  assert.ok(t.includes('Office League') && t.includes('Family League') && /2 papers set up/.test(t)); ok('both leagues on the account set up');
+  assert.ok(t.includes('Office League') && t.includes('Family League') && /2 papers set up/.test(t)); ok('both leagues found by the job’s signed-in browser and set up (the site alone found none)');
   assert.ok(gh.json(`users/espn_${ME.replace(/[{}]/g, '')}.json`).espn_s2); ok('ESPN session saved (encrypted) on the account in the data repo');
   assert.ok(!gh.dump().includes('AEBfake')); ok('ESPN session is never stored readable');
   const j = await jobs.shift(); assert.equal(j.code, 0, j.out); assert.ok(!j.out.includes('right')); ok('job log has no password');

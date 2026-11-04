@@ -67,11 +67,20 @@ async function createOrUpdateLeague(env, D, { platform, leagueId, season, name, 
 }
 
 /** One ESPN account → every football league on it gets a paper. Used by the login, the extension and the weekly refresh. */
-async function linkEspnAccount(env, D, s2, swid) {
+/** Leagues found by the sign-in job's browser (trusted: the job authenticates with BUILD_TOKEN); cleaned up. */
+function cleanLeagues(list, season) {
+  if (!Array.isArray(list)) return null;
+  return list.filter((l) => l && /^\d{3,12}$/.test(String(l.id))).slice(0, 20).map((l) => ({ id: String(l.id), season,
+    name: String(l.name || `League ${l.id}`).slice(0, 100), teams: Math.max(0, Math.min(40, parseInt(l.teams, 10) || 0)),
+    team: String(l.team || '').slice(0, 100), commissioner: !!l.commissioner }));
+}
+
+async function linkEspnAccount(env, D, s2, swid, given = null) {
   const season = espnSeason();
   const uid = `espn:${String(swid).toUpperCase().replace(/[{}]/g, '')}`;
   await D.saveUser(uid, { platform: 'espn', espn_s2: await seal(env, s2), swid: await seal(env, swid) });
-  const res = await espnUserLeagues(s2, swid, season);
+  const fromJob = cleanLeagues(given, season);
+  const res = fromJob && fromJob.length ? { leagues: fromJob } : await espnUserLeagues(s2, swid, season);
   if (res.error) return { uid, error: res.error, leagues: [] };
   const leagues = [];
   for (const l of res.leagues) {
@@ -86,12 +95,8 @@ async function linkEspnAccount(env, D, s2, swid) {
 async function refreshEspnAccounts(env, D) {
   for (const u of (await D.allUsers()).filter((x) => x.platform === 'espn' && x.espn_s2)) {
     try {
-      const r = await linkEspnAccount(env, D, await open(env, u.espn_s2), await open(env, u.swid));
-      if (r.error) {
-        for (const L of (await D.allLeagues()).filter((x) => x.created_by === u.id && x.platform === 'espn')) {
-          await D.patchLeague(L.slug, { status: 'error', status_msg: 'ESPN sign-in expired. Log in with ESPN again to keep this paper printing.' });
-        }
-      }
+      // only adds leagues; an expired sign-in shows up when the printer can't read a league (ESPN answers it 401)
+      await linkEspnAccount(env, D, await open(env, u.espn_s2), await open(env, u.swid));
     } catch (e) { console.log('refresh failed', u.id, e.message); }
   }
 }
@@ -453,7 +458,7 @@ async function route(req, env, ctx) {
       const st = ['running', 'code', 'code_wrong', 'ok', 'error'].includes(b.status) ? b.status : 'error';
       if (b.trace) await D.trace(st !== 'error', b.trace);
       if (st === 'ok') {
-        const acct = await linkEspnAccount(env, D, String(b.s2 || ''), String(b.swid || ''));
+        const acct = await linkEspnAccount(env, D, String(b.s2 || ''), String(b.swid || ''), b.leagues);
         if (acct.error) {
           await D.setTemp('jobs', m[1], { status: 'error', msg: acct.error }, 15);
           return json({ ok: false, error: acct.error });
