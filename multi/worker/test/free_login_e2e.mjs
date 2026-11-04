@@ -113,6 +113,9 @@ console.log('Free-plan ESPN sign-in, end to end');
   assert.ok(gh.json(`users/espn_${ME.replace(/[{}]/g, '')}.json`).espn_s2); ok('ESPN session saved (encrypted) on the account in the data repo');
   assert.ok(!gh.dump().includes('AEBfake')); ok('ESPN session is never stored readable');
   const j = await jobs.shift(); assert.equal(j.code, 0, j.out); assert.ok(!j.out.includes('right')); ok('job log has no password');
+  const tab2 = await ctx.newPage(); await tab2.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
+  await tab2.goto(SITE + '/login'); assert.ok(!tab2.url().includes('/login'), tab2.url()); ok('a second tab is already signed in: no login form');
+  await tab2.goto(SITE + '/mine'); assert.match(await tab2.textContent('body'), /Office League/); ok('…and reads My leagues straight away');
   await ctx.close();
 }
 {

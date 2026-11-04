@@ -255,6 +255,13 @@ console.log('thedailyfantasizer.com front page');
   r = await call('GET', '/login?next=/'); assert.equal(jar.fz_next, '%2F'); ok('log in from the front page comes back to it');
   jar = saved;
   r = await call('GET', '/'); assert.equal(r.status, 303); assert.match(r.headers.get('Location'), /^\/(l\/[a-z0-9]+\/|mine)$/); ok('signed in: the front page opens your paper');
+  r = await call('GET', '/login'); assert.equal(r.status, 303); assert.equal(r.headers.get('Location'), '/'); ok('already signed in (another tab): the login page sends you on, no second login');
+  r = await call('GET', '/login?next=%2Fl%2Fabcdefgh%2F'); assert.equal(r.headers.get('Location'), '/l/abcdefgh/'); ok('…straight to the paper that asked');
+  r = await worker.fetch(new Request('https://www.fz.example/l/abc/'), env, ctx); assert.equal(r.status, 301); assert.equal(r.headers.get('Location'), 'https://fz.example/l/abc/'); ok('www → the one address, so the sign-in is always the same cookie');
+  { const { sign } = await import('../src/crypto.js');
+    const old = await sign(env, { uid: 'espn:ROLL', display: 'ESPN', exp: Date.now() + 20 * 864e5 });
+    r = await worker.fetch(new Request('https://fz.example/mine', { headers: { Cookie: `fz_s=${old}` } }), env, ctx);
+    assert.match(r.headers.get('Set-Cookie') || '', /fz_s=.*Max-Age=5184000/); ok('keeps reading → sign-in renewed for another 60 days'); }
   delete env.MAIN_LEAGUE;
 }
 

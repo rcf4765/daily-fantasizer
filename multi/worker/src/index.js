@@ -113,7 +113,8 @@ async function finishLogin(env, D, r) {
 async function route(req, env, ctx) {
   const url = new URL(req.url), path = url.pathname, method = req.method;
   // the old workers.dev address: people go to the real one (the GitHub jobs and APIs keep working on both)
-  if (env.SITE_URL && url.origin !== new URL(env.SITE_URL).origin && url.hostname.endsWith('.workers.dev') && method === 'GET' && !path.startsWith('/api/')) {
+  if (env.SITE_URL && url.origin !== new URL(env.SITE_URL).origin && method === 'GET' && !path.startsWith('/api/')
+      && (url.hostname.endsWith('.workers.dev') || url.hostname === 'www.' + new URL(env.SITE_URL).hostname)) {
     return Response.redirect(env.SITE_URL + path + url.search, 301);
   }
   const s = await session(req, env);
@@ -209,7 +210,7 @@ async function route(req, env, ctx) {
   const nextOk = (n) => (n === '/' || (/^\/l\/[a-z0-9]{6,16}\/[a-z0-9./-]*$/.test(n || '') && !n.includes('..')) ? n : '');
   if (path === '/login' && method === 'GET') {
     const next = nextOk(url.searchParams.get('next'));
-    if (s && next) return redirect(next);
+    if (s) return redirect(next || '/');   // already signed in (in any tab): no second login
     return html(P.espnLogin({ next }), 200, next ? { 'Set-Cookie': setCookie('fz_next', next, 1800) } : {});
   }
   if (path === '/login' && method === 'POST') {
@@ -558,7 +559,12 @@ try{var v=(location.hash.match(/^#fzt=([^&]+)/)||[])[1]||sessionStorage.getItem(
 export default {
   async fetch(req, env, ctx) {
     try {
-      return await route(req, env, ctx);
+      const res = await route(req, env, ctx);
+      const s = await session(req, env).catch(() => null);
+      if (!s || !s.exp || s.exp - Date.now() > 50 * 864e5 || (res.headers.get('Set-Cookie') || '').includes('fz_s=')) return res;
+      const out = new Response(res.body, res);   // copy (redirect responses have fixed headers)
+      out.headers.append('Set-Cookie', await startSession(env, s.uid, s.display));
+      return out;
     } catch (e) {
       console.log(e.stack || e);
       return html(P.message('Something broke', 'Try again in a minute.'), 500);
