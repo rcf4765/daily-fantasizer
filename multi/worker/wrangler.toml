@@ -6,6 +6,7 @@ name = "fantasizer"
 main = "src/index.js"
 compatibility_date = "2026-06-01"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = true   # keep the old workers.dev address answering (it forwards to SITE_URL)
 
 # Paid plan only (optional): sign in to ESPN on Cloudflare's own browser instead of GitHub Actions (faster).
 # browser = { binding = "BROWSER" }
