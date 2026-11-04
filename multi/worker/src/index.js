@@ -247,7 +247,16 @@ async function route(req, env, ctx) {
     const [id, t] = String(cookie(req, 'fz_job') || '').split('.');
     if (!/^[a-z0-9]{16}$/.test(id || '') || !t) return null;
     const j = await D.temp('jobs', id);
-    return j && j.token_hash === await sha256(t) ? { ...j, id } : null;
+    if (!j || j.token_hash !== await sha256(t)) return null;
+    // A job that never reported (GitHub didn't start it, or it stopped before it could) would leave the page waiting
+    // until the 15-minute expiry: give up after a few quiet minutes and say so.
+    const quiet = Date.now() - Date.parse(j.updated_at || j.created_at);
+    if ((j.status === 'queued' && quiet > 180000) || ((j.status === 'running' || j.status === 'code_sent') && quiet > 300000)) {
+      const msg = j.status === 'queued' ? 'The ESPN sign-in didn’t start. Try again.' : 'The ESPN sign-in stopped partway. Try again.';
+      await D.setTemp('jobs', id, { status: 'error', msg }, 15);
+      return { ...j, id, status: 'error', msg };
+    }
+    return { ...j, id };
   };
   if (path === '/login/status' && method === 'GET') {
     const j = await job();

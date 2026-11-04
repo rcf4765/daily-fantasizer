@@ -265,6 +265,20 @@ console.log('thedailyfantasizer.com front page');
   delete env.MAIN_LEAGUE;
 }
 
+console.log('sign-in job that never reports');
+{ const { sha256 } = await import('../src/crypto.js');
+  const id = 'stalejob00000001', t = 'tok123', old = new Date(Date.now() - 4 * 60000).toISOString();
+  gh.write(`jobs/${id}.json`, JSON.stringify({ token_hash: await sha256(t), status: 'queued', created_at: old, updated_at: old, expires: new Date(Date.now() + 6e5).toISOString() }));
+  const H = { headers: { Cookie: `fz_job=${id}.${t}` } };
+  let s = await (await worker.fetch(new Request('https://fz.example/login/status', H), env, ctx)).json();
+  assert.equal(s.status, 'error'); ok('queued for minutes with no word from the job → error, not an endless wait');
+  const w = await worker.fetch(new Request('https://fz.example/login/wait', H), env, ctx);
+  assert.equal(w.status, 400); assert.match(await w.text(), /didn.t start/); ok('the waiting page says to try again');
+  const id2 = 'freshjob00000001', now = new Date().toISOString();
+  gh.write(`jobs/${id2}.json`, JSON.stringify({ token_hash: await sha256(t), status: 'queued', created_at: now, expires: new Date(Date.now() + 6e5).toISOString() }));
+  s = await (await worker.fetch(new Request('https://fz.example/login/status', { headers: { Cookie: `fz_job=${id2}.${t}` } }), env, ctx)).json();
+  assert.equal(s.status, 'queued'); ok('a job that just started keeps waiting'); }
+
 console.log('cleanup');
 await call('POST', `/l/${ySlug}/delete`, { form: {} });
 assert.equal(gh.json(`leagues/${ySlug}.json`), null); assert.ok(!Object.values(gh.json('index/leagues.json')).includes(ySlug)); ok('commissioner can remove a league');

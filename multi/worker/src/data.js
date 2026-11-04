@@ -82,7 +82,7 @@ export function makeData(env) {
       return v && (!v.expires || Date.parse(v.expires) > Date.now()) ? v : null;
     },
     async setTemp(kind, key, value, minutes) {
-      return st.update(`${kind}/${safe(key)}.json`, (cur) => ({ ...(cur || {}), ...value, expires: new Date(Date.now() + minutes * 60000).toISOString() }));
+      return st.update(`${kind}/${safe(key)}.json`, (cur) => ({ ...(cur || {}), ...value, updated_at: now(), expires: new Date(Date.now() + minutes * 60000).toISOString() }));
     },
     async dropTemp(kind, key) { return st.update(`${kind}/${safe(key)}.json`, () => null); },
     /** Count a sign-in attempt from this address; returns how many in the last 15 minutes (including this one). */
