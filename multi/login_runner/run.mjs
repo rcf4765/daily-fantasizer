@@ -14,7 +14,8 @@ const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PW_PKG || 'playwright');
 
 const { SITE, JOB, BUILD_TOKEN, LOGIN_KEY } = process.env;
-const ok = /^https:\/\/[a-z0-9.-]+\.workers\.dev$/.test(SITE || '') || process.env.FZ_LOCAL_TEST === '1';
+// any https site address (thedailyfantasizer.com, workers.dev, a Pi…); the site's signature below proves it's ours
+const ok = /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}$/.test(SITE || '') || process.env.FZ_LOCAL_TEST === '1';
 if (!ok || !/^[a-z0-9]{16}$/.test(JOB || '') || !BUILD_TOKEN || !LOGIN_KEY) { console.error('missing or bad SITE/JOB/BUILD_TOKEN/LOGIN_KEY'); process.exit(2); }
 // The site signs (site|job) with BUILD_TOKEN; a dispatch naming any other site is refused before anything is sent.
 const want = createHmac('sha256', BUILD_TOKEN).update(`${SITE}|${JOB}`).digest();
