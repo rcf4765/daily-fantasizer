@@ -3,7 +3,7 @@
 
 While ESPN / Yahoo sign-in is being built, the homepage opens with the league's sections blurred and three buttons
 under the masthead:
-  Link ESPN Fantasy account   → explains that linking your own league is coming soon
+  Link ESPN Fantasy account   → the sign-up site's "Log in with ESPN" page (SIGNUP below)
   Link Yahoo Fantasy account  → grayed out ("Soon")
   Continue to Men Fantasizing league → un-blurs the paper and unlocks Rule Changes and Betting
 Continue is remembered in that browser (localStorage), so league members tap it once. The edition itself is not
@@ -15,6 +15,8 @@ Usage: python3 gate.py FILE...   (idempotent)   ·   python3 gate.py --remove FI
 import pathlib
 import re
 import sys
+
+SIGNUP = "https://fantasizer.m5njj556g4.workers.dev"   # the any-league site (multi/worker); its login page is /login
 
 CSS = r"""<!--gate--><script>try{if(localStorage.getItem('fz-continue')!=='1')document.documentElement.classList.add('fz-gated')}catch(e){document.documentElement.classList.add('fz-gated')}</script>
 <style id="fz-gate-css">
@@ -52,7 +54,7 @@ html.fz-gated a.to-league[data-tab="proposals"],html.fz-gated a.to-league[data-t
 BAR = r"""<!--gate--><div class="fz-cb" id="fz-connect" contenteditable="false"><div class="fz-cb-in">
   <div class="fz-cb-t"><b>Print this paper for your league</b><span>Link your fantasy account and every section fills in with your own league, in exactly this layout. In Men Fantasizing? Continue to your paper.</span></div>
   <div class="fz-cb-b">
-    <button type="button" class="fz-btn" id="fz-espn">Link ESPN Fantasy account</button>
+    <a class="fz-btn" id="fz-espn" href="SIGNUP_URL/login" style="text-decoration:none">Link ESPN Fantasy account</a>
     <button type="button" class="fz-btn" disabled title="Yahoo is coming soon">Link Yahoo Fantasy account <small>Soon</small></button>
     <button type="button" class="fz-btn fz-go" id="fz-continue">Continue to Men Fantasizing league</button>
   </div>
@@ -69,9 +71,8 @@ JS = r"""<!--gate--><script id="fz-gate-js">
   function gated(){return R.classList.contains('fz-gated')}
   function $(id){return document.getElementById(id)}
   var dlg=$('fz-espn-dlg');
-  function espn(){ if(dlg&&dlg.showModal&&!dlg.open) dlg.showModal() }
+  function espn(){ location.href=SIGNUP_JS+'/login' }
   function go(){ try{localStorage.setItem('fz-continue','1')}catch(e){} R.classList.remove('fz-gated'); if(dlg&&dlg.open) dlg.close(); window.scrollTo(0,0) }
-  $('fz-espn')&&$('fz-espn').addEventListener('click',espn);
   $('fz-continue')&&$('fz-continue').addEventListener('click',go);
   $('fz-dlg-go')&&$('fz-dlg-go').addEventListener('click',go);
   $('fz-dlg-close')&&$('fz-dlg-close').addEventListener('click',function(){dlg.close()});
@@ -94,6 +95,7 @@ def remove(html):
 
 def add(html):
     html = remove(html)
+    bar, js = BAR.replace("SIGNUP_URL", SIGNUP), JS.replace("SIGNUP_JS", repr(SIGNUP))
     i = html.find("</title>")
     j = html.find("</header>")
     if i < 0 or j < 0:
@@ -101,8 +103,8 @@ def add(html):
     i += len("</title>")
     html = html[:i] + "\n" + CSS + html[i:]
     j = html.find("</header>") + len("</header>")
-    html = html[:j] + "\n" + BAR + html[j:]
-    return html.rstrip() + "\n" + JS + "\n"
+    html = html[:j] + "\n" + bar + html[j:]
+    return html.rstrip() + "\n" + js + "\n"
 
 
 if __name__ == "__main__":

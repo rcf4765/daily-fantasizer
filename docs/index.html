@@ -1016,7 +1016,7 @@ footer b{color:var(--honolulu);font-weight:600}
 <!--gate--><div class="fz-cb" id="fz-connect" contenteditable="false"><div class="fz-cb-in">
   <div class="fz-cb-t"><b>Print this paper for your league</b><span>Link your fantasy account and every section fills in with your own league, in exactly this layout. In Men Fantasizing? Continue to your paper.</span></div>
   <div class="fz-cb-b">
-    <button type="button" class="fz-btn" id="fz-espn">Link ESPN Fantasy account</button>
+    <a class="fz-btn" id="fz-espn" href="https://fantasizer.m5njj556g4.workers.dev/login" style="text-decoration:none">Link ESPN Fantasy account</a>
     <button type="button" class="fz-btn" disabled title="Yahoo is coming soon">Link Yahoo Fantasy account <small>Soon</small></button>
     <button type="button" class="fz-btn fz-go" id="fz-continue">Continue to Men Fantasizing league</button>
   </div>
@@ -3291,9 +3291,8 @@ abbr.ac:hover{text-decoration-style:solid}
   function gated(){return R.classList.contains('fz-gated')}
   function $(id){return document.getElementById(id)}
   var dlg=$('fz-espn-dlg');
-  function espn(){ if(dlg&&dlg.showModal&&!dlg.open) dlg.showModal() }
+  function espn(){ location.href='https://fantasizer.m5njj556g4.workers.dev'+'/login' }
   function go(){ try{localStorage.setItem('fz-continue','1')}catch(e){} R.classList.remove('fz-gated'); if(dlg&&dlg.open) dlg.close(); window.scrollTo(0,0) }
-  $('fz-espn')&&$('fz-espn').addEventListener('click',espn);
   $('fz-continue')&&$('fz-continue').addEventListener('click',go);
   $('fz-dlg-go')&&$('fz-dlg-go').addEventListener('click',go);
   $('fz-dlg-close')&&$('fz-dlg-close').addEventListener('click',function(){dlg.close()});
