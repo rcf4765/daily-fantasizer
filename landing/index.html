@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Daily Fantasizer</title>
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#0b1433">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=IBM+Plex+Mono:wght@500;600&family=Literata:wght@400;600&display=swap">
+<style>
+:root{--paper:#e3e6de;--sheet:#f4f5f0;--ink:#151a24;--muted:#59606c;--blue:#1c3fae;--honolulu:#0076b6;--silver:#b0b7bc;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;--body:"Literata",Georgia,serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root{--paper:#0e1117;--sheet:#171b24;--ink:#e8eae3;--muted:#a2a9b5;--blue:#5b7de8;--honolulu:#2a95d4;--silver:#8c949b;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.55 var(--body)}
+main{max-width:720px;margin:0 auto;padding:max(28px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
+.k{font:600 12px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:900 clamp(56px,15vw,110px)/.9 var(--display);text-transform:uppercase;margin:8px 0 0;letter-spacing:.01em}
+h1 span{display:block;color:var(--blue)}
+.rule{height:8px;background:var(--ink);margin:18px 0 0;box-shadow:0 6px 0 var(--paper),0 10px 0 var(--honolulu),0 14px 0 var(--paper),0 16px 0 var(--silver)}
+.box{margin-top:44px;background:var(--sheet);border:2px solid var(--ink);padding:22px}
+.box b{display:block;font:900 30px/1 var(--display);text-transform:uppercase}
+.box p{margin:10px 0 18px;color:var(--muted)}
+.btn{display:flex;align-items:center;justify-content:center;min-height:50px;padding:0 18px;background:var(--blue);color:#fff;
+  font:600 15px/1 var(--mono);text-transform:uppercase;letter-spacing:.04em;text-decoration:none;border:2px solid var(--blue)}
+.btn:focus-visible{outline:3px solid #f2d23c;outline-offset:2px}
+.btn.y{background:transparent;color:var(--muted);border-color:var(--silver);margin-top:10px;cursor:not-allowed}
+.small{font-size:14px;color:var(--muted);margin-top:16px}
+</style></head>
+<body><main>
+<span class="k">Official paper of the Men Fantasizing league</span>
+<h1>The Daily<span>Fantasizer</span></h1>
+<div class="rule" aria-hidden="true"></div>
+<section class="box" aria-labelledby="h">
+  <b id="h">Sign in to read the paper</b>
+  <p>The Daily Fantasizer is for league members. Log in with the ESPN account that's in your league and your paper opens, every Tuesday.</p>
+  <a class="btn" id="go" href="https://fantasizer.m5njj556g4.workers.dev/l/dv6dqhzz2c/">Log in with ESPN</a>
+  <span class="btn y" aria-disabled="true">Log in with Yahoo · soon</span>
+  <p class="small">Your ESPN password goes only to ESPN's own login; we never store it, and we can't change anything in your league.</p>
+</section>
+</main>
+<script>
+// Members who signed in to Rule Changes / Betting here keep their team: the pass rides along in the link's #fragment
+// (never sent to any server) and the paper's new address saves it in this browser.
+try { var t = localStorage.getItem('fz-team'); if (t) { var j = JSON.parse(t); if (j && j.key && j.team) document.getElementById('go').href += '#fzt=' + encodeURIComponent(btoa(t)); } } catch (e) {}
+// The old home-screen app kept a copy of the paper for offline reading: remove it.
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+if (window.caches) caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})}).catch(function(){});
+</script>
+</body></html>

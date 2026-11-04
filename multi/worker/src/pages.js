@@ -82,7 +82,7 @@ const mast = (kicker) => `<header class="mast"><span class="kicker">${esc(kicker
 
 export function home(env, signedIn) {
   return layout('The Daily Fantasizer: a newspaper for your fantasy league', `${mast('A newspaper for your fantasy football league')}
-<p class="lede">Every Tuesday, a fresh edition built from your league's real games: upsets, bench blunders, power rankings, playoff odds and a player desk. Log in once and every league on your account gets its paper.</p>
+<p class="lede">Every Tuesday, a fresh edition built from your league's real games: upsets, bench blunders, power rankings, playoff odds and a player desk. Log in once and every league on your account gets its paper. Papers are for league members only.</p>
 <div class="grid two" style="margin-top:22px">
  <section class="card e"><span class="kicker">ESPN</span><h3>Log in with ESPN</h3>
   <p>Use the email and password you use for ESPN Fantasy. We find your leagues and print each one's paper.</p>
@@ -99,9 +99,10 @@ const BUSY = `<script>document.addEventListener('submit',function(e){var b=e.tar
  var n=document.getElementById('busy');if(n){n.hidden=false}setInterval(function(){if(i<m.length-1)b.textContent=m[++i]},9000)});
 window.addEventListener('pageshow',function(){document.querySelectorAll('button[type=submit]').forEach(function(b){b.disabled=false;if(b.dataset.t)b.textContent=b.dataset.t})});</script>`;
 
-export function espnLogin({ error = '', email = '' } = {}) {
+export function espnLogin({ error = '', email = '', next = '' } = {}) {
   return layout('Log in with ESPN · The Daily Fantasizer', `${mast('Log in with ESPN')}
 ${error ? `<div class="err" role="alert">${esc(error)}</div>` : ''}
+${next ? '<p class="lede" style="margin-bottom:14px">Log in with the ESPN account that’s in your league to read its paper.</p>' : ''}
 <form method="post" action="/login" style="max-width:440px">
  <label><span class="kicker">ESPN email</span><input type="email" name="email" required autocomplete="username" inputmode="email" value="${esc(email)}"></label>
  <label><span class="kicker">ESPN password</span><input type="password" name="password" required autocomplete="current-password"></label>
@@ -109,7 +110,8 @@ ${error ? `<div class="err" role="alert">${esc(error)}</div>` : ''}
  <p class="note" id="busy" hidden>This takes about 20 to 40 seconds. Keep this page open.</p>
  <p class="hint">We sign in to ESPN for you once and keep only ESPN's sign-in pass, encrypted. Your password is never stored. We only read your leagues; we can't change lineups, trades or settings.</p>
 </form>
-<p class="hint" style="margin-top:22px"><a href="/">← Back</a></p>${BUSY}`);
+<p class="hint" style="margin-top:22px"><a href="/">← Back</a></p>${BUSY}
+<script>try{var m=location.hash.match(/^#fzt=([^&]+)/);if(m){sessionStorage.setItem('fz-carry',m[1]);history.replaceState(null,'',location.pathname+location.search)}}catch(e){}</script>`);
 }
 
 export function espnCode({ error = '', email = '', wait = false } = {}) {
@@ -171,7 +173,7 @@ ${saved ? '<div class="note" role="status">Saved. The paper is being reprinted w
 ${verifyMsg ? `<div class="note">${esc(verifyMsg)}</div>` : ''}
 <h2>Share</h2>
 <div class="share"><input type="text" readonly value="${esc(link)}" id="lnk" aria-label="Link to your league's paper"><button class="btn" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('lnk').value);this.textContent='Copied'">Copy</button></div>
-<p class="hint">Anyone with the link can read the paper. Last printed: ${L.last_built_at ? esc(L.last_built_at.slice(0, 16).replace('T', ' ')) + ' UTC, week ' + esc(L.last_week) : 'not yet'}.</p>
+<p class="hint">Only members of this league can read it: they log in with the ESPN account that’s in the league. Last printed: ${L.last_built_at ? esc(L.last_built_at.slice(0, 16).replace('T', ' ')) + ' UTC, week ' + esc(L.last_week) : 'not yet'}.</p>
 <form method="post" action="/l/${esc(L.slug)}/settings">
 <h2>Optional tabs</h2>
 <label class="toggle"><span><b>Rule Changes</b><p>Teams propose scoring, rule and settings changes and vote; a majority of ${L.teams} teams passes one. You set passed changes in ${L.platform === 'yahoo' ? 'Yahoo' : 'ESPN'} yourself.</p></span><input type="checkbox" name="rules" ${L.feat_rules ? 'checked' : ''}></label>

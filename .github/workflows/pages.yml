@@ -5,7 +5,7 @@ name: Deploy league site
 on:
   push:
     branches: [main]
-    paths: ["docs/**"]
+    paths: ["docs/**", "landing/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -26,8 +26,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Public site = the sign-in page only (landing/). The paper itself is members-only on the sign-up site
+      # (sync-paper.yml copies each edition there). Kept public: the betting boards and the rulebook, which the
+      # league office (Google Sheet) checks bets and rules against, and the home-screen app's icons.
+      - name: Build the public site
+        run: |
+          mkdir -p _site/bets
+          cp landing/index.html landing/404.html landing/sw.js _site/
+          cp -r docs/icons docs/manifest.webmanifest _site/ 2>/dev/null || true
+          cp docs/rulebook.json _site/ 2>/dev/null || true
+          cp docs/bets/*.json _site/bets/ 2>/dev/null || true
+          touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

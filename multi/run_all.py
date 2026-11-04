@@ -103,6 +103,8 @@ def main():
     bad = 0
     for c in leagues:
         slug = c["slug"]
+        if c.get("own_paper"):   # e.g. Men Fantasizing: its own weekly edition is synced in by sync-paper.yml
+            print(f"[{slug}] has its own paper; not reprinted"); continue
         if c.get("error"):
             status(slug, "error", c["error"]); bad += 1; continue
         work, out = os.path.join(ROOT, "leagues", slug), os.path.join(ROOT, "out", slug)

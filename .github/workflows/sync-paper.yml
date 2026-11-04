@@ -1,0 +1,64 @@
+name: Copy the paper to the members-only site
+
+# Every new Men Fantasizing edition (a push to docs/) is copied into the private data repo as the Men Fantasizing
+# league's paper on the sign-up site, where members read it after signing in with ESPN. The league is marked
+# own_paper, so the generic printer never overwrites it. Needs secret FZ_GITHUB_TOKEN (data repo: Contents write).
+
+on:
+  push:
+    branches: [main]
+    paths: ["docs/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-paper
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_PAT: ${{ secrets.FZ_GITHUB_TOKEN }}
+      DATA_REPO: ${{ vars.FZ_DATA_REPO || format('{0}/daily-fantasizer-data', github.repository_owner) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Copy into the data repo
+        run: |
+          git -c http.extraheader= clone -q "https://x-access-token:${GH_PAT}@github.com/${DATA_REPO}.git" data
+          python3 - <<'PY'
+          import datetime, glob, json, os, re, shutil
+          import gate
+          lg = json.load(open("league.json"))
+          ix = json.load(open("data/index/leagues.json"))
+          slug = ix.get(f"espn:{lg['league_id']}:{lg['season']}")
+          if not slug:
+              print("Men Fantasizing isn't set up on the site yet (log in with ESPN once); nothing to copy."); raise SystemExit(0)
+          dst = f"data/papers/{slug}"
+          os.makedirs(f"{dst}/bets", exist_ok=True)
+          weeks = sorted(int(m.group(1)) for p in glob.glob("docs/week*.html") if (m := re.search(r"week(\d+)\.html$", p)))
+          for w in weeks:
+              html = gate.remove(open(f"docs/week{w}.html", encoding="utf-8").read())
+              open(f"{dst}/week{w}.html", "w", encoding="utf-8").write(html)
+          shutil.copyfile(f"{dst}/week{weeks[-1]}.html", f"{dst}/index.html")
+          if os.path.exists("docs/rulebook.json"): shutil.copyfile("docs/rulebook.json", f"{dst}/rulebook.json")
+          for f in glob.glob("docs/bets/*.json"): shutil.copyfile(f, f"{dst}/bets/{os.path.basename(f)}")
+          json.dump({"week": weeks[-1], "status": "ok", "league_name": lg["league_name"], "source": "weekly edition"}, open(f"{dst}/meta.json", "w"), indent=1)
+          p = f"data/leagues/{slug}.json"; L = json.load(open(p))
+          L.update(own_paper=True, status="ok", status_msg=f"Week {weeks[-1]} edition.", last_week=weeks[-1],
+                   last_built_at=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"))
+          json.dump(L, open(p, "w"), indent=1)
+          print(f"copied weeks {weeks} to papers/{slug}/")
+          PY
+          cd data
+          git config user.name "Daily Fantasizer sync"; git config user.email "sync@users.noreply.github.com"
+          git add -A papers leagues
+          git diff --cached --quiet && { echo "nothing new"; exit 0; }
+          git commit -q -m "sync: Men Fantasizing weekly edition"
+          for i in 1 2 3 4 5; do git -c http.extraheader= pull -q --rebase origin main && git -c http.extraheader= push -q origin HEAD:main && exit 0; sleep $((i*3)); done
+          exit 1

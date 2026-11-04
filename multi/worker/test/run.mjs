@@ -77,13 +77,7 @@ r = await call('GET', '/espn'); assert.match(await text(r), /League ID/); ok('ES
 
 console.log('ESPN');
 r = await call('POST', '/espn', { form: { league: 'abc', season: '2026' } }); assert.equal(r.status, 400); ok('bad id rejected');
-r = await call('POST', '/espn', { form: { league: '999', season: '2026' } }); assert.match(await text(r), /private/); ok('private league asks for cookies');
-r = await call('POST', '/espn', { form: { league: 'https://fantasy.espn.com/football/league?leagueId=123456&seasonId=2026', season: '2026' } });
-assert.equal(r.status, 303); const pubSlug = r.headers.get('Location').split('/')[2]; ok(`public league created → /l/${pubSlug}/`);
-assert.deepEqual(dispatched.pop(), pubSlug); ok('first print dispatched');
-r = await call('GET', `/l/${pubSlug}/settings`); assert.equal(r.status, 403); ok('no cookies = not commissioner, settings locked');
-r = await call('GET', `/l/${pubSlug}/`); assert.match(await text(r), /queued at the printer/); ok('status page before first print');
-
+r = await call('POST', '/espn', { form: { league: '123456', season: '2026' } }); assert.equal(r.status, 400); assert.match(await text(r), /Log in with ESPN/); ok('no anonymous papers: a league needs an ESPN sign-in');
 jar = {};
 r = await call('POST', '/espn', { form: { league: '777', season: '2026', espn_s2: 'S2SECRET', swid: '{BBBB-2222}' } });
 const privSlug = r.headers.get('Location').split('/')[2];
@@ -113,7 +107,10 @@ const lineFile = { week: 9, nfl: [{ id: 'N:G1', title: 'CAR @ GB', lock: '2099-0
 gh.write(`papers/${privSlug}/bets/lines9.json`, JSON.stringify(lineFile));
 await call('POST', `/api/build/${privSlug}/status`, { headers: { Authorization: 'Bearer build-tok' }, body: JSON.stringify({ status: 'ok', week: 8 }) });
 r = await call('GET', `/l/${privSlug}/`); let t = await text(r); assert.match(t, /<p>paper<\/p>/); assert.match(t, /\/settings"/); ok('paper served, commissioner sees a Settings button');
-jar = {}; r = await call('GET', `/l/${privSlug}/`); t = await text(r); assert.doesNotMatch(t, /\/settings"/); ok('everyone else sees only the paper');
+jar = {}; r = await call('GET', `/l/${privSlug}/`); assert.equal(r.status, 303); assert.match(r.headers.get('Location'), /^\/login\?next=%2Fl%2F/); ok('signed out → sent to log in, then back to this paper');
+r = await call('GET', `/l/${privSlug}/week8.html`); assert.equal(r.status, 303); ok('every edition needs a sign-in');
+await call('POST', '/espn', { form: { league: '777', season: '2026', espn_s2: 'S2SECRET', swid: '{BBBB-2222}' } });
+r = await call('GET', `/l/${privSlug}/`); t = await text(r); assert.match(t, /<p>paper<\/p>/); assert.doesNotMatch(t, /\/settings"/); ok('a league member reads it (no Settings)');
 r = await call('GET', `/l/${privSlug}/archive`); assert.match(await text(r), /Week 8/); ok('archive lists editions');
 
 console.log('league office');
@@ -140,8 +137,7 @@ res = await post({ action: 'admin', code: code.toLowerCase(), op: 'reset', team:
 jar = {}; await call('POST', '/espn', { form: { league: '777', season: '2026', espn_s2: 'S2BOSS', swid: '{AAAA-1111}' } });
 await call('POST', `/l/${privSlug}/settings`, { form: { rules: 'on', accent: '#2d6a4f' } });
 res = await post({ action: 'bet', team: 1, key: k1, week: 9, stake: 1, legs: ['N:G1:ml:h'] }); assert.match(res.error, /turned off/); ok('betting off → bets refused');
-await call('POST', `/l/${pubSlug}/settings`, { form: { rules: 'on' } });
-r = await call('GET', `/api/office/${pubSlug}`); assert.match((await r.json()).error, /hasn’t turned/); ok('another league’s office stays closed (not its commissioner)');
+r = await call('GET', '/api/office/nosuchleague1'); assert.equal(r.status, 404); ok('unknown league office refused');
 
 console.log('Yahoo');
 jar = {};
@@ -149,6 +145,7 @@ r = await call('GET', '/auth/yahoo'); const loc = new URL(r.headers.get('Locatio
 assert.equal(loc.origin + loc.pathname, 'https://api.login.yahoo.com/oauth2/request_auth'); assert.equal(loc.searchParams.get('redirect_uri'), 'https://fz.example/auth/yahoo/callback'); ok('redirect to Yahoo');
 r = await call('GET', `/auth/yahoo/callback?code=C1&state=WRONG`); assert.equal(r.status, 400); ok('state mismatch rejected');
 r = await call('GET', `/auth/yahoo/callback?code=C1&state=${loc.searchParams.get('state')}`); assert.equal(r.headers.get('Location'), '/yahoo'); ok('signed in');
+ { const rr = await call('GET', `/l/${privSlug}/`); assert.equal(rr.status, 403); assert.match(await text(rr), /Members only/); ok('signed in, but not in this league → members only'); }
 r = await call('GET', '/yahoo'); t = await text(r); assert.match(t, /Sunday Funday[\s\S]*Commissioner/); assert.match(t, /Work League/); ok('league picker marks where you are commissioner');
 r = await call('POST', '/yahoo/league', { form: { key: '461.l.556' } }); const workSlug = r.headers.get('Location').split('/')[2];
 r = await call('GET', `/l/${workSlug}/settings`); assert.equal(r.status, 403); ok('not commissioner of Work League → settings locked');
@@ -231,7 +228,7 @@ console.log('Log in with ESPN (server signs in; user only logs in)');
     r = await call('GET', `/l/${slugs[0].slug}/`); page = await text(r);
     assert.ok(page.includes('fz-lgbar') && page.includes("querySelector('header.mast')") && page.includes('Office League') && page.includes('Family League')); ok('paper carries a switcher to every league you are in (placed above the masthead)');
     assert.equal((page.match(/aria-current="page"/g) || []).length, 1); ok('current league highlighted');
-    const saved = { ...jar }; jar = {}; r = await call('GET', `/l/${slugs[0].slug}/`); assert.ok(!(await text(r)).includes('fz-lgbar')); jar = saved; ok('people reading a shared link see no switcher'); }
+    const saved = { ...jar }; jar = {}; r = await call('GET', `/l/${slugs[0].slug}/`); assert.equal(r.status, 303); jar = saved; ok('a shared link without a sign-in goes to the login'); }
   r = await call('POST', '/mine/add', { form: { league: '4777' } }); assert.match(r.headers.get('Location'), /err=/); ok('add by ID refuses a league you are not in');
   r = await call('POST', '/mine/add', { form: { league: 'https://fantasy.espn.com/football/league?leagueId=4003' } }); assert.match(r.headers.get('Location'), /added=1/); ok('add by ID from a league link');
   globalThis.JOINED_4004 = true; const before = dispatched.length;

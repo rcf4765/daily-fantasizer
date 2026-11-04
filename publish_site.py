@@ -8,8 +8,9 @@ Usage: python3 publish_site.py N
 - docs/archive.html = list of every edition in docs/
 - docs/.nojekyll    = serve the files as-is
 
-The edition HTML is copied byte for byte; the design is never touched here. The homepage
-(docs/index.html only) also gets the sign-in gate from gate.py. The other
+The edition HTML is copied byte for byte; the design is never touched here. docs/ is not served
+publicly any more: pages.yml serves the sign-in page (landing/), and sync-paper.yml copies docs/ to the
+members-only sign-up site. The only
 addition is the home-screen app tags (icon, manifest, offline worker) placed right after
 the <title> of the copies in docs/, between <!--app--> and <!--/app-->. The install page
 (docs/install.html), manifest, sw.js and icons/ are static files that live in docs/.
@@ -19,7 +20,6 @@ import re
 import shutil
 import sys
 
-import gate
 
 ROOT = pathlib.Path(__file__).resolve().parent
 DOCS = ROOT / "docs"
@@ -102,10 +102,8 @@ def main():
         add_app_tags(DOCS / f"week{w}.html")
     # The homepage always shows the newest edition, even when an older week is re-published.
     shutil.copyfile(DOCS / f"week{latest}.html", DOCS / "index.html")
-    # The homepage opens behind the sign-in gate (gate.py): blurred, with Link ESPN / Link Yahoo / Continue to
-    # Men Fantasizing league. Remove these two lines (and run gate.py --remove docs/index.html) to take it down.
-    idx = DOCS / "index.html"
-    idx.write_text(gate.add(idx.read_text(encoding="utf-8")), encoding="utf-8")
+    # The public site no longer shows the paper (user, 2026-11-03: everyone signs in). pages.yml publishes the
+    # sign-in page from landing/; sync-paper.yml copies docs/ to the members-only site. No gate on docs/index.html.
 
     items = "\n".join(
         f'<li><a href="week{w}.html">Week {w}'

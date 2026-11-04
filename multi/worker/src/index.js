@@ -171,7 +171,12 @@ async function route(req, env, ctx) {
   }
 
   // ---- ESPN: log in once (the server signs in to ESPN; the password is used once, never stored) ----
-  if (path === '/login' && method === 'GET') return html(P.espnLogin());
+  const nextOk = (n) => (/^\/l\/[a-z0-9]{6,16}\/[a-z0-9./-]*$/.test(n || '') && !n.includes('..') ? n : '');
+  if (path === '/login' && method === 'GET') {
+    const next = nextOk(url.searchParams.get('next'));
+    if (s && next) return redirect(next);
+    return html(P.espnLogin({ next }), 200, next ? { 'Set-Cookie': setCookie('fz_next', next, 1800) } : {});
+  }
   if (path === '/login' && method === 'POST') {
     const f = await form(req);
     const email = String(f.email || '').trim(), password = String(f.password || '');
@@ -224,9 +229,11 @@ async function route(req, env, ctx) {
     const j = await job();
     if (!j || j.status !== 'ok' || j.finished) return redirect(s ? '/mine' : '/login');
     await D.setTemp('jobs', j.id, { finished: 1 }, 15);
-    const headers = new Headers({ Location: `/mine?added=${j.added || 0}&found=${j.found || 0}` });
+    const next = nextOk(cookie(req, 'fz_next'));
+    const headers = new Headers({ Location: next || `/mine?added=${j.added || 0}&found=${j.found || 0}` });
     headers.append('Set-Cookie', await startSession(env, j.uid, 'ESPN'));
     headers.append('Set-Cookie', setCookie('fz_job', '', 0));
+    if (next) headers.append('Set-Cookie', setCookie('fz_next', '', 0));
     return new Response(null, { status: 303, headers });
   }
   if (path === '/login/code' && method === 'POST' && cookie(req, 'fz_job')) {
@@ -274,7 +281,8 @@ async function route(req, env, ctx) {
     const season = parseInt(f.season, 10) || new Date().getUTCFullYear();
     if (!m) return html(P.espnForm({ error: 'That doesn’t look like an ESPN league ID.', leagueId: f.league, season }), 400);
     const s2 = String(f.espn_s2 || '').trim(), swid = String(f.swid || '').trim();
-    if ((s2 && !swid) || (!s2 && swid)) return html(P.espnForm({ error: 'Add both cookies, espn_s2 and SWID, or neither.', leagueId: f.league, season }), 400);
+    // everyone signs in: a league is only set up with an ESPN sign-in that proves the person is in it
+    if (!s2 || !swid) return html(P.espnForm({ error: 'Log in with ESPN instead: papers are for league members, so we need to know you’re in the league.', leagueId: f.league, season }), 400);
     const info = await espnLeague(m[1], season, s2, swid);
     if (info.error) return html(P.espnForm({ error: info.error, leagueId: f.league, season }), 400);
     if (s2 && !info.member) return html(P.espnForm({ error: 'Those cookies belong to an ESPN account that isn’t in this league.', leagueId: f.league, season }), 403);
@@ -405,23 +413,33 @@ async function route(req, env, ctx) {
         return html(P.message('League removed', 'Every paper and record for that league is gone from this site.'));
       }
     }
+    // Papers are for the league's members only: signed in, and the ESPN account is in this league
+    // (membership is recorded when that account signs in and its leagues are found; viewing never adds it).
+    if (!s) return redirect(`/login?next=${encodeURIComponent(`/l/${L.slug}${rest}`)}`);
+    if (!isComm(L, s) && !(await D.memberships(s.uid))[L.slug]) {
+      return html(P.message('Members only', `This paper is for ${L.name}. Log in with the ESPN account that's in this league.`, '/mine'), 403);
+    }
     if (rest === '/archive') {
       return html(P.archive(L, await D.weeks(L.slug)));
     }
-    if (rest === '/rulebook.json') return json({ entries: {} });
+    if (rest === '/rulebook.json') {
+      const rb = await D.paper(L.slug, 'rulebook.json');
+      return rb ? new Response(rb.body, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' } }) : json({ entries: {} });
+    }
     const file = rest === '/' ? 'index.html' : rest.slice(1);
     if (/^(index\.html|week\d{1,2}\.html|bets\/lines\d{1,2}\.json)$/.test(file)) {
       const obj = await D.paper(L.slug, file);
       if (!obj) return file === 'index.html' ? html(P.status(L, null, isComm(L, s))) : html(P.message('Not printed', 'That edition doesn’t exist.', `/l/${L.slug}/`), 404);
-      if (s) ctx.waitUntil(D.remember(s.uid, L.slug, isComm(L, s)).catch(() => {}));
       if (!file.endsWith('.html')) return new Response(obj.body, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' } });
       // Signed in: a bar above the masthead to switch between every league you're in (and Settings for commissioners).
       // The paper streams through untouched; the bar rides at the end and moves itself into place.
-      if (!s) return html(obj.body, 200, { 'Cache-Control': 'private, max-age=60' });
       const mineRows = (await D.myLeagues(s.uid)).sort((a, b) => a.name.localeCompare(b.name));
       if (!mineRows.some((r) => r.slug === L.slug)) mineRows.push(L);
       const bar = P.leagueBar(L.slug, mineRows, isComm(L, s), file !== 'index.html');
-      const tail = `<template id="fz-lgbar-t">${bar}</template><script>(function(){var t=document.getElementById('fz-lgbar-t'),h=document.querySelector('header.mast');if(t&&h)h.parentNode.insertBefore(t.content.cloneNode(true),h)})()</script>`;
+      // fz-carry: a member's Rule Changes/Betting team pass handed over from the old public address (landing page),
+      // kept only in this browser; the server never sees it (it travels in the link's #fragment).
+      const tail = `<template id="fz-lgbar-t">${bar}</template><script>(function(){var t=document.getElementById('fz-lgbar-t'),h=document.querySelector('header.mast');if(t&&h)h.parentNode.insertBefore(t.content.cloneNode(true),h);
+try{var v=(location.hash.match(/^#fzt=([^&]+)/)||[])[1]||sessionStorage.getItem('fz-carry');if(v){v=decodeURIComponent(v);var j=JSON.parse(atob(v));if(j&&j.key&&j.team&&!localStorage.getItem('fz-team')){localStorage.setItem('fz-team',JSON.stringify(j));location.reload()}sessionStorage.removeItem('fz-carry');if(location.hash.indexOf('#fzt=')===0)history.replaceState(null,'',location.pathname)}}catch(e){}})()</script>`;
       const { readable, writable } = new TransformStream();
       ctx.waitUntil((async () => { await obj.body.pipeTo(writable, { preventClose: true }); const w = writable.getWriter(); await w.write(new TextEncoder().encode(tail)); await w.close(); })());
       return html(readable, 200, { 'Cache-Control': 'private, max-age=60' });
@@ -476,7 +494,7 @@ async function route(req, env, ctx) {
       const results = only ? [await D.league(only)].filter(Boolean) : (await D.allLeagues()).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
       const out = [];
       for (const L of results) {
-        const c = { slug: L.slug, platform: L.platform, league_id: L.league_id, season: L.season, accent: L.accent,
+        const c = { slug: L.slug, platform: L.platform, league_id: L.league_id, season: L.season, accent: L.accent, own_paper: !!L.own_paper,
           features: { rules: !!L.feat_rules, bets: !!L.feat_bets }, office_api: `${env.SITE_URL}/api/office/${L.slug}` };
         try {
           if (L.platform === 'espn' && L.espn_s2) { c.espn_s2 = await open(env, L.espn_s2); c.swid = await open(env, L.swid); }
