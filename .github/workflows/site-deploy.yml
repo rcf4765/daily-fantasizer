@@ -34,6 +34,8 @@ jobs:
       CODE_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # so the data repo below is reached with FZ_GITHUB_TOKEN, not this repo's token
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -58,7 +60,10 @@ jobs:
       - name: Data repo (workflows, site address, its key)
         run: |
           pip install pynacl >/dev/null
-          git clone -q "https://x-access-token:${GH_PAT}@github.com/${DATA_REPO}.git" data 2>/dev/null || { mkdir data; cd data; git init -q -b main; git remote add origin "https://x-access-token:${GH_PAT}@github.com/${DATA_REPO}.git"; cd ..; }
+          rm -rf data
+          if ! git -c http.extraheader= clone -q "https://x-access-token:${GH_PAT}@github.com/${DATA_REPO}.git" data; then
+            echo "::error::Couldn't clone $DATA_REPO with FZ_GITHUB_TOKEN (Contents: Read and write on that repo?)"; exit 1
+          fi
           cd data
           git checkout -q -B main 2>/dev/null || true
           mkdir -p .github/workflows
@@ -66,7 +71,7 @@ jobs:
           [ -f README.md ] && grep -q "Daily Fantasizer data" README.md || cp ../multi/data-repo/README.md README.md
           printf '{"site": "%s"}\n' "$SITE" > site.json
           git add -A; git config user.name "Daily Fantasizer deploy"; git config user.email "deploy@users.noreply.github.com"
-          git diff --cached --quiet || { git commit -q -m "deploy: workflows and site address"; git push -q origin main; }
+          git diff --cached --quiet || { git commit -q -m "deploy: workflows and site address"; git -c http.extraheader= push -q origin HEAD:main; }
           cd ..
           python3 - <<'PY'
           import base64, json, os, urllib.request
