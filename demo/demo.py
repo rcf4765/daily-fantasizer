@@ -18,6 +18,8 @@ import json, re, sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "docs" / "index.html"
 OUT = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "demo" / "connect-preview.html"
+# --signin: the public front page of thedailyfantasizer.com (sync-paper.yml): same blur, but the box asks you to log in
+SIGNIN = "--signin" in sys.argv
 
 league = json.loads((ROOT / "league.json").read_text())
 latest = json.loads((ROOT / "data" / "latest.json").read_text()) if (ROOT / "data" / "latest.json").exists() else {}
@@ -224,6 +226,25 @@ JS = r"""
 })();
 </script>
 """
+
+if SIGNIN:
+    BAR = r"""
+<div class="fz-cb" id="fz-connect" contenteditable="false"><div class="fz-cb-in">
+  <div class="fz-cb-t"><b>Log in to read the paper</b><span>The Daily Fantasizer is for league members. Log in with the ESPN account that's in your league and every section opens with your league, every Tuesday.</span></div>
+  <div class="fz-cb-b">
+    <a class="fz-btn" id="fz-espn" href="/login?next=/" style="text-decoration:none">Log in with ESPN</a>
+    <button type="button" class="fz-btn" disabled title="Yahoo is coming soon">Log in with Yahoo <small>Soon</small></button>
+  </div>
+</div></div>
+"""
+    JS = JS.replace("""  var dlg=$('#fz-espn-dlg');
+  function openEspn(){ if(dlg&&dlg.showModal){ if(!dlg.open) dlg.showModal(); setTimeout(function(){var i=$('#fz-lg');i&&i.focus()},30) } }""",
+                    """  function openEspn(){ location.href='/login?next=/' }""")
+    JS = JS[:JS.index("  // connect buttons")] + "})();\n</script>\n"
+    JS = JS.replace("'After linking'", "'After you log in'").replace("'Opens after you link your league'", "'Opens after you log in'")
+    CSS = CSS.replace('.tab.fz-off .tab-s::after{content:" · after linking"}', '')
+    CSS = CSS.replace('content:"Link your league to see this"', 'content:"Log in to see this"')
+    h = h.replace("<title>The Daily Fantasizer</title>", "<title>The Daily Fantasizer</title>", 1)
 
 h = h.replace("</header>", "</header>" + BAR, 1)
 h = re.sub(r"(</title>)", lambda m: m.group(1) + CSS, h, count=1)

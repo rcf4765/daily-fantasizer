@@ -42,8 +42,10 @@ jobs:
           dst = f"_datarepo/papers/{slug}"
           os.makedirs(f"{dst}/bets", exist_ok=True)
           weeks = sorted(int(m.group(1)) for p in glob.glob("docs/week*.html") if (m := re.search(r"week(\d+)\.html$", p)))
+          # Optimal Lineup: shown to everyone who can open this copy (signed-in league members), not only the owner's device
+          OWNER_CHECK = "var on=!!(m&&m.key&&+m.team===OWN);"
           for w in weeks:
-              html = gate.remove(open(f"docs/week{w}.html", encoding="utf-8").read())
+              html = gate.remove(open(f"docs/week{w}.html", encoding="utf-8").read()).replace(OWNER_CHECK, "var on=true;")
               open(f"{dst}/week{w}.html", "w", encoding="utf-8").write(html)
           shutil.copyfile(f"{dst}/week{weeks[-1]}.html", f"{dst}/index.html")
           if os.path.exists("docs/rulebook.json"): shutil.copyfile("docs/rulebook.json", f"{dst}/rulebook.json")
@@ -55,9 +57,12 @@ jobs:
           json.dump(L, open(p, "w"), indent=1)
           print(f"copied weeks {weeks} to papers/{slug}/")
           PY
+          # the public front page: the newest paper with made-up names, league sections blurred, and a log-in box
+          mkdir -p _datarepo/public
+          python3 demo/demo.py docs/index.html _datarepo/public/sample.html --signin
           cd _datarepo
           git config user.name "Daily Fantasizer sync"; git config user.email "sync@users.noreply.github.com"
-          git add -A papers leagues
+          git add -A papers leagues public
           git diff --cached --quiet && { echo "nothing new"; exit 0; }
           git commit -q -m "sync: Men Fantasizing weekly edition"
           for i in 1 2 3 4 5; do git -c http.extraheader= pull -q --rebase origin main && git -c http.extraheader= push -q origin HEAD:main && exit 0; sleep $((i*3)); done

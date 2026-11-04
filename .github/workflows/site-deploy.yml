@@ -32,6 +32,8 @@ jobs:
       GH_PAT: ${{ secrets.FZ_GITHUB_TOKEN }}
       DATA_REPO: ${{ vars.FZ_DATA_REPO || format('{0}/daily-fantasizer-data', github.repository_owner) }}
       CODE_REPO: ${{ github.repository }}
+      SITE_DOMAIN: ${{ vars.FZ_SITE_DOMAIN || 'thedailyfantasizer.com' }}   # a domain in the same Cloudflare account ('' = workers.dev)
+      MAIN_LEAGUE: espn:1196354715   # the league whose own weekly edition is the paper (old links lead to it)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,7 +57,22 @@ jobs:
           if [ -z "$SUB" ]; then SUB="fantasizer-$(printf %s "$CLOUDFLARE_ACCOUNT_ID" | cut -c1-6)"; cf -X PUT "$A/workers/subdomain" -d "{\"subdomain\":\"$SUB\"}" >/dev/null; fi
           [ -n "$SUB" ] || { echo "::error::Couldn't read your workers.dev address. Check the Cloudflare API token."; exit 1; }
           SITE="https://fantasizer.$SUB.workers.dev"
+          if [ -n "$SITE_DOMAIN" ]; then
+            ZONE=$(cf "https://api.cloudflare.com/client/v4/zones?name=$SITE_DOMAIN" | python3 -c "import sys,json;d=json.load(sys.stdin);print(len(d.get('result') or []))")
+            if [ "$ZONE" = "1" ]; then
+              SITE="https://$SITE_DOMAIN"
+              printf '\nroutes = [\n  { pattern = "%s/*", zone_name = "%s" },\n  { pattern = "www.%s/*", zone_name = "%s" },\n]\n' "$SITE_DOMAIN" "$SITE_DOMAIN" "$SITE_DOMAIN" "$SITE_DOMAIN" > /tmp/routes.toml
+              python3 - <<'PY'
+          p = "multi/worker/wrangler.toml"; s = open(p).read(); r = open("/tmp/routes.toml").read()
+          i = s.index("[vars]"); open(p, "w").write(s[:i] + r.strip() + "\n\n" + s[i:])
+          PY
+            else
+              echo "::warning::$SITE_DOMAIN isn't in this Cloudflare account; using $SITE"
+            fi
+          fi
           sed -i "s|https://fantasizer.YOUR-SUBDOMAIN.workers.dev|$SITE|; s|OWNER/daily-fantasizer-data|$DATA_REPO|" multi/worker/wrangler.toml
+          sed -i "s|^DATA_REPO = .*|&\nMAIN_LEAGUE = \"$MAIN_LEAGUE\"\nCODE_REPO = \"$CODE_REPO\"|" multi/worker/wrangler.toml
+          cat multi/worker/wrangler.toml
           echo "SITE=$SITE" >> "$GITHUB_ENV"
       - name: Data repo (workflows, site address, its key)
         run: |

@@ -112,6 +112,10 @@ async function finishLogin(env, D, r) {
 // ---------------- pages ----------------
 async function route(req, env, ctx) {
   const url = new URL(req.url), path = url.pathname, method = req.method;
+  // the old workers.dev address: people go to the real one (the GitHub jobs and APIs keep working on both)
+  if (env.SITE_URL && url.origin !== new URL(env.SITE_URL).origin && url.hostname.endsWith('.workers.dev') && method === 'GET' && !path.startsWith('/api/')) {
+    return Response.redirect(env.SITE_URL + path + url.search, 301);
+  }
   const s = await session(req, env);
   const D = makeData(env);
 
@@ -120,7 +124,38 @@ async function route(req, env, ctx) {
     if (o && o !== new URL(env.SITE_URL).origin) return html(P.message('Not allowed', 'That form came from another site.'), 403);
   }
 
-  if (path === '/' && method === 'GET') return html(P.home(env, !!s));
+  // ---- the front page and the old public addresses (thedailyfantasizer.com used to be the Men Fantasizing paper) ----
+  const mainSlug = async () => (env.MAIN_LEAGUE ? (await D.index())[`${env.MAIN_LEAGUE}:${espnSeason()}`] || '' : '');
+  if (path === '/' && method === 'GET') {
+    if (s) {   // signed in: straight to your paper (the main league first, if you're in it)
+      const mine = await D.myLeagues(s.uid), main = await mainSlug();
+      const pick = mine.find((L) => L.slug === main) || mine.sort((a, b) => a.name.localeCompare(b.name))[0];
+      return redirect(pick ? `/l/${pick.slug}/` : '/mine');
+    }
+    const sample = await D.st.raw('public/sample.html').catch(() => null);   // the paper, blurred, made-up names
+    return sample ? html(sample.body, 200, { 'Cache-Control': 'no-cache' }) : html(P.home(env, false));
+  }
+  if (path === '/start' && method === 'GET') return html(P.home(env, !!s));
+  {
+    const lm = path.match(/^\/(bets\/lines\d{1,2}\.json|rulebook\.json)$/);
+    if (lm && method === 'GET') {   // public: the league office (Google Sheet) checks bets and rules against these
+      const slug = await mainSlug(), f = slug && await D.paper(slug, lm[1]);
+      return f ? new Response(f.body, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*' } }) : json({ error: 'not found' }, 404);
+    }
+    if (path === '/sw.js') {   // the old home-screen app kept a copy of the paper offline: this clears it
+      return new Response(`self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil((async()=>{for(const k of await caches.keys())await caches.delete(k);await self.clients.claim();await self.registration.unregister();for(const c of await self.clients.matchAll({type:'window'}))c.navigate(c.url)})()));`,
+        { headers: { 'Content-Type': 'text/javascript', 'Cache-Control': 'no-cache' } });
+    }
+    if (/^\/(manifest\.webmanifest|icons\/[a-z0-9._-]+\.png)$/.test(path) && env.CODE_REPO) {
+      const f = await fetch(`https://raw.githubusercontent.com/${env.CODE_REPO}/main/docs${path}`);
+      return new Response(f.body, { status: f.status, headers: { 'Content-Type': path.endsWith('.png') ? 'image/png' : 'application/manifest+json', 'Cache-Control': 'public, max-age=86400' } });
+    }
+    const old = path.match(/^\/(index\.html|archive\.html|install\.html|week(\d{1,2})\.html)$/);
+    if (old && method === 'GET') {
+      const slug = s && await mainSlug();
+      return redirect(!slug ? '/' : old[2] ? `/l/${slug}/week${old[2]}.html` : old[1] === 'archive.html' ? `/l/${slug}/archive` : `/l/${slug}/`);
+    }
+  }
   if (path === '/signout') return redirect('/', { 'Set-Cookie': setCookie('fz_s', '', 0) });
 
   // ---- Yahoo ----
@@ -171,7 +206,7 @@ async function route(req, env, ctx) {
   }
 
   // ---- ESPN: log in once (the server signs in to ESPN; the password is used once, never stored) ----
-  const nextOk = (n) => (/^\/l\/[a-z0-9]{6,16}\/[a-z0-9./-]*$/.test(n || '') && !n.includes('..') ? n : '');
+  const nextOk = (n) => (n === '/' || (/^\/l\/[a-z0-9]{6,16}\/[a-z0-9./-]*$/.test(n || '') && !n.includes('..')) ? n : '');
   if (path === '/login' && method === 'GET') {
     const next = nextOk(url.searchParams.get('next'));
     if (s && next) return redirect(next);

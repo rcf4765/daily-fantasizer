@@ -242,6 +242,22 @@ console.log('Log in with ESPN (server signs in; user only logs in)');
   delete env.__espnLogin; jar = savedJar;
 }
 
+console.log('thedailyfantasizer.com front page');
+{
+  const saved = { ...jar };
+  env.MAIN_LEAGUE = 'espn:777';
+  gh.write('public/sample.html', '<title>The Daily Fantasizer</title><b>Log in to read the paper</b><i class="fz-veil">blurred</i>');
+  jar = {}; r = await call('GET', '/'); let t0 = await text(r);
+  assert.match(t0, /Log in to read the paper/); assert.doesNotMatch(t0, /<p>paper<\/p>/); ok('signed out: the blurred sample and a log-in box, no real paper');
+  r = await call('GET', '/week8.html'); assert.equal(r.headers.get('Location'), '/'); ok('old week links → front page when signed out');
+  r = await call('GET', '/bets/lines9.json'); assert.equal(r.status, 200); assert.equal((await r.json()).week, 9); ok('betting board stays public (the league office checks bets against it)');
+  r = await call('GET', '/sw.js'); assert.match(await text(r), /caches\.delete/); ok('old home-screen app: saved copy is cleared');
+  r = await call('GET', '/login?next=/'); assert.equal(jar.fz_next, '%2F'); ok('log in from the front page comes back to it');
+  jar = saved;
+  r = await call('GET', '/'); assert.equal(r.status, 303); assert.match(r.headers.get('Location'), /^\/(l\/[a-z0-9]+\/|mine)$/); ok('signed in: the front page opens your paper');
+  delete env.MAIN_LEAGUE;
+}
+
 console.log('cleanup');
 await call('POST', `/l/${ySlug}/delete`, { form: {} });
 assert.equal(gh.json(`leagues/${ySlug}.json`), null); assert.ok(!Object.values(gh.json('index/leagues.json')).includes(ySlug)); ok('commissioner can remove a league');
