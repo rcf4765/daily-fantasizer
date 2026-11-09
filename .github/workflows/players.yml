@@ -1,24 +1,30 @@
 name: Refresh Player Stats
 
-# Our projections (inhouse.py, run by fetch_players.py) pick up injury reports and game-day news as they
-# land, so the Player Stats tab on the league site is refreshed midweek
-# and on Sunday morning. Only the Player Stats tab of the newest edition is rewritten.
+# Our projections (inhouse.py, run by fetch_players.py) pick up injury reports and game-day news as they land, so the
+# league website is refreshed every hour (user, 2026-11-09): Player Stats tab, Optimal Lineup and the bets list, then
+# the members-only site copy (sync-paper.yml runs after this workflow). Only the newest edition is rewritten.
+# - Every hour: publishes only when a page members see (docs/) or the bets changed, so quiet hours add no commits.
+# - Daily at 10:17am Eastern (15:17 UTC): always saves the fresh player data, even if no page changed.
+# - Skipped Tuesday 09:00-12:59 UTC, while the ESPN fetch and the weekly edition are being made, so they never collide.
 on:
   schedule:
-    - cron: "17 15 * * 2"   # Tue 11:17am Eastern (after the 6am paper)
-    - cron: "17 15 * * 3"   # Wed
-    - cron: "17 15 * * 4"   # Thu (before Thursday night)
-    - cron: "17 15 * * 6"   # Sat
-    - cron: "47 15 * * 0"   # Sun 11:47am Eastern, before the early games
+    - cron: "17 15 * * *"                  # daily save (keep this exact string: the commit step checks it)
+    - cron: "47 * * * 0,1,3,4,5,6"         # hourly, every day but Tuesday
+    - cron: "47 0-8,13-23 * * 2"           # hourly on Tuesday, outside the edition window
   workflow_dispatch:
 
 permissions:
   contents: write
   actions: write
 
+concurrency:
+  group: players-refresh
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,12 +46,22 @@ jobs:
       - name: Commit and publish
         env:
           GH_TOKEN: ${{ github.token }}
+          DAILY: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '17 15 * * *' }}
         run: |
           git config user.name "daily-fantasizer-bot"
           git config user.email "actions@users.noreply.github.com"
           git add data/players data/bets docs daily-fantasizer-week*.html
           git diff --cached --quiet && exit 0
+          # hourly runs: only the fetch timestamps changed, nothing on the site; save the data once a day instead
+          if [ "$DAILY" != "true" ] && git diff --cached --quiet -- docs data/bets; then
+            echo "Nothing new on the site this hour"; exit 0
+          fi
           git commit -m "Player Stats refresh $(date -u +%Y-%m-%dT%H:%MZ)"
-          git push
+          ok=0
+          for i in 1 2 3; do
+            git pull -q --rebase origin main || { git rebase --abort; echo "::error::Clashed with a newer push; the next hourly run will redo it"; exit 1; }
+            git push && { ok=1; break; }; sleep $((i*5))
+          done
+          [ "$ok" = 1 ] || exit 1
           # pushes made with the workflow token don't trigger other workflows, so start the deploy directly
           gh workflow run pages.yml --ref main || echo "Could not start the site deploy; the next push will"

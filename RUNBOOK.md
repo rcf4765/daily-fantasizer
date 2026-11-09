@@ -177,7 +177,7 @@ Also Trend Lines, Steady or Streaky, Player Face-Off and Defense Matchups (see "
 - ~~FantasyPros~~: removed 2026-11-02; `fp_*.json` deleted. Replaced by `inhouse.py`.
 - **Gaps**: Luke Garza is not used (paid Substack, user doesn't subscribe). Joel Smyth's full list loads client-side on Yahoo and his full FantasyPros list needs a signed-in account, so only his notable disagreements are used. FantasyPros' projection tables show 10 rows without sign-in; the consensus projected points in the ranking data cover every ranked player instead. The user's own regression model will slot in later (user, 2026-10-19: "skip my model for now").
 
-**Schedule**: Tuesday's ESPN fetch (`fetch.yml`) also runs `fetch_players.py`, so the 6am edition carries fresh player data. `players.yml` refreshes the tab on the newest edition (docs/index.html, docs/weekN.html, daily-fantasizer-weekN.html) Tue/Wed/Thu/Sat 11:17am and Sun 11:47am Eastern as next week's consensus fills in, then asks GitHub Pages to rebuild.
+**Schedule**: Tuesday's ESPN fetch (`fetch.yml`) also runs `fetch_players.py`, so the 6am edition carries fresh player data. `players.yml` refreshes the tab on the newest edition (docs/index.html, docs/weekN.html, daily-fantasizer-weekN.html) **every hour** (user, 2026-11-09; skipped Tuesday 09:00-12:59 UTC, the fetch and edition window), publishing only when a page or the bets changed; the 10:17am Eastern run (15:17 UTC) saves the player data every day even if no page changed. Each run is followed by `sync-paper.yml`, which copies the paper to thedailyfantasizer.com. Because the bot can push to `main` any hour, always `git pull --rebase` right before pushing an edition.
 
 **Self-test note**: the week 5 render now includes the Player Stats tab, so its hash in MANIFEST.txt matches only with the `data/players` files committed alongside it. If those files changed since, a different week 5 hash is expected.
 
@@ -202,7 +202,7 @@ For a sample of a week still in progress: `gh api -X POST repos/rcf4765/daily-fa
 ## Automation
 
 - **Tuesday ~5:17am Eastern**: GitHub Actions fetches the week's ESPN data, trade activity and Player Stats data into the repo.
-- **Tue/Wed/Thu/Sat 11:17am, Sun 11:47am Eastern**: `players.yml` refreshes the Player Stats tab on the league website. Wednesday same time: retry.
+- **Every hour at :47 (except Tuesday 09:00-12:59 UTC); daily data save 15:17 UTC**: `players.yml` refreshes the Player Stats tab, Optimal Lineup and bets on the league website (user, 2026-11-09).
 - **Tuesday 5:58am Eastern** (America/Detroit): the Claude scheduled task "Daily Fantasizer weekly edition" follows this runbook, builds the edition and pushes it to the league website (GitHub Pages from `docs/`, user's choice 2026-10-19). No email or text delivery (user's choice, 2026-10-12).
 - ESPN cookies usually last about a year. GitHub disables scheduled workflows after 60 days without repo activity; in the off-season it may need re-enabling from the repo's Actions tab.
 - History: v1 design approved 2026-10-12 (week 4); replaced by the graphics-first design 2026-10-13 (week 5) at the user's request.
