@@ -366,3 +366,6 @@ The website is https://thedailyfantasizer.com (Cloudflare Worker `multi/worker`,
 4. Pushes made by other workflows don't fire `push` triggers, so `sync-paper.yml` also runs after "Refresh Player Stats" (`players.yml`, midweek Player Stats / Optimal Lineup) and "Apply rule changes" (`rules.yml`, rulebook) finish.
 5. Other leagues on the site are printed by `print.yml` in the data repo (Tue/Wed 10:17 UTC); Men Fantasizing is `own_paper`, so the printer skips it.
 
+## Live week in Player Data (user, 2026-11-09)
+The hourly `players.yml` refresh runs `players.py --live --week N`: games already played in week N+1 (Thursday through Monday, before Tuesday's paper) count in Player Data and the season averages, the hero reads "weeks 1–N+1, week N+1 in progress", and a player who already played shows his week N+2 projection and opponent. Rankings, Start/Sit and the other sections keep looking at week N+1 until the next edition. `render.py` never passes `--live`, so editions are unchanged; the only byte change in the week 5 self-test render is the Player Data card's projection-label script (`p.nx||D.nx`).
+

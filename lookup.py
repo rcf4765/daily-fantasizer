@@ -59,7 +59,10 @@ def r1(x, n=1):
     return None if x is None else round(x, n)
 
 
-def section(d, W, short, own_team):
+def section(d, W, short, own_team, nxt=None):
+    """W = last week with stats shown; nxt = the week whose projection and opponent the card shows (default W + 1).
+    In the hourly live refresh W can be one past the edition: a player who already played that week then shows
+    the week after it instead (user, 2026-11-09)."""
     import strength as S
     S.ros_values(d)
     rawp = S.raw_proj(W)
@@ -85,7 +88,7 @@ def section(d, W, short, own_team):
     for pos in POS:
         for i, p in enumerate(sorted([p for p in d.P if p["pos"] == pos and p["g"] >= 2], key=lambda p: -p["ppg"]), 1):
             prk[p["key"]] = i
-    nxt = W + 1
+    nxt0 = nxt or W + 1
     rows = []
     for p in d.P:
         g = [w for w in d.games(p) if w <= W]
@@ -128,6 +131,7 @@ def section(d, W, short, own_team):
                                 r1(uw.get("wopr"), 2), act.get("tgt") or 0, (act.get("ru_att") or 0) + (act.get("rec") or 0)]}
         gr = [x for x in log if x[2] is not None and x[4] and x[5]]
         gp = [x for x in log if x[2] is not None and x[3] is not None and x[0] in graded]
+        nxt = max(nxt0, max(g) + 1)
         bp = S.proj_for(d, p, nxt, rawp)
         if nxt in byes.get(p["team"], []) or p.get("inj") in ("OUT", "INJURY_RESERVE"):
             bp = 0.0
@@ -137,7 +141,7 @@ def section(d, W, short, own_team):
             "k": p["key"], "n": p["name"], "pos": p["pos"], "tm": p["team"], "o": p.get("owner") or 0,
             "inj": p.get("inj", "ACTIVE"), "g": len(g), "bye": (byes.get(p["team"]) or [0])[0],
             "ppg": r1(p["ppg"]), "l3": r1(p["l3"]), "tot": r1(sum(p["act"][w]["pts"] for w in g)),
-            "xp": r1(p.get("xp")), "prk": prk.get(p["key"]), "np": r1(bp),
+            "xp": r1(p.get("xp")), "prk": prk.get(p["key"]), "np": r1(bp), **({"nx": nxt} if nxt != nxt0 else {}),
             "nopp": ((("" if on.get("home") else "@") + on["opp"]) if on.get("opp") else "BYE"),
             "rr": ros.get("pos_rank"), "ro": ros.get("rank_ecr"), "ros": r1(p.get("ros")),
             "u": [r1(p["snap"] * 100, 0) if p["snap"] is not None else None, r1(p["ts"] * 100, 1) if p["ts"] is not None else None,
@@ -155,7 +159,7 @@ def section(d, W, short, own_team):
     rows.sort(key=lambda r: (r["o"] == 0, r["o"], POS.index(r["pos"]), -(r["ros"] or 0)))
     mine = [r for r in rows if r["o"] == own_team]
     default = max(mine, key=lambda r: r["ros"] or 0)["k"] if mine else rows[0]["k"]
-    data = {"W": W, "nx": nxt, "own": own_team, "teams": {str(k): v for k, v in short.items()}, "p": rows, "def": default,
+    data = {"W": W, "nx": nxt0, "own": own_team, "teams": {str(k): v for k, v in short.items()}, "p": rows, "def": default,
             "graded": graded}
     body = (f'<div class="lk" id="lk"><div class="lk-ctl"><label class="lk-find"><span class="kicker">Type a player</span>'
             f'<input type="search" id="lk-q" placeholder="e.g. Amon-Ra St. Brown" autocomplete="off" spellcheck="false" aria-controls="lk-sug" aria-autocomplete="list"></label>'
@@ -367,7 +371,7 @@ SCRIPT = r"""<script>
       h+='<div class="lk-tiles">'+tile('Last 3','<span class="'+ac+'">'+f(p.l3)+' '+ar+'</span>','vs '+f(p.ppg)+' season')+
         (VIEW==='A'?tile('PPR / game',f(p.ppg),p.prk?p.pos+p.prk+' at the position':''):tile('Total PPR',f(p.tot),'weeks 1–'+D.W))+
         tile('Expected',f(p.xp),p.xp==null?'needs 3 games':((p.ppg-p.xp>=0?'+':'')+f(p.ppg-p.xp)+' vs volume'),p.xp!=null&&p.ppg-p.xp>=0?'up':p.xp!=null?'dn':'')+
-        tile('Week '+D.nx+' proj',f(p.np),e(p.nopp))+
+        tile('Week '+(p.nx||D.nx)+' proj',f(p.np),e(p.nopp))+
         tile('Rest of season',e(p.rr||'–'),p.ro?'overall '+p.ro+(p.ros?' · '+f(p.ros)+'/g':''):'unranked')+'</div>';
     }
     // graded weeks

@@ -35,8 +35,11 @@ def lg(t, size="lg-sm"): return f'<i class="lg lg-{t} {size}" aria-hidden="true"
 
 
 class Data:
-    def __init__(self, short, week=None):
-        """week = the edition's week. The tab then covers games through that week and looks
+    def __init__(self, short, week=None, live=False):
+        """live (the hourly players.yml refresh only, user 2026-11-09): games already played in the week after the
+        edition (e.g. Thursday-Monday of week N+1) count too, so Player Data shows them before Tuesday's paper.
+        Editions (render.py) never pass it, so a re-render of any week stays the same.
+        week = the edition's week. The tab then covers games through that week and looks
         ahead to week + 1 (user, 2026-10-19: the week 5 paper shows week 5 stats and week 6
         rankings; Tuesday's week 6 paper rolls to week 6 stats and week 7 rankings)."""
         self.short = {int(k): v for k, v in short.items()}
@@ -84,7 +87,19 @@ class Data:
         for pos, rows in self.lean.get("pos", {}).items():
             for r in rows:
                 self.lean_by[norm(r["name"]) + "|" + pos] = r
-        self.weeks_played = sorted({w for p in self.P for w in p["act"] if self.cap is None or w <= self.cap})
+        self.thru = self.cap
+        if live and self.cap and self.live:
+            # newest week with real stats, at most one week past the edition and never past ESPN's current week
+            have = {w for p in self.P for w, a in p["act"].items() if a.get("pts") or a.get("tgt") or a.get("ru_att") or a.get("pa_att")}
+            self.thru = max([w for w in have if self.cap < w <= min(self.live, self.cap + 1)] or [self.cap])
+            for w in range(self.next + 1, self.thru + 2):  # projections for the week after the live week
+                self.fp[w] = load(f"ih_week{w}.json")
+            for w, f in self.fp.items():
+                if f and w > self.next:
+                    for pos, rows in f["pos"].items():
+                        for r in rows:
+                            self.ecr.setdefault(norm(r["player_name"]) + "|" + pos, {})[w] = r
+        self.weeks_played = sorted({w for p in self.P for w in p["act"] if self.thru is None or w <= self.thru})
         self._season()
 
     def games(self, p):
@@ -168,13 +183,13 @@ def sec(id_, title, kicker, body):
 LU_BLOCK = ""  # filled by build(): the Optimal Lineup block for League & Teams
 
 
-def build(short_names, week=None):
-    d = Data(short_names, week)
+def build(short_names, week=None, live=False):
+    d = Data(short_names, week, live)
     if not d.P:
         return ""
     played = d.weeks_played
     last = max(played) if played else 0
-    live_note = (f"weeks 1–{last}" + ("" if last in d.final else f", week {last} through Sunday")) if last else ""
+    live_note = (f"weeks 1–{last}" + ("" if last in d.final else f", week {last} in progress")) if last else ""
     out = []
     fpN0 = d.fp.get(d.next) or {}
     out.append(f'<section class="ps-hero" aria-label="Player stats"><span class="kicker">The PPR player desk</span><h2>Player <span>Stats</span></h2>'
@@ -185,7 +200,8 @@ def build(short_names, week=None):
     import lookup
     own_t = int(d.meta.get("owner_team") or (json.load(open(os.path.join(HERE, "league.json"))).get("owner_team") if os.path.exists(os.path.join(HERE, "league.json")) else 1) or 1)
     try:
-        out.append(lookup.section(d, d.cap or (max(d.final) if d.final else (max(d.weeks_played) if d.weeks_played else 1)), d.short, own_t))
+        out.append(lookup.section(d, d.thru or (max(d.final) if d.final else (max(d.weeks_played) if d.weeks_played else 1)), d.short, own_t,
+                                  nxt=(d.cap + 1) if d.cap else None))
     except Exception as e:  # never lose the tab over one section
         print("player lookup skipped:", e)
 
@@ -802,13 +818,15 @@ def patch(path, pane):
 
 
 if __name__ == "__main__":
-    # python3 players.py [--week N] [--patch FILE...]
+    # python3 players.py [--live] [--week N] [--patch FILE...]
     args = sys.argv[1:]
+    live = "--live" in args
+    args = [a for a in args if a != "--live"]
     week = None
     if args[:1] == ["--week"]:
         week = int(args[1]); args = args[2:]
     lgj = json.load(open(os.path.join(HERE, "league.json")))
-    pane = build(lgj["short_names"], week)
+    pane = build(lgj["short_names"], week, live)
     if args[:1] == ["--patch"]:
         for f in args[1:]:
             patch(f, pane)
