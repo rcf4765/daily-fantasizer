@@ -1516,9 +1516,13 @@ function pdf(pages,title){var out='%PDF-1.4\n%\xe2\xe3\xcf\xd3\n',off=[],objs=[]
 function save(bytes,name){var blob=new Blob([bytes],{type:'application/pdf'});
   function anchor(){var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.rel='noopener';a.style.display='none';
     document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove();},10000);}
-  try{var file=new File([blob],name,{type:'application/pdf'});
+  function plain(){try{var file=new File([blob],name,{type:'application/pdf'});
     if(window.navigator.standalone&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).catch(function(e){if(!e||e.name!=='AbortError')anchor();});return;}}catch(e){}
-  anchor();}
+    anchor();}
+  // inside a claude.ai preview the page may only save through the viewer's downloads capability
+  var cl=window.claude;if(cl&&typeof cl.use==='function'){cl.use('downloads').then(function(d){if(!d)return plain();
+    return d.save({filename:name,data:blob}).catch(function(e){if(!e||(e.code!=='declined'&&e.code!=='rate_limited'))plain();});}).catch(plain);return;}
+  plain();}
 
 function make(){return loadCrests().then(function(){var C=collect();return {C:C,bytes:pdf(layout(C),'The Daily Fantasizer · '+C.edition)};});}
 window.dfPrintPaper=make;
@@ -1528,6 +1532,8 @@ btn.addEventListener('click',function(){var lab=btn.textContent;btn.disabled=tru
     .then(function(){btn.disabled=false;btn.textContent=lab;});});
 })();
 </script></div>
+
+
 
 
 

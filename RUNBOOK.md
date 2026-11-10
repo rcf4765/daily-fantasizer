@@ -390,4 +390,6 @@ The hourly `players.yml` refresh runs `players.py --live --week N`: games alread
 - The dateline is the Tuesday the edition comes out: Labor Day + 8 days + 7 × (week − 1), so renders stay reproducible.
 - `python3 printpdf.py FILE...` puts the button into already-built pages (idempotent). Done 2026-11-10 for `docs/index.html` and `docs/week5–9.html`.
 - Other leagues get it too (they are built by the same `render.py`).
+- Download path: on the website a plain browser download (iPhone home-screen app: share sheet). Inside a claude.ai Artifact preview a page may only save files through the viewer's `downloads` capability, so the button uses it when present: **publish every edition preview Artifact with `capabilities: {"downloads": true}`**, or Print does nothing there.
+- The weekly scheduled task's prompt includes a PRINT CHECK (headless click on Print, `qpdf --check`, look at the pages) and a one-button-per-page check after `publish_site.py`.
 
