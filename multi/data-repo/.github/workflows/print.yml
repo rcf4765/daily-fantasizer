@@ -1,7 +1,9 @@
 name: Print papers
 
 # Lives in the private data repo (installed and kept up to date by site-deploy.yml in the code repo).
-# Prints every league's paper on Tuesdays and Wednesdays (5-6am Eastern), or one league when the website asks.
+# Prints every league's paper on Tuesdays and Wednesdays (5-6am Eastern), then again Thursday and Saturday mornings and
+# Sunday 10:47am Eastern so Optimal Lineup follows injury news before kickoff (user 2026-11-10); or one league when the
+# website asks.
 # Uses the code from CODE_REPO (public) and writes editions into papers/ here, then commits them.
 # Needs this repo's secret FZ_MASTER_KEY (the deploy sets it).
 
@@ -9,6 +11,9 @@ on:
   schedule:
     - cron: "17 10 * * 2"
     - cron: "17 10 * * 3"
+    - cron: "17 10 * * 4"
+    - cron: "17 10 * * 6"
+    - cron: "47 15 * * 0"
   workflow_dispatch:
     inputs:
       slug:

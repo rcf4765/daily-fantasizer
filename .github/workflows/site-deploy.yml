@@ -13,6 +13,11 @@ name: Deploy the sign-up site
 
 on:
   workflow_dispatch:
+    inputs:
+      print_now:
+        description: "Also print every league's paper right away"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -121,3 +126,10 @@ jobs:
           echo "Site: $SITE  (login page answered $code)"
           { echo "### Site is up"; echo "$SITE"; echo; echo "Log in: $SITE/login"; echo; echo "Data: https://github.com/$DATA_REPO (private)"; } >> "$GITHUB_STEP_SUMMARY"
           [ "$code" = "200" ]
+      - name: Print every league now (only when asked)
+        if: ${{ inputs.print_now }}
+        run: |
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$DATA_REPO/actions/workflows/print.yml/dispatches" -d '{"ref":"main"}')
+          [ "$code" = "204" ] || { echo "::error::Couldn't start the printer (HTTP $code). FZ_GITHUB_TOKEN needs Actions: Read and write on $DATA_REPO."; exit 1; }
+          echo "Printer started: every league's paper is being printed in $DATA_REPO (Actions → Print papers)."
