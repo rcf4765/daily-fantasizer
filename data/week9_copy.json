@@ -1,0 +1,150 @@
+{
+ "week": 9,
+ "hero": {
+  "winner": 11,
+  "loser": 9,
+  "big": "4.0",
+  "label": "margin, closest game of the week"
+ },
+ "lead": {
+  "kicker": "Page one",
+  "headline": "Travis Scores 136.76, Loses",
+  "deck": "Fourth-best score of the week, a three-game streak on the line, and a 4.0 loss.",
+  "paragraphs": [
+   "{T11} got 35.0 from Puka Nacua, 22.3 from Brock Bowers and 13.0 from the Bears D/ST, picked up off waivers this week.",
+   "{S9}'s best possible lineup was 138.76, still short. The three-game win streak is over, and both teams now sit at 5–4."
+  ]
+ },
+ "sidebar": [
+  {
+   "style": "hi",
+   "kicker": "Strange but true",
+   "title": "One Team Beat a Whole Game",
+   "viz": {
+    "type": "bars",
+    "rows": [
+     {
+      "team": 12,
+      "value": 141.94
+     },
+     {
+      "label": "Pony + I don't know, combined",
+      "value": 140.2,
+      "alt": true
+     }
+    ]
+   },
+   "text": "{S12} scored 141.94 by itself. Both teams in {S10} vs. {S6} combined for 140.2."
+  }
+ ],
+ "recaps": {
+  "11-9": {
+   "headline": "See Page One",
+   "text": "Denzel Boston 15.8 on a 9.0 projection. Rome Odunze's 16.0 sat on the Kazakhstan bench."
+  },
+  "10-6": {
+   "headline": "Pony Wins the Ugly One",
+   "text": "74.2 to 66.0. Drake London 11.8 led Pony. Charbonnet's 9.6 on the bench would have flipped it."
+  },
+  "2-8": {
+   "headline": "Doughboys Take Down No. 1",
+   "text": "Purdy 25.28, McCaffrey 22.7, Higgins 20.2. Gibbs managed 13.4 on a 24.5 projection."
+  },
+  "5-4": {
+   "headline": "Season High for CeeDeez",
+   "text": "156.5, the week's best. Lamb 33.5, Golden 32.4. Bruisers drop a sixth straight, now 1–8."
+  },
+  "12-7": {
+   "headline": "Walker Runs Over Magnificent",
+   "text": "Kenneth Walker III 36.3, Burrow 29.54, Bucky Irving 28.5. Magnificent's second straight loss."
+  },
+  "1-3": {
+   "headline": "Blowout of the Week",
+   "text": "Love 36.18, Likely 16.3. Ja'Marr Chase 31.5 and Cam Little 17.0 were 8D's whole offense."
+  }
+ },
+ "honor": {
+  "team": 9,
+  "big": "2.00",
+  "big_label": "pts left on bench",
+  "kicker": "Manager of the week",
+  "title": "Travis's Talented Team",
+  "text": "Smallest bench gap of the week. Christian Watson 30.1 on a 13.1 projection, Javonte Williams 22.4, Jonah Coleman 18.8. Lost anyway."
+ },
+ "blotter": [
+  {
+   "team": 6,
+   "title": "Started three projected zeros",
+   "text": "Lamar Jackson, A.J. Brown, Wan'Dale Robinson: zero each. Lost by 8.2."
+  },
+  {
+   "team": 10,
+   "title": "Benched the 20-point QB",
+   "text": "Bryce Young 20.34 sat. Jared Goff started: 5.3. Won, so no charges."
+  },
+  {
+   "team": 7,
+   "title": "Wrong week for Waddle",
+   "text": "Benched him for 14.9 last week. Started him this week: 3.2."
+  },
+  {
+   "team": 4,
+   "title": "Kicker projected for zero",
+   "text": "Chris Boswell started, projected zero, scored zero. Sixth straight loss."
+  }
+ ],
+ "missing": [
+  {
+   "team": 5,
+   "player": "D'Andre Swift",
+   "text": "3.1 on a 20.1 projection."
+  },
+  {
+   "team": 7,
+   "player": "Jaxon Smith-Njigba",
+   "text": "12.1 on a 20.4 projection."
+  },
+  {
+   "team": 4,
+   "player": "Aaron Jones Sr.",
+   "text": "3.1 points from the flex."
+  },
+  {
+   "team": 12,
+   "player": "Tucker Kraft",
+   "text": "1.9 on a 10.6 projection."
+  }
+ ],
+ "pecking_notes": {
+  "12": "Still first, 76–23 all-play.",
+  "8": "Fell to 95.66, still second.",
+  "5": "Season-high 156.5, 11–0 all-play.",
+  "11": "Two straight wins, back over .500.",
+  "2": "Beat No. 1, now 6–3.",
+  "1": "Back in the win column, 6–3.",
+  "7": "Two straight losses.",
+  "9": "Three-game streak snapped by 4.0.",
+  "10": "Won with 74.2.",
+  "4": "Six straight losses, now 1–8.",
+  "6": "Five straight losses.",
+  "3": "0–11 all-play, 11–88 season."
+ },
+ "forecast_blurbs": {
+  "3-10": "Last week: 74.2 vs. 56.4.",
+  "4-1": "Bruisers trying to stop six straight.",
+  "11-6": "Biggest spread of the week: 32.5.",
+  "8-5": "Closest line of the week.",
+  "7-9": "Both coming off a loss.",
+  "12-2": "Highest total of the week: 256.5."
+ },
+ "upsets": {
+  "2-8": {
+   "headline": "Doughboys Dethrone the Beefy Boys",
+   "text": "{S2} took down first place, 129.58 to 95.66. {S8} came off a 154.16 week, started George Pickens projected for zero, benched Omar Cooper Jr.'s 13.8 and fell to 6–3."
+  },
+  "1-3": {
+   "headline": "8D's Zero Trick Stops Working",
+   "text": "Same four projected zeros as last week: Dart, Skattebo, McLaurin, Tate. Jacobs 0.5, Patriots D/ST −5.0, 39.38 benched. Jordan Love's 36.18 carried {S1} by 55.38."
+  }
+ }
+}
