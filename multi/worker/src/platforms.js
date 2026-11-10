@@ -62,6 +62,13 @@ export async function yahooLeagues(token) {
     season: +val(l, 'season') || 0, ...(comm[val(l, 'league_key')] || { commissioner: false, team: '' }) }));
 }
 
+/** The signed-in Yahoo user's team id in one league (team_key "<league_key>.t.<id>"), null if none. */
+export async function yahooTeamOf(token, leagueKey) {
+  const tx = await yget(token, 'users;use_login=1/games;game_keys=nfl/teams');
+  const k = blocks(tx, 'team').map((t) => val(t, 'team_key')).find((k) => k.split('.t.')[0] === String(leagueKey));
+  return k ? +k.split('.t.')[1] : null;
+}
+
 // ---------------- ESPN ----------------
 // ESPN has no sign-in for outside sites. Public leagues need only the league ID; private leagues need the two
 // cookies from a signed-in ESPN session (espn_s2 and SWID). With cookies we can tell who the commissioner is:

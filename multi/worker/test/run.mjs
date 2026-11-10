@@ -153,6 +153,8 @@ r = await call('POST', '/yahoo/league', { form: { key: '461.l.556' } }); const w
 r = await call('GET', `/l/${workSlug}/settings`); assert.equal(r.status, 403); ok('not commissioner of Work League → settings locked');
 r = await call('POST', '/yahoo/league', { form: { key: '461.l.555' } }); const ySlug = r.headers.get('Location').split('/')[2];
 r = await call('GET', `/l/${ySlug}/settings`); assert.equal(r.status, 200); ok('Yahoo commissioner opens settings');
+gh.write(`papers/${ySlug}/index.html`, '<header class="mast">M</header><section class="sec" id="ps-lineup" data-lu-me=""><template data-lu-team="1"><p>YLU1</p></template><template data-lu-team="3"><p>YLU3</p></template></section>');
+r = await call('GET', `/l/${ySlug}/`); { const yt = await text(r); assert.ok(yt.includes('YLU3') && !yt.includes('YLU1') && yt.includes('data-lu-me="3"')); } ok('Yahoo member gets their own team\'s lineup');
 r = await call('POST', '/yahoo/league', { form: { key: '461.l.999' } }); assert.equal(r.status, 403); ok('cannot add a league you are not in');
 r = await call('GET', `/api/build/leagues?slug=${ySlug}`, { headers: { Authorization: 'Bearer build-tok' } });
 assert.equal((await r.json()).leagues[0].yahoo_token, 'AT-refresh_token'); ok('printer gets a fresh Yahoo access token');

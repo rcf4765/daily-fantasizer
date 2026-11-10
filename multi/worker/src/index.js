@@ -3,7 +3,7 @@
 // printed paper lives in the private data repo on GitHub (data.js / store.js). The data repo's own workflows sign in to
 // ESPN (espn-login.yml) and print the papers (print.yml); this site starts them and they report back here.
 import { sign, verify, seal, open, sha256, randomId, randomCode, cookie, setCookie, same, jobSeal, hmacHex } from './crypto.js';
-import { yahooAuthUrl, yahooExchange, yahooAccess, yahooUser, yahooLeagues, espnLeague, espnUserLeagues, espnSeason, validSwid, espnTeamOf } from './platforms.js';
+import { yahooAuthUrl, yahooExchange, yahooAccess, yahooUser, yahooLeagues, espnLeague, espnUserLeagues, espnSeason, validSwid, espnTeamOf, yahooTeamOf } from './platforms.js';
 import { EXTENSION_ZIP } from './extension_zip.js';
 import { espnLoginStart, espnLoginCode } from './espn_login.js';
 import { officeGet, officePost } from './office.js';
@@ -66,17 +66,23 @@ async function createOrUpdateLeague(env, D, { platform, leagueId, season, name, 
   return L;
 }
 
-/** The signed-in member's team in an ESPN league: the team whose owners include their SWID (uid = espn:<SWID>), asked
- *  of ESPN with the league's stored session and remembered for a day (an hour when it found none). null = no team. */
+/** The signed-in member's team in this league, for Optimal Lineup. ESPN: the team whose owners include their SWID
+ *  (uid = espn:<SWID>), asked of ESPN with the league's stored session. Yahoo: the team Yahoo marks as theirs.
+ *  A found team is remembered for a day; "no team" is never remembered, so the next view asks again. */
 async function viewerTeam(env, D, L, uid) {
-  if (!L || L.platform !== 'espn' || !String(uid).startsWith('espn:')) return null;
+  if (!L) return null;
   const k = await D.memberTeam(uid, L.slug);
-  if (k && Date.now() - Date.parse(k.at) < (k.team ? 86400e3 : 3600e3)) return k.team;
-  let s2 = null, swid = null;
-  try { if (L.espn_s2 && L.swid) { s2 = await open(env, L.espn_s2); swid = await open(env, L.swid); } } catch (e) { /* public league: no cookies */ }
-  const t = await espnTeamOf(L.league_id, L.season, s2, swid, uid.slice(5));
-  if (t === undefined) return k ? k.team : null;   // ESPN didn't answer: keep what we knew
-  await D.setMemberTeam(uid, L.slug, t).catch(() => {});
+  if (k && k.team && Date.now() - Date.parse(k.at) < 86400e3) return k.team;
+  let t;
+  if (L.platform === 'espn' && String(uid).startsWith('espn:')) {
+    let s2 = null, swid = null;
+    try { if (L.espn_s2 && L.swid) { s2 = await open(env, L.espn_s2); swid = await open(env, L.swid); } } catch (e) { /* public league */ }
+    t = await espnTeamOf(L.league_id, L.season, s2, swid, uid.slice(5));
+  } else if (L.platform === 'yahoo' && String(uid).startsWith('yahoo:')) {
+    t = await yahooTeamOf(await yahooAccess(env, uid, D), L.league_id).catch(() => undefined);
+  }
+  if (t === undefined) return k ? k.team : null;   // couldn't ask: keep what we knew
+  if (t) await D.setMemberTeam(uid, L.slug, t).catch(() => {});
   return t;
 }
 
