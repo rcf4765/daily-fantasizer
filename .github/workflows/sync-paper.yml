@@ -47,10 +47,10 @@ jobs:
           dst = f"_datarepo/papers/{slug}"
           os.makedirs(f"{dst}/bets", exist_ok=True)
           weeks = sorted(int(m.group(1)) for p in glob.glob("docs/week*.html") if (m := re.search(r"week(\d+)\.html$", p)))
-          # Optimal Lineup: shown to everyone who can open this copy (signed-in league members), not only the owner's device
-          OWNER_CHECK = "var on=!!(m&&m.key&&+m.team===OWN);"
+          # Optimal Lineup: the paper carries every team's lineup; the site's Worker serves each signed-in member only
+          # their own team's (matched by their ESPN account), so the copy goes through unchanged
           for w in weeks:
-              html = gate.remove(open(f"docs/week{w}.html", encoding="utf-8").read()).replace(OWNER_CHECK, "var on=true;")
+              html = gate.remove(open(f"docs/week{w}.html", encoding="utf-8").read())
               open(f"{dst}/week{w}.html", "w", encoding="utf-8").write(html)
           shutil.copyfile(f"{dst}/week{weeks[-1]}.html", f"{dst}/index.html")
           if os.path.exists("docs/rulebook.json"): shutil.copyfile("docs/rulebook.json", f"{dst}/rulebook.json")

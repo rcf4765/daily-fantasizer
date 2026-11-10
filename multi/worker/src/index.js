@@ -3,7 +3,7 @@
 // printed paper lives in the private data repo on GitHub (data.js / store.js). The data repo's own workflows sign in to
 // ESPN (espn-login.yml) and print the papers (print.yml); this site starts them and they report back here.
 import { sign, verify, seal, open, sha256, randomId, randomCode, cookie, setCookie, same, jobSeal, hmacHex } from './crypto.js';
-import { yahooAuthUrl, yahooExchange, yahooAccess, yahooUser, yahooLeagues, espnLeague, espnUserLeagues, espnSeason, validSwid } from './platforms.js';
+import { yahooAuthUrl, yahooExchange, yahooAccess, yahooUser, yahooLeagues, espnLeague, espnUserLeagues, espnSeason, validSwid, espnTeamOf } from './platforms.js';
 import { EXTENSION_ZIP } from './extension_zip.js';
 import { espnLoginStart, espnLoginCode } from './espn_login.js';
 import { officeGet, officePost } from './office.js';
@@ -64,6 +64,27 @@ async function createOrUpdateLeague(env, D, { platform, leagueId, season, name, 
   }
   await D.remember(uid, L.slug, commissioner);
   return L;
+}
+
+/** The signed-in member's team in an ESPN league: the team whose owners include their SWID (uid = espn:<SWID>), asked
+ *  of ESPN with the league's stored session and remembered for a day (an hour when it found none). null = no team. */
+async function viewerTeam(env, D, L, uid) {
+  if (!L || L.platform !== 'espn' || !String(uid).startsWith('espn:')) return null;
+  const k = await D.memberTeam(uid, L.slug);
+  if (k && Date.now() - Date.parse(k.at) < (k.team ? 86400e3 : 3600e3)) return k.team;
+  let s2 = null, swid = null;
+  try { if (L.espn_s2 && L.swid) { s2 = await open(env, L.espn_s2); swid = await open(env, L.swid); } } catch (e) { /* public league: no cookies */ }
+  const t = await espnTeamOf(L.league_id, L.season, s2, swid, uid.slice(5));
+  if (t === undefined) return k ? k.team : null;   // ESPN didn't answer: keep what we knew
+  await D.setMemberTeam(uid, L.slug, t).catch(() => {});
+  return t;
+}
+
+/** Optimal Lineup: the paper carries every team's lineup in <template data-lu-team="N">; a member gets only their own. */
+function onlyMyLineup(page, team) {
+  if (page.indexOf('data-lu-team="') < 0) return page;
+  return page.replace(/<template data-lu-team="(\d+)">[\s\S]*?<\/template>/g, (m, t) => (team && +t === +team ? m : ''))
+    .replace('id="ps-lineup" data-lu-me=""', `id="ps-lineup" data-lu-me="${team ? +team : 0}"`);
 }
 
 /** One ESPN account → every football league on it gets a paper. Used by the login, the extension and the weekly refresh. */
@@ -477,7 +498,7 @@ async function route(req, env, ctx) {
       if (!obj) return file === 'index.html' ? html(P.status(L, null, isComm(L, s))) : html(P.message('Not printed', 'That edition doesn’t exist.', `/l/${L.slug}/`), 404);
       if (!file.endsWith('.html')) return new Response(obj.body, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' } });
       // Signed in: a bar above the masthead to switch between every league you're in (and Settings for commissioners).
-      // The paper streams through untouched; the bar rides at the end and moves itself into place.
+      // The bar rides at the end of the paper and moves itself into place.
       const mineRows = (await D.myLeagues(s.uid)).sort((a, b) => a.name.localeCompare(b.name));
       if (!mineRows.some((r) => r.slug === L.slug)) mineRows.push(L);
       const bar = P.leagueBar(L.slug, mineRows, isComm(L, s), file !== 'index.html');
@@ -485,9 +506,10 @@ async function route(req, env, ctx) {
       // kept only in this browser; the server never sees it (it travels in the link's #fragment).
       const tail = `<template id="fz-lgbar-t">${bar}</template><script>(function(){var t=document.getElementById('fz-lgbar-t'),h=document.querySelector('header.mast');if(t&&h)h.parentNode.insertBefore(t.content.cloneNode(true),h);
 try{var v=(location.hash.match(/^#fzt=([^&]+)/)||[])[1]||sessionStorage.getItem('fz-carry');if(v){v=decodeURIComponent(v);var j=JSON.parse(atob(v));if(j&&j.key&&j.team&&!localStorage.getItem('fz-team')){localStorage.setItem('fz-team',JSON.stringify(j));location.reload()}sessionStorage.removeItem('fz-carry');if(location.hash.indexOf('#fzt=')===0)history.replaceState(null,'',location.pathname)}}catch(e){}})()</script>`;
-      const { readable, writable } = new TransformStream();
-      ctx.waitUntil((async () => { await obj.body.pipeTo(writable, { preventClose: true }); const w = writable.getWriter(); await w.write(new TextEncoder().encode(tail)); await w.close(); })());
-      return html(readable, 200, { 'Cache-Control': 'private, max-age=60' });
+      // Optimal Lineup: keep only the signed-in member's own team (every other team's lineup is removed here)
+      let page = await new Response(obj.body).text();
+      if (page.indexOf('data-lu-team="') >= 0) page = onlyMyLineup(page, await viewerTeam(env, D, L, s.uid).catch(() => null));
+      return html(page + tail, 200, { 'Cache-Control': 'private, max-age=60' });
     }
     return html(P.message('Not found', 'Nothing here.', `/l/${L.slug}/`), 404);
   }

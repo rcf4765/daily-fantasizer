@@ -112,6 +112,8 @@ r = await call('GET', `/l/${privSlug}/week8.html`); assert.equal(r.status, 303);
 await call('POST', '/espn', { form: { league: '777', season: '2026', espn_s2: 'S2SECRET', swid: '{BBBB-2222}' } });
 r = await call('GET', `/l/${privSlug}/`); t = await text(r); assert.match(t, /<p>paper<\/p>/); assert.doesNotMatch(t, /\/settings"/); ok('a league member reads it (no Settings)');
 r = await call('GET', `/l/${privSlug}/archive`); assert.match(await text(r), /Week 8/); ok('archive lists editions');
+gh.write(`papers/${privSlug}/week8.html`, '<section class="sec" id="ps-lineup" data-lu-me=""><template data-lu-team="1"><p>LU1</p></template><template data-lu-team="2"><p>LU2</p></template></section>');
+r = await call('GET', `/l/${privSlug}/week8.html`); t = await text(r); assert.ok(!t.includes('LU1') && !t.includes('LU2') && t.includes('data-lu-me="0"')); ok('member without a team in the league gets no one\'s lineup');
 
 console.log('league office');
 const API = `/api/office/${privSlug}`;
@@ -230,7 +232,15 @@ console.log('Log in with ESPN (server signs in; user only logs in)');
     r = await call('GET', `/l/${slugs[0].slug}/`); page = await text(r);
     assert.ok(page.includes('fz-lgbar') && page.includes("querySelector('header.mast')") && page.includes('Office League') && page.includes('Family League')); ok('paper carries a switcher to every league you are in (placed above the masthead)');
     assert.equal((page.match(/aria-current="page"/g) || []).length, 1); ok('current league highlighted');
-    const saved = { ...jar }; jar = {}; r = await call('GET', `/l/${slugs[0].slug}/`); assert.equal(r.status, 303); jar = saved; ok('a shared link without a sign-in goes to the login'); }
+    const saved = { ...jar }; jar = {}; r = await call('GET', `/l/${slugs[0].slug}/`); assert.equal(r.status, 303); jar = saved; ok('a shared link without a sign-in goes to the login'); 
+    // Optimal Lineup: every team's lineup is in the paper; the member gets only their own team (team 3 here)
+    const lu = (t) => `<template data-lu-team="${t}"><p>lineup of team ${t}</p></template>`;
+    gh.write(`papers/${slugs[0].slug}/index.html`, `<!doctype html><title>x</title><header class="mast">M</header><section class="sec" id="ps-lineup" data-lu-me=""><div class="lu-box"></div>${lu(1)}${lu(3)}${lu(12)}</section>`);
+    r = await call('GET', `/l/${slugs[0].slug}/`); page = await text(r);
+    assert.ok(page.includes('lineup of team 3') && !page.includes('lineup of team 1<') && !page.includes('lineup of team 12')); ok('Optimal Lineup: only the signed-in member\'s own team is served');
+    assert.ok(page.includes('data-lu-me="3"')); ok('page told which team is yours (matched by ESPN account)');
+    assert.equal(gh.json(`members/espn_CCCCCCCC-1111-2222-3333-444444444444.json`).teams[slugs[0].slug].team, 3); ok('team remembered for the member');
+  }
   r = await call('POST', '/mine/add', { form: { league: '4777' } }); assert.match(r.headers.get('Location'), /err=/); ok('add by ID refuses a league you are not in');
   r = await call('POST', '/mine/add', { form: { league: 'https://fantasy.espn.com/football/league?leagueId=4003' } }); assert.match(r.headers.get('Location'), /added=1/); ok('add by ID from a league link');
   globalThis.JOINED_4004 = true; const before = dispatched.length;

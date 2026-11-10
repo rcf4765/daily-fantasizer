@@ -87,6 +87,21 @@ export async function espnLeague(leagueId, season, s2, swid) {
     commissioner: !!(me && me.isLeagueManager), isPublic: !!j.settings?.isPublic, team: teamName };
 }
 
+/** Which team in this league belongs to the ESPN account `viewerSwid` (its SWID is in the team's owners).
+ *  Returns the team id, null when the account owns no team, undefined when ESPN couldn't be asked. */
+export async function espnTeamOf(leagueId, season, s2, swid, viewerSwid) {
+  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?view=mTeam`;
+  const headers = { 'User-Agent': 'Mozilla/5.0 (DailyFantasizer)', Accept: 'application/json' };
+  if (s2 && swid) headers.Cookie = `espn_s2=${s2}; SWID=${swid}`;
+  try {
+    const r = await fetch(url, { headers });
+    if (!r.ok || !(r.headers.get('content-type') || '').includes('json')) return undefined;
+    const j = await r.json(), v = normSwid(viewerSwid);
+    const t = (j.teams || []).find((t) => (t.owners || []).some((o) => normSwid(o) === v) || normSwid(t.primaryOwner) === v);
+    return t ? +t.id : null;
+  } catch (e) { return undefined; }
+}
+
 /** Every football league on one ESPN account this season (an account can be in several). ESPN's fan profile lists the
  *  account's fantasy entries; each candidate is then checked against the league itself, so a guess never becomes a league. */
 export async function espnUserLeagues(s2, swid, season) {

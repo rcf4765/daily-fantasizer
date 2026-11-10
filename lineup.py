@@ -3,9 +3,9 @@
 "Add an optimal lineup tab that is only visible to me. Consider every stat at each position and suggest the best
 lineup for the coming week. As accurate as possible."
 
-Who sees it: only a device that claimed the owner's team (league.json `owner_team`) in Rule Changes, i.e. the
-`fz-team` sign-in in localStorage. Everyone else never sees the tab button or the panel. It is hidden, not secret:
-the numbers are in the page source, like every roster on the site.
+Who sees it (user 2026-11-10): every manager sees his own team's lineup. All 12 are built; on the members-only site
+the Worker matches the signed-in ESPN account to its team and serves only that team's lineup. Elsewhere (docs/,
+previews) the Rule Changes team sign-in (`fz-team` in localStorage) picks the team. No team, no tab.
 
 How the projection is chosen (re-checked on every build):
 1. Every position: our own projection (inhouse.py, user 2026-11-02: "bring as much in-house as possible"), as the
@@ -33,7 +33,7 @@ swapped in), and free agents who'd beat a starter.
 Built inside the Player Stats pane (players.build), so the midweek `players.yml` refreshes (Tue-Thu, Sat,
 Sunday 11:47am) keep it current with the latest projections and injury news.
 """
-import html, itertools, json, math, os
+import copy, html, itertools, json, math, os
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -651,7 +651,11 @@ def _rowhtml(slot, x, mx, extra=""):
             f'<b class="lu-pts num">{f1(x["mu"])}</b></summary><div class="lu-x">{_every(x) if x["st"] != "empty" else "<p class=note-s>Nobody healthy to play here. See the wire below.</p>"}</div></details>')
 
 
-def section(d, W, short, own_team):
+def section(d, W, short, own_team=None):
+    """Optimal Lineup for every team (user 2026-11-10: "show the optimal lineup for whoever signed in").
+    The model is fit once; each team's lineup goes in its own <template data-lu-team="N">. On the members-only site
+    the Worker keeps only the signed-in member's team (matched by their ESPN account) and fills data-lu-me; elsewhere
+    the page falls back to the Rule Changes team sign-in (localStorage fz-team). own_team: build only that team."""
     N = W + 1
     try:
         log_injuries(d, N)
@@ -660,6 +664,23 @@ def section(d, W, short, own_team):
     cal = calibrate(d, W)
     P = project(d, W, cal)
     K = kdst(W, cal)
+    teams = [own_team] if own_team else sorted({x["o"] for x in list(P.values()) + list(K.values()) if x["o"]})
+    parts = []
+    for t in teams:
+        try:
+            b = _team_body(d, W, short, t, cal, copy.deepcopy(P), copy.deepcopy(K))
+        except Exception as e:  # one team's failure never loses everyone's tab
+            print(f"optimal lineup skipped for team {t}:", e); b = ""
+        if b:
+            parts.append(f'<template data-lu-team="{t}">{b}</template>')
+    if not parts:
+        return ""
+    return (f'<section class="sec" id="ps-lineup" data-lu-me=""><div class="sec-head"><h2>Optimal Lineup</h2>'
+            f'<span class="kicker">Week {N} · your team</span></div><div class="lu-box"></div>{"".join(parts)}</section>')
+
+
+def _team_body(d, W, short, own_team, cal, P, K):
+    N = W + 1
     mine = [x for x in P.values() if x["o"] == own_team]
     mykd = [x for x in K.values() if x["o"] == own_team]
     if not mine:
@@ -829,24 +850,27 @@ def section(d, W, short, own_team):
             + (f'<details class="lu-fold"><summary>On the wire · would start for you</summary><div class="lu-list">{fa_html}</div>'
                + (f'<p class="note-s">You\'re {wr} of 12 on waivers. Gains are projected points over the starter he\'d replace this week.</p>' if wr else "") + '</details>' if fa_html else "")
             + oppfold + track + how
-            + f'<p class="note-s lu-upd">Week {N} · data as of {upd} UTC · only shown on your signed-in phone</p></div>')
-    return (f'<section class="sec" id="ps-lineup"><div class="sec-head"><h2>Optimal Lineup</h2>'
-            f'<span class="kicker">Week {N} · your team only</span></div>{body}</section>')
+            + f'<p class="note-s lu-upd">Week {N} · data as of {upd} UTC · {sname(own_team)}: only you see this lineup</p></div>')
+    return body
 
 
-# Shown only on a device signed in as the owner team (Rule Changes sign-in, localStorage "fz-team").
+# Shows the viewer's own team: data-lu-me (set by the members-only site from the ESPN sign-in, which also removes every
+# other team's template), else the Rule Changes team sign-in on this device (localStorage "fz-team"). No team, no tab.
 GATE = r"""<script>
 (function(){
-  var OWN=%d;
-  function chk(){var m=null;try{m=JSON.parse(localStorage.getItem('fz-team')||'null')}catch(e){}
-    var on=!!(m&&m.key&&+m.team===OWN);document.documentElement.classList.toggle('fz-owner',on);
-    if(!on){var p=document.getElementById('ps-lineup');if(p&&!p.hidden){var g=p.closest('.cmb'),b=g&&g.querySelector('.cmb-sw button');if(b)b.click()}}}
+  function chk(){var sec=document.getElementById('ps-lineup');if(!sec)return;
+    var me=+sec.getAttribute('data-lu-me')||0,box=sec.querySelector('.lu-box');
+    if(!me&&sec.getAttribute('data-lu-me')===''){var m=null;try{m=JSON.parse(localStorage.getItem('fz-team')||'null')}catch(e){}if(m&&m.key&&m.team)me=+m.team}
+    var t=me?sec.querySelector('template[data-lu-team="'+me+'"]'):null;
+    if(box&&box.getAttribute('data-team')!==String(me||'')){box.innerHTML='';if(t)box.appendChild(t.content.cloneNode(true));box.setAttribute('data-team',String(me||''))}
+    var on=!!t;document.documentElement.classList.toggle('fz-lu',on);
+    if(!on&&!sec.hidden){var g=sec.closest('.cmb'),b=g&&g.querySelector('.cmb-sw button');if(b)b.click()}}
   chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk()});window.addEventListener('storage',chk);
 })();
 </script>"""
 
 CSS = r"""
-html:not(.fz-owner) #ps-lineup,html:not(.fz-owner) .cmb-sw button[data-k="ps-lineup"]{display:none!important}
+html:not(.fz-lu) #ps-lineup,html:not(.fz-lu) .cmb-sw button[data-k="ps-lineup"]{display:none!important}
 .lu{display:grid;gap:12px;min-width:0}
 .lu-hero{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:14px;background:var(--honolulu);color:#fff;border:3px solid var(--rule)}
 .lu-team{display:flex;align-items:center;gap:10px}.lu-them{justify-content:flex-end;text-align:right}

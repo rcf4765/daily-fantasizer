@@ -47,7 +47,8 @@ def season(W):
 
 
 # ---------------------------------------------------------------- 1. leverage
-def leverage(S, W, NS=20000, seed=7):
+def leverage(S, W, NS=20000, seed=7, me=None):
+    ME = me or LG["owner_team"]
     teams = sorted(S[W]["score"])
     wk = range(1, W + 1)
     allw = [S[k]["score"][t] for k in wk for t in teams]
@@ -129,7 +130,8 @@ def moves(S, W):
     return out
 
 
-def waiver_rules():
+def waiver_rules(me=None):
+    ME = me or LG["owner_team"]
     a = SET["acquisitionSettings"]
     hist = json.load(open("data/players/waivers.json"))
     mypri = [(h["scoringPeriod"], h["order"].get(str(ME))) for h in hist.get("history", [])]
@@ -167,19 +169,24 @@ if __name__ == "__main__":
 
 
 # ---------------------------------------------------------------- page block (Optimal Lineup tab, owner only)
+_CACHE = {}
+
+
 def panel(W, short, own=ME):
+    """Any team (user 2026-11-10: every member sees his own)."""
     """'Season stakes' block for lineup.section: bye race, leverage by remaining game, waiver and denial notes."""
     import html as _h
     esc = lambda s: _h.escape(str(s))
     have = [k for k in weeks_available() if k <= W]
-    if len(have) < W or own != ME:
+    if len(have) < W:
         return ""
-    S = season(W)
-    lev = leverage(S, W, NS=10000)
+    if _CACHE.get("W") != W:          # every team's panel reads the same season once
+        S = season(W); _CACHE.update(W=W, S=S, mv=moves(S, W))
+    S, mv = _CACHE["S"], _CACHE["mv"]
+    lev = leverage(S, W, NS=10000, me=own)
     if not lev["weeks"]:
         return ""
-    mv = moves(S, W)
-    wr = waiver_rules()
+    wr = waiver_rules(own)
     sn = lambda t: esc(short.get(str(t), short.get(t, f"Team {t}")))
     top = max(lev["weeks"], key=lambda r: r["swing_bye"] if NBYE else r["swing_po"])
     key = "swing_bye" if NBYE else "swing_po"

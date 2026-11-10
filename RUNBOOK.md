@@ -32,7 +32,7 @@ The weekly newspaper for the **Men Fantasizing** ESPN league (league 1196354715,
 | `ux.py` | Usability block (sticky one-row tab bar with short names on narrow screens, each tab remembers its scroll spot, Top button only while scrolling up, bigger touch targets); lives at the end of `template.html` before the glossary block, `python3 ux.py FILE…` adds it to built pages | no |
 | `glossary.py` | Tap-to-explain abbreviations (PPR, YAC, aDOT, WOPR, team codes, WR12…) on every tab, and the phone Top button pinned to the bottom-right corner; the block lives at the end of `template.html`, `python3 glossary.py FILE…` adds it to built pages | no |
 | `layout_check.py` | Compares a new edition's tabs, sections and order with the published paper (`docs/index.html`); step 7 | no |
-| `lineup.py` | Optimal Lineup (League & Teams, between Managers and Moves since 2026-11-03; owner's signed-in phone only in `docs/`, shown to every signed-in member on thedailyfantasizer.com via `sync-paper.yml`): back-tested projection, exact lineup search, win chance; called by `players.build` | no |
+| `lineup.py` | Optimal Lineup (League & Teams, between Managers and Moves since 2026-11-03; every team's lineup built (one `<template data-lu-team="N">` each, Season stakes per team via `gametheory.panel`); on thedailyfantasizer.com the Worker matches the signed-in ESPN account to its team (owners list) and serves only that team's lineup; in `docs/` the Rule Changes team sign-in picks it): back-tested projection, exact lineup search, win chance; called by `players.build` | no |
 | `gametheory.py` | Season stakes block inside Optimal Lineup (owner only): bye/playoff leverage of each remaining game, waiver and streaming notes from the real ESPN settings, trades excluded; called by `lineup.section`; `python3 gametheory.py [W]` prints the analysis and writes `data/gametheory_weekW.json` | no |
 | `desk.py` | Player Stats additions: Trend Lines, Steady or Streaky, Player Face-Off, Defense Matchups; called by `players.build` so the midweek refresh keeps them | no |
 | `data/players/` | Player Stats data (ESPN league data, nflverse) and our own projections (`ih_week*.json`, `ih_ros.json`, from `inhouse.py`) | refreshed by Actions |
@@ -316,7 +316,7 @@ User: "Move roster radar to paper under matchup of the week and optimal lineup t
 - `template.html`: `<!--STRENGTH-->` now sits in the paper right after `<!--MATCHUP-->` (before the League & Teams link card, whose line now reads "Standings, playoff odds, grades and trades"). Where it was in League & Teams there is the Optimal Lineup slot `<!--LU--><!--/LU-->`.
 - `players.build` still builds Optimal Lineup (so the midweek `players.yml` refresh keeps updating it) but no longer puts it in Compare Players; it leaves the block in `players.LU_BLOCK` (`<!--LU-->` + its CSS + the section + the owner gate + `<!--/LU-->`). `render.py` fills the slot; `players.patch` swaps both `<!--PS-->` and `<!--LU-->`.
 - `combine.py` puts Standings, Season Scoring and Managers before the `<!--LU-->` slot and Moves after it (the anchor used to be Roster Radar). Compare Players is now Start / Sit · Face-Off.
-- Optimal Lineup is a standalone section (`#ps-lineup`, own title and ⓘ), still shown only on the owner's signed-in phone; everyone else sees Managers followed by Moves.
+- Optimal Lineup is a standalone section (`#ps-lineup`, own title and ⓘ). Since 2026-11-10 every member sees their own team's lineup (Worker keeps only the signed-in ESPN account's team; no team → no tab).
 - Week 8 (published) was moved in place, then refreshed with `players.py --week 8 --patch`; it matches a fresh `render.py 8` skeleton exactly.
 
 ## Current layout (FINAL, week 7 edition, 2026-10-27; every new edition must match)
@@ -369,3 +369,13 @@ The website is https://thedailyfantasizer.com (Cloudflare Worker `multi/worker`,
 ## Live week in Player Data (user, 2026-11-09)
 The hourly `players.yml` refresh runs `players.py --live --week N`: games already played in week N+1 (Thursday through Monday, before Tuesday's paper) count in Player Data and the season averages, the hero reads "weeks 1–N+1, week N+1 in progress", and a player who already played shows his week N+2 projection and opponent. Rankings, Start/Sit and the other sections keep looking at week N+1 until the next edition. `render.py` never passes `--live`, so editions are unchanged; the only byte change in the week 5 self-test render is the Player Data card's projection-label script (`p.nx||D.nx`).
 
+
+
+## 2026-11-10: Optimal Lineup for every member (user: "should show optimal lineup for whoever has signed in")
+- `lineup.section` fits the model once and builds every team's lineup, win chance, bench, wire and Season stakes
+  (`gametheory.panel(W, short, team)` for any team). Each goes in `<template data-lu-team="N">` inside `#ps-lineup`.
+- The Worker (`multi/worker`, `viewerTeam` / `onlyMyLineup`) finds the signed-in member's team from the league's ESPN
+  team owners (their SWID), remembers it in `members/<uid>.json` `teams`, removes every other team's template and sets
+  `data-lu-me`. Members never receive another team's lineup. `sync-paper.yml` no longer forces the owner's lineup on.
+- `docs/` and previews: `lineup.GATE` falls back to the Rule Changes team sign-in (`fz-team`). No team → no tab.
+- The Worker change needs the "Deploy the sign-up site" workflow run once.

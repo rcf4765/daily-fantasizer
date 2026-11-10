@@ -454,17 +454,16 @@ def build(short_names, week=None, live=False):
     extra.update(desk.sections2(d, W_, short_names, int(d.meta.get("owner_team") or (json.load(open("league.json")).get("owner_team") if os.path.exists("league.json") else 1) or 1)))
     after("ps-lookup", extra.get("trend")); after("ps-volume", extra.get("steady"))
     after("ps-startsit", extra.get("defense")); after("ps-startsit", extra.get("faceoff"))
-    # Optimal Lineup (lineup.py, user 2026-10-28): owner's phone only. Built here so the midweek refresh updates it,
+    # Optimal Lineup (lineup.py, user 2026-10-28; every team's own since 2026-11-10). Built here so the midweek refresh updates it,
     # but shown in League & Teams where Roster Radar was (user, 2026-11-03): see lineup_block() / LU markers
     import lineup as _lu
     global LU_BLOCK
-    _own = int(d.meta.get("owner_team") or (json.load(open("league.json")).get("owner_team") if os.path.exists("league.json") else 1) or 1)
-    try:
-        _sec = _lu.section(d, W_, d.short, _own)
+    try:  # every team's lineup; the page / members-only site shows the viewer's own (user 2026-11-10)
+        _sec = _lu.section(d, W_, d.short)
     except Exception as e:  # never lose the tab over one section
         print("optimal lineup skipped:", e); _sec = ""
     import mobile as _mob
-    LU_BLOCK = ("<!--LU-->\n<style>" + _lu.CSS + "</style>\n" + _mob.tag(_sec) + "\n" + (_lu.GATE % _own) + "\n<!--/LU-->") if _sec else "<!--LU--><!--/LU-->"
+    LU_BLOCK = ("<!--LU-->\n<style>" + _lu.CSS + "</style>\n" + _mob.tag(_sec) + "\n" + _lu.GATE + "\n<!--/LU-->") if _sec else "<!--LU--><!--/LU-->"
     # Reading order (user, 2026-10-19: "order the pages so the data makes sense as you scroll"):
     # season so far -> next week -> rest of season -> how the rankings did
     # Compare Players moved up to sit right after Player Data (user, 2026-10-27)

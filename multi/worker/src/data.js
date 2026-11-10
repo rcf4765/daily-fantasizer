@@ -67,6 +67,15 @@ export function makeData(env) {
         return { leagues: l };
       });
     },
+    /** The member's own team in a league (Optimal Lineup), kept apart from `leagues` so it never adds a membership. */
+    async memberTeam(uid, slug) { return (await st.get(`members/${safe(uid)}.json`))?.data?.teams?.[slug] || null; },
+    async setMemberTeam(uid, slug, team) {
+      return st.update(`members/${safe(uid)}.json`, (cur) => {
+        const prev = cur?.teams?.[slug];
+        if (prev && prev.team === team && Date.now() - Date.parse(prev.at) < 3600e3) return undefined;
+        return { ...(cur || {}), teams: { ...(cur?.teams || {}), [slug]: { team, at: now() } } };
+      });
+    },
     async myLeagues(uid) {
       const m = await D.memberships(uid);
       return (await Promise.all(Object.keys(m).map((s) => D.league(s)))).filter(Boolean);
