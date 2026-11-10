@@ -23,7 +23,16 @@ from facts import load
 
 LG = json.load(open("league.json"))
 ME = LG["owner_team"]
-SET = json.load(open("data/espn_settings.json"))
+def _opt(path, default):
+    try:
+        return json.load(open(path))
+    except Exception:
+        return default
+
+
+# Other leagues' builds have no espn_settings.json (it comes from the Men Fantasizing rules job): waiver settings then
+# come from data/players/waivers.json (fetch_players.espn_waivers), and an unknown tie rule is said to be unknown.
+SET = _opt("data/espn_settings.json", {})
 SCH = json.load(open("data/schedule.json"))
 REG, POT = SCH["regweeks"], SCH["playoff_teams"]
 NBYE = 2 if POT == 6 else 0          # 6 teams in a 3-week bracket: seeds 1-2 skip round one
@@ -132,14 +141,15 @@ def moves(S, W):
 
 def waiver_rules(me=None):
     ME = me or LG["owner_team"]
-    a = SET["acquisitionSettings"]
-    hist = json.load(open("data/players/waivers.json"))
+    hist = _opt("data/players/waivers.json", {})
+    a = SET.get("acquisitionSettings") or hist.get("settings") or {}
+    cur = (hist.get("current") or {}).get("order") or {}
     mypri = [(h["scoringPeriod"], h["order"].get(str(ME))) for h in hist.get("history", [])]
-    return dict(type=a["acquisitionType"], reset_weekly=a["waiverOrderReset"], hours=a["waiverHours"],
-                process_days=a["waiverProcessDays"], season_add_limit=a["acquisitionLimit"],
-                weekly_add_limit=a["matchupAcquisitionLimit"], faab=a["isUsingAcquisitionBudget"],
-                tie_rule=SET["scoringSettings"]["matchupTieRule"],
-                my_priority_now=hist["current"]["order"].get(str(ME)), my_priority_history=mypri)
+    return dict(type=a.get("acquisitionType"), reset_weekly=a.get("waiverOrderReset"), hours=a.get("waiverHours"),
+                process_days=a.get("waiverProcessDays"), season_add_limit=a.get("acquisitionLimit"),
+                weekly_add_limit=a.get("matchupAcquisitionLimit"), faab=a.get("isUsingAcquisitionBudget"),
+                tie_rule=(SET.get("scoringSettings") or {}).get("matchupTieRule"),
+                my_priority_now=cur.get(str(ME)), my_priority_history=mypri)
 
 
 def main():
@@ -206,7 +216,7 @@ def panel(W, short, own=ME):
     busy = sorted((t for t in mv if t != own and mv[t]["adds"] >= 6), key=lambda t: -mv[t]["adds"])
     resets = wr["reset_weekly"]
     wv = (f'Order resets every week by reverse standings, so a claim never costs you future priority, only a roster spot. '
-          if resets else 'Rolling order: a claim sends you to the back, so save it for players worth it. ')
+          if resets else 'Rolling order: a claim sends you to the back, so save it for players worth it. ' if resets is False else '')
     wv += (f'You\'re {wr["my_priority_now"]} of 12, so take free agents the moment you want them; anyone on waivers goes to a team ahead of you. '
            if wr["my_priority_now"] and wr["my_priority_now"] >= 7 else '')
     if busy:
@@ -229,4 +239,5 @@ def panel(W, short, own=ME):
             f'so start the best projections and every extra point also helps the tiebreaker.</p>'
             f'<details class="lu-fold"><summary>Waivers &amp; streaming</summary><div class="note-s"><p>{wv}</p>'
             + (f'<p>Block a streamer:</p><ul>{dn}</ul>' if dn else '<p>None of your remaining opponents streams K or D/ST much, so blocking isn\'t worth a roster spot.</p>')
-            + '<p>Unlimited adds, so streaming your own K and D/ST each week is free.</p></div></details></div>')
+            + ('<p>Unlimited adds, so streaming your own K and D/ST each week is free.</p>' if wr["season_add_limit"] in (-1, None) and wr["weekly_add_limit"] in (-1, None) and wr["type"] else '')
+            + '</div></details></div>')
