@@ -23,7 +23,8 @@ OPTIONAL = {"announcements", "trades", "  trades", "forecast", "matchup", "block
 PANES = ["paper", "league", "player-stats", "proposals", "betting"]  # Betting added 2026-10-27
 # fixed blocks of the paper that have no id, found by class
 BLOCKS = [("hero", r'class="hero[" ]'), ("lead", r'class="lead[" ]'),
-          ("side", r'class="side[" ]'), ("honor", r'class="honor[" ]')]
+          ("side", r'class="side[" ]'), ("honor", r'class="honor[" ]'),
+          ("print", r'class="print-ed[" ]')]  # Print button, added 2026-11-10
 
 
 def skeleton(path):

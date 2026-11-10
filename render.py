@@ -493,6 +493,7 @@ strength_html = _strength.build(LG["short_names"], W)
 
 # Matchup of the Week (paper), Manager Report Card, One-Man Show, Trade Matchmaker (League & Teams): teams.py
 import teams as _teams
+import printpdf as _printpdf  # Print button at the bottom of the paper (user, 2026-11-10)
 _recs = {t: rec_s(SEA[t]) for t in SEA}
 matchup_html = _teams.matchup(LG["short_names"], W, F, _recs) if os.path.exists("data/players/meta.json") else ""
 report_html = _teams.report_card(LG["short_names"], W) if os.path.exists("data/players/meta.json") else ""
@@ -505,7 +506,7 @@ if LG["league_name"].lower().endswith(" league"):   # "Office League", not "Offi
     out = out.replace("the {{LEAGUE_NAME}} league", "the {{LEAGUE_NAME}}")
 for k, v in {"<!--PLAYERSTATS-->": ps_html, "<!--LU--><!--/LU-->": lu_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
              "<!--CRESTS-->": crests, "<!--POTEAMS-->": json.dumps({t: {"name": teams[t]["name"], "short": SHORT[t]} for t in sorted(teams)}).replace("</", "<\\/"), "{{PROPOSALS_API}}": LG.get("proposals_api", ""), "<!--RCPRESETS-->": json.dumps({k: {f: v[f] for f in ("category", "title", "pitch", "now_label", "new_label") if f in v} for k, v in json.load(open("rules_presets.json")).items()}).replace("</", "<\\/"), "<!--UPSETS-->": upsets_html, "<!--ANNOUNCE-->": announce_html, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
-             "<!--SIDEBAR-->": sidebar,
+             "<!--SIDEBAR-->": sidebar, "<!--PRINT-->": _printpdf.block(LG["season"], W),
              "<!--SCOREBOARD-->": scoreboard, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
              "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--RACE-->": race_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
