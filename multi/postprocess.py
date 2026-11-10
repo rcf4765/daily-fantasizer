@@ -8,7 +8,8 @@ What it does (the Men Fantasizing paper never goes through this file):
 - Rule Changes and Betting tabs are optional and OFF unless the commissioner turned them on.
   Betting needs a team sign-in, which lives on the Rule Changes tab, so Betting alone keeps that tab
   as a slim "Your Team" sign-in page with the voting sections removed.
-- Optimal Lineup (Compare Players) is the Men Fantasizing owner's private tool: removed.
+- Optimal Lineup stays (since 2026-11-10): every team's lineup, built for this league's own starting slots; the site
+  serves each signed-in member only their own team's.
 - The Detroit Lions accent becomes the league's own accent color.
 - Wording that names ESPN as the league host follows the league's platform; votes need a majority of
   this league, and passed changes are set by the commissioner (no auto-apply outside Men Fantasizing).
@@ -86,10 +87,6 @@ def main(src, dst, cfg_path):
         html = html.replace("the commissioner sets them in ESPN.", f"the commissioner sets them in {host}.")
         html = html.replace("What passed, and whether it&rsquo;s live on ESPN", f"What passed, and whether it&rsquo;s live on {host}")
         html = html.replace("'Live on ESPN'", f"'Live on {host}'").replace("'Commissioner sets in ESPN'", f"'Commissioner sets in {host}'")
-
-    # ---- owner-only Optimal Lineup ----
-    html = re.sub(r'<button type="button" role="tab" data-k="ps-lineup"[^>]*>Optimal Lineup</button>', "", html)
-    html = remove(html, r'<div class="cmb-p[^"]*" id="ps-lineup"')
 
     # ---- platform wording ----
     html = html.replace("Every number computed from ESPN league data", f"Every number computed from {host} league data")

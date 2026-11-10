@@ -23,7 +23,8 @@ How the projection is chosen (re-checked on every build):
    swap. If no eligible backup kicks off at the same time or later, his chance to play (learned the same way,
    prior 75%) is applied too and the lineup is searched again.
 
-The lineup: every legal QB / 2 RB / 2 WR / TE / FLEX / D/ST / K from the owner's roster is scored and the one
+The lineup (any league's slots since 2026-11-10, see layout(); exact search below for the standard
+QB / 2 RB / 2 WR / TE / FLEX / D/ST / K): every legal lineup from the team's roster is scored and the one
 with the best chance to beat this week's opponent wins (their best projected lineup, same model; normal model
 of both totals, QB and his own pass catchers correlated). That is nearly always the highest projected total;
 when it isn't, the page says why. Also shown: every bench player's chance to outscore the starter he'd replace,
@@ -543,6 +544,42 @@ def _stats(lu):
 EMPTY = lambda pos: {"k": "empty|" + pos, "n": "Empty slot", "pos": pos, "tm": "", "o": 0, "inj": "ACTIVE", "st": "empty", "mu": 0.0, "sd": 0.0}
 
 
+STD = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "D/ST", "K"]
+FLEXE = {"FLEX": ("RB", "WR", "TE"), "RB/WR": ("RB", "WR"), "WR/TE": ("WR", "TE"), "OP": ("QB", "RB", "WR", "TE")}
+_ORDER = ["QB", "RB", "WR", "TE", "RB/WR", "WR/TE", "FLEX", "OP", "D/ST", "K"]
+
+
+def layout():
+    """The league's starting slots (league.json "lineup", written by multi/build_league.py for every other league;
+    the Men Fantasizing paper has none and keeps its standard QB/2RB/2WR/TE/FLEX/D/ST/K). Returns (names, eligible
+    positions per slot). Slots no player here can fill (IDP and the like) are left out."""
+    try:
+        lu = json.load(open("league.json")).get("lineup")
+    except Exception:
+        lu = None
+    if not lu:
+        return list(STD), [FLEXE.get(n, (n,)) for n in STD]
+    names = [n for o in _ORDER for n in lu if n == o]
+    return names, [FLEXE.get(n, (n,)) for n in names]
+
+
+def optimize_any(sk, kd, names, elig):
+    """Any slot layout: each dedicated slot takes the best player at its position, then the flex slots, narrowest
+    first, take the best player left who fits. That is the most projected points for nested flex rules like these
+    (the back-test found the win-chance pick equal to the most-points pick in every lineup). Returns ((slots, mu, var)) x2."""
+    pool = sorted(sk + kd, key=lambda x: -x["mu"])
+    slots, used = [None] * len(names), set()
+    for i in sorted(range(len(names)), key=lambda i: len(elig[i])):
+        pick = next((x for x in pool if x["k"] not in used and x["pos"] in elig[i]), None)
+        if pick is None:
+            pick = EMPTY(names[i] if len(elig[i]) == 1 else elig[i][0])
+        else:
+            used.add(pick["k"])
+        slots[i] = pick
+    mu, var = _stats(slots)
+    return (slots, mu, var), (slots, mu, var)
+
+
 def optimize(sk, kd, opp=None):
     """Exact search over every legal lineup. opp = (mean, variance) of the opponent's total: then the lineup with the
     best chance to win is chosen (ties: more points). Returns (by win chance, by points); each = (slots, mean, var)."""
@@ -679,6 +716,14 @@ def section(d, W, short, own_team=None):
             f'<span class="kicker">Week {N} · your team</span></div><div class="lu-box"></div>{"".join(parts)}</section>')
 
 
+def _slotlist(names):
+    out = []
+    for n in dict.fromkeys(names):
+        c = names.count(n)
+        out.append(f"{c} {n}" if c > 1 else n)
+    return out
+
+
 def _team_body(d, W, short, own_team, cal, P, K):
     N = W + 1
     mine = [x for x in P.values() if x["o"] == own_team]
@@ -693,12 +738,14 @@ def _team_body(d, W, short, own_team, cal, P, K):
                 opp_id = g["away"] if g["home"] == own_team else g["home"]
     except Exception:
         pass
+    names, el = layout()
+    best = (lambda sk, kd, o=None: optimize(sk, kd, o)) if names == STD else (lambda sk, kd, o=None: optimize_any(sk, kd, names, el))
+    fits = lambda b, i: b["pos"] in el[i]
     opp = None
     if opp_id:
-        _, ob = optimize([x for x in P.values() if x["o"] == opp_id], [x for x in K.values() if x["o"] == opp_id])
+        _, ob = best([x for x in P.values() if x["o"] == opp_id], [x for x in K.values() if x["o"] == opp_id])
         opp = ob
-    names = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "D/ST", "K"]
-    (slots, mu, var), (pslots, pmu, pvar) = optimize(mine, mykd, (opp[1], opp[2]) if opp else None)
+    (slots, mu, var), (pslots, pmu, pvar) = best(mine, mykd, (opp[1], opp[2]) if opp else None)
     # A questionable starter only gets the "swap him if inactive" credit when a backup who could replace him kicks
     # off at the same time or later; otherwise his chance of sitting counts against him and the search runs again.
     qp = cal["q"]["play"]
@@ -708,23 +755,22 @@ def _team_body(d, W, short, own_team, cal, P, K):
             if s["st"] != "Q" or s.get("qlock"):
                 continue
             later = [b for b in mine if b["k"] not in ids and b["st"] not in ("bye", "out", "none") and b["mu"] > 0
-                     and (b["pos"] == s["pos"] or (names[i] == "FLEX" and b["pos"] in ("RB", "WR", "TE")))
+                     and fits(b, i)
                      and (b.get("ko") or "") >= (s.get("ko") or "")]
             if not later:
                 s["sd"] = math.sqrt(qp * s["sd"] ** 2 + qp * (1 - qp) * s["mu"] ** 2); s["mu"] *= qp
                 s["qlock"] = True; changed = True
         if not changed:
             break
-        (slots, mu, var), (pslots, pmu, pvar) = optimize(mine, mykd, (opp[1], opp[2]) if opp else None)
+        (slots, mu, var), (pslots, pmu, pvar) = best(mine, mykd, (opp[1], opp[2]) if opp else None)
     pw = Phi((mu - opp[1]) / math.sqrt(max(var + opp[2], 1e-6))) if opp else None
     mx = max([x["mu"] + .84 * x["sd"] for x in slots + mine + mykd] + [1])
     started = {x["k"] for x in slots}
-    names = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "D/ST", "K"]
 
     # bench: who he'd replace and his chance to outscore that starter
     bench = sorted([x for x in mine + mykd if x["k"] not in started], key=lambda x: -x["mu"])
     def rival(b):
-        ok = [s for i, s in enumerate(slots) if s["pos"] == b["pos"] or (names[i] == "FLEX" and b["pos"] in ("RB", "WR", "TE"))]
+        ok = [s for i, s in enumerate(slots) if fits(b, i)]
         return min(ok, key=lambda s: s["mu"]) if ok else None
     close = []
     brows = []
@@ -743,7 +789,7 @@ def _team_body(d, W, short, own_team, cal, P, K):
     for i, s in enumerate(slots):
         if s["st"] not in ("Q", "D"):
             continue
-        elig = [b for b in bench if b["st"] not in ("bye", "out", "none") and (b["pos"] == s["pos"] or (names[i] == "FLEX" and b["pos"] in ("RB", "WR", "TE")))]
+        elig = [b for b in bench if b["st"] not in ("bye", "out", "none") and fits(b, i)]
         later = [b for b in elig if (b.get("ko") or "") >= (s.get("ko") or "")]
         best = max(later or elig, key=lambda b: b["mu"]) if elig else None
         if best:
@@ -828,7 +874,7 @@ def _team_body(d, W, short, own_team, cal, P, K):
            f'Learned from this season\'s tags ({qq["played"]} of {qq["n"]} questionable players played' + (f', weeks {", ".join(map(str, qq["weeks"]))}' if qq["weeks"] else "") + '), still leaning on a prior until more weeks are logged.</p>'
            f'<p><b>Range.</b> Floor and ceiling are the 20th and 80th percentile, from how far projections missed in this league '
            f'(RB/WR/TE about {cal["sd"]["skill"][0]:.1f} + {cal["sd"]["skill"][1]:.2f} × projection; QB {cal["sd"]["QB"][0]:.1f}; K {cal["sd"]["K"][0]:.1f}; D/ST {cal["sd"]["D/ST"][0]:.1f}). Kickers and defenses use our projection too.</p>'
-           f'<p><b>Lineup.</b> Every legal QB / 2 RB / 2 WR / TE / FLEX / D/ST / K is scored against {sname(opp_id) if opp_id else "your opponent"}\'s best projected lineup, '
+           f'<p><b>Lineup.</b> Every legal {" / ".join(_slotlist(names))} is scored against {sname(opp_id) if opp_id else "your opponent"}\'s best projected lineup, '
            f'and the one with the best chance to win is shown (a QB and his own receivers count as linked). Bench percentages = his chance to outscore the starter he\'d replace. '
            f'Tap any player for every stat behind his number. Refreshes Tuesday to Thursday, Saturday and Sunday 11:47am.</p></div></details>')
 
@@ -888,7 +934,7 @@ html:not(.fz-lu) #ps-lineup,html:not(.fz-lu) .cmb-sw button[data-k="ps-lineup"]{
 .lu-r[open]>summary{background:var(--paper)}
 .lu-slot{font-family:var(--mono);font-weight:700;font-size:.68rem;text-align:center;padding:4px 0;border-radius:3px;background:var(--rule);color:var(--sheet)}
 .lu-slot.s-QB{background:#b3261e;color:#fff}.lu-slot.s-RB{background:var(--honolulu);color:#fff}.lu-slot.s-WR{background:var(--blue);color:#fff}
-.lu-slot.s-TE{background:#c47a12;color:#fff}.lu-slot.s-FLEX{background:var(--hi);color:var(--hi-ink)}.lu-slot.s-DST,.lu-slot.s-K{background:var(--silver);color:var(--silver-ink)}
+.lu-slot.s-TE{background:#c47a12;color:#fff}.lu-slot.s-FLEX,.lu-slot.s-OP,.lu-slot.s-RBWR,.lu-slot.s-WRTE{background:var(--hi);color:var(--hi-ink)}.lu-slot.s-DST,.lu-slot.s-K{background:var(--silver);color:var(--silver-ink)}
 .lu-slot.s-BN{background:transparent;color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--line)}
 .lu-who{min-width:0}.lu-who b{display:block;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lu-who small{display:block;font-family:var(--mono);font-size:.64rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

@@ -379,3 +379,7 @@ The hourly `players.yml` refresh runs `players.py --live --week N`: games alread
   `data-lu-me`. Members never receive another team's lineup. `sync-paper.yml` no longer forces the owner's lineup on.
 - `docs/` and previews: `lineup.GATE` falls back to the Rule Changes team sign-in (`fz-team`). No team → no tab.
 - The Worker change needs the "Deploy the sign-up site" workflow run once.
+- Other leagues (same day, user: "I don't see section for my other league"): `postprocess.py` no longer removes it, and
+  `lineup.layout()` follows the league's own starting slots from league.json "lineup" (superflex/OP, RB/WR, WR/TE,
+  extra WR, no K...). Standard leagues keep the exact win-chance search; other layouts fill dedicated slots first, then
+  flex slots narrowest first. ESPN members are matched to their team by the Worker; Yahoo members don't get one yet.

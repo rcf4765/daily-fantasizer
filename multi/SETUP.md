@@ -25,7 +25,7 @@ edition prints for their league every Tuesday.
 - **Words are written automatically** from the stats (multi/autocopy.py): headlines, recaps, Police Blotter, Missing
   Persons, Manager of the Week. No AI, no cost. Different every week, same every rebuild.
 - **The league's own colors**: the commissioner picks an accent; the Lions blue and the "313" footer are Men Fantasizing only.
-- **Not included for other leagues**: Optimal Lineup (your private tool), auto-applying rules to ESPN, league lore and
+- **Not included for other leagues**: auto-applying rules to ESPN, league lore and
   announcements, the home-screen install page.
 
 ## Where everything lives
@@ -122,7 +122,7 @@ Tuesday and Wednesday at 10:17 UTC and first asks the site to pick up leagues pe
   projection for QB/RB/WR/TE (kickers and defenses are left out of the "beat / missed projection" stories), there's no
   trading block, and Player Stats points are rescored with the league's own stat modifiers.
 - **Lineups**: Roster Radar, Matchup of the Week and the Matchmaker follow each league's real starting lineup (superflex,
-  3 WR, no kicker…). Optimal Lineup is not offered.
+  3 WR, no kicker…). Optimal Lineup follows the same slots; each member sees only their own team's (ESPN leagues; Yahoo members don't get one yet).
 - **Cost**: Cloudflare's and GitHub's free plans cover a few dozen leagues. Each league adds about a minute to the
   Tuesday run, and each edition adds about 2 MB to the data repo.
 
