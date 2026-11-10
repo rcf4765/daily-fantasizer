@@ -1,5 +1,5 @@
 {
- "fetched_at": "2026-11-04T17:19:33.037432Z",
+ "fetched_at": "2026-11-10T11:00:38.375297Z",
  "teams_total": 12,
  "teams_reporting": [
   1,
@@ -92,7 +92,13 @@
    }
   ],
   "6": [],
-  "7": [],
+  "7": [
+   {
+    "player": "Matthew Stafford",
+    "pos": "QB",
+    "status": "ON_THE_BLOCK"
+   }
+  ],
   "8": [],
   "9": [],
   "10": []
