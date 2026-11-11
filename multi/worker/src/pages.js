@@ -202,7 +202,7 @@ ${code ? `<p class="code">${esc(code)}</p><p class="hint">Write it down: it won'
 <p class="hint" style="margin-top:22px"><a href="/l/${esc(L.slug)}/">Open the paper</a> · <a href="/mine">My leagues</a></p>`);
 }
 
-export function mine(rows, { added = 0, found = null, espn = false, yahoo = false, failed = [] } = {}) {
+export function mine(rows, { added = 0, found = null, espn = false, yahoo = false, yahooOn = false, failed = [] } = {}) {
   let flash = '';
   if (found !== null && +found === 0 && !rows.length) flash = yahoo
     ? '<div class="note" role="status">You’re signed in, but Yahoo didn’t list any NFL leagues on this account this season.</div>'
@@ -215,7 +215,15 @@ export function mine(rows, { added = 0, found = null, espn = false, yahoo = fals
 <form method="post" action="/mine/add" class="share" style="margin-top:10px"><input type="text" name="league" placeholder="League ID or league link" aria-label="ESPN league ID or link" required><button class="btn" type="submit">Add</button></form>
 <p class="hint" style="margin-top:6px">New leagues on your ESPN account are added automatically every Tuesday.</p></details>`
     : yahoo ? `<p class="hint" style="margin-top:16px">New leagues on your Yahoo account are added automatically every Tuesday. <a href="/yahoo">See all your Yahoo leagues</a>.</p>` : '';
-  return layout('My leagues · The Daily Fantasizer', `${mast('My leagues')}${flash}<ul class="lg-list">${list || '<li><div>No leagues yet.</div></li>'}</ul>${A2HS}${add}
+  // signed in to one site: offer the other, so ESPN and Yahoo leagues sit side by side under one sign-in
+  const both = espn && yahoo;
+  const other = both ? '' : espn
+    ? (yahooOn
+      ? `<section class="card y" style="margin-top:18px"><span class="kicker">Yahoo</span><h3>In a Yahoo league too?</h3><p>Log in with Yahoo as well. Your Yahoo leagues join this list and you stay signed in to ESPN.</p><p><a class="btn" href="/auth/yahoo">Log in with Yahoo</a></p></section>`
+      : `<section class="card y" style="margin-top:18px;opacity:.6"><span class="kicker">Yahoo</span><h3>In a Yahoo league too?</h3><p>Coming soon: log in with Yahoo as well and your Yahoo leagues join this list.</p><p><span class="btn alt" aria-disabled="true" style="cursor:not-allowed">Log in with Yahoo · soon</span></p></section>`)
+    : yahoo ? `<section class="card e" style="margin-top:18px"><span class="kicker">ESPN</span><h3>In an ESPN league too?</h3><p>Log in with ESPN as well. Your ESPN leagues join this list and you stay signed in to Yahoo.</p><p><a class="btn" href="/login">Log in with ESPN</a></p></section>` : '';
+  const who = both ? '<p class="hint" style="margin-top:14px">Signed in to ESPN and Yahoo.</p>' : '';
+  return layout('My leagues · The Daily Fantasizer', `${mast('My leagues')}${flash}<ul class="lg-list">${list || '<li><div>No leagues yet.</div></li>'}</ul>${other}${A2HS}${add}${who}
 <p class="row" style="margin-top:16px"><a class="btn alt" href="/signout">Sign out</a></p>`);
 }
 

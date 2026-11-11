@@ -15,12 +15,36 @@ const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, 
 const redirect = (to, headers = {}) => new Response(null, { status: 303, headers: { Location: to, ...headers } });
 const SESSION_DAYS = 60;
 
-async function session(req, env) { return verify(env, cookie(req, 'fz_s')); }
-async function startSession(env, uid, display) {
-  return setCookie('fz_s', await sign(env, { uid, display, exp: Date.now() + SESSION_DAYS * 864e5 }), SESSION_DAYS * 86400);
+/** A sign-in can hold one ESPN and one Yahoo account at the same time (s.espn, s.yahoo); s.uid is the latest one and
+ *  s.uids every account in it. Older one-account sign-ins read the same way. */
+async function session(req, env) {
+  const s = await verify(env, cookie(req, 'fz_s'));
+  if (!s || !s.uid) return s;
+  s.espn = s.espn || (String(s.uid).startsWith('espn:') ? s.uid : null);
+  s.yahoo = s.yahoo || (String(s.uid).startsWith('yahoo:') ? s.uid : null);
+  s.uids = [...new Set([s.uid, s.espn, s.yahoo].filter(Boolean))];
+  return s;
+}
+/** Sign in as uid. Signing in to the other site keeps the account already signed in (prev): ESPN and Yahoo together. */
+async function startSession(env, uid, display, prev = null) {
+  const espn = uid.startsWith('espn:') ? uid : (prev && prev.espn) || null;
+  const yahoo = uid.startsWith('yahoo:') ? uid : (prev && prev.yahoo) || null;
+  const shown = [espn && 'ESPN', yahoo && 'Yahoo'].filter(Boolean).join(' + ') || display;
+  return setCookie('fz_s', await sign(env, { uid, display: shown, espn, yahoo, exp: Date.now() + SESSION_DAYS * 864e5 }), SESSION_DAYS * 86400);
+}
+const uidsOf = (s) => (s ? s.uids || [s.uid] : []);
+/** Leagues from every account in the sign-in, each once. */
+async function leaguesOf(D, s) {
+  const seen = new Map();
+  for (const u of uidsOf(s)) for (const L of await D.myLeagues(u)) seen.set(L.slug, L);
+  return [...seen.values()];
+}
+async function isMember(D, s, slug) {
+  for (const u of uidsOf(s)) if ((await D.memberships(u))[slug]) return true;
+  return false;
 }
 async function form(req) { return Object.fromEntries((await req.formData()).entries()); }
-const isComm = (L, s) => !!(s && L && L.commissioner_uid && s.uid === L.commissioner_uid);
+const isComm = (L, s) => !!(s && L && L.commissioner_uid && uidsOf(s).includes(L.commissioner_uid));
 
 /** Start a workflow in the private data repo (print.yml or espn-login.yml). Inputs carry the site's signature. */
 async function startJob(env, workflow, inputs, signed) {
@@ -141,10 +165,10 @@ async function refreshEspnAccounts(env, D) {
   }
 }
 const signer = (env) => env.__espnLogin || { start: espnLoginStart, code: espnLoginCode };
-async function finishLogin(env, D, r) {
+async function finishLogin(env, D, r, prev = null) {
   const acct = await linkEspnAccount(env, D, r.s2, r.swid);
   const headers = new Headers({ Location: `/mine?added=${acct.leagues.filter((l) => l.isNew).length}&found=${acct.leagues.length}` });
-  headers.append('Set-Cookie', await startSession(env, acct.uid, 'ESPN'));
+  headers.append('Set-Cookie', await startSession(env, acct.uid, 'ESPN', prev));
   headers.append('Set-Cookie', setCookie('fz_login', '', 0));
   return new Response(null, { status: 303, headers });
 }
@@ -171,7 +195,7 @@ async function route(req, env, ctx) {
   const mainSlug = async () => (env.MAIN_LEAGUE ? (await D.index())[`${env.MAIN_LEAGUE}:${espnSeason()}`] || '' : '');
   if (path === '/' && method === 'GET') {
     if (s) {   // signed in: straight to your paper (the main league first, if you're in it)
-      const mine = await D.myLeagues(s.uid), main = await mainSlug();
+      const mine = await leaguesOf(D, s), main = await mainSlug();
       const pick = mine.find((L) => L.slug === main) || mine.sort((a, b) => a.name.localeCompare(b.name))[0];
       return redirect(pick ? `/l/${pick.slug}/` : '/mine');
     }
@@ -213,7 +237,7 @@ async function route(req, env, ctx) {
   if (path === '/auth/yahoo') {
     if (!env.YAHOO_CLIENT_ID) return html(P.message('Yahoo isn’t set up yet', 'Log in with Yahoo is coming soon. Log in with ESPN for now.', '/'), 503);
     const next = nextOk(url.searchParams.get('next'));
-    if (s && s.uid.startsWith('yahoo:')) return redirect(next || '/mine');   // already signed in with Yahoo
+    if (s && s.yahoo) return redirect(next || '/mine');   // already signed in with Yahoo
     const state = randomId(24);
     const headers = new Headers({ Location: yahooAuthUrl(env, state) });
     headers.append('Set-Cookie', setCookie('fz_oauth', state, 600));
@@ -238,7 +262,7 @@ async function route(req, env, ctx) {
       }
       const next = nextOk(cookie(req, 'fz_next'));
       const headers = new Headers({ Location: next || where });
-      headers.append('Set-Cookie', await startSession(env, uid, 'Yahoo'));
+      headers.append('Set-Cookie', await startSession(env, uid, 'Yahoo', s));
       headers.append('Set-Cookie', setCookie('fz_oauth', '', 0));
       if (next) headers.append('Set-Cookie', setCookie('fz_next', '', 0));
       return new Response(null, { status: 303, headers });
@@ -247,9 +271,9 @@ async function route(req, env, ctx) {
     }
   }
   if (path === '/yahoo' && method === 'GET') {
-    if (!s || !s.uid.startsWith('yahoo:')) return redirect('/auth/yahoo');
+    if (!s || !s.yahoo) return redirect('/auth/yahoo');
     try {
-      const leagues = await yahooLeagues(await yahooAccess(env, s.uid, D));
+      const leagues = await yahooLeagues(await yahooAccess(env, s.yahoo, D));
       const existing = {};
       for (const l of leagues) {
         const row = await D.findLeague('yahoo', l.key, l.season);
@@ -261,20 +285,20 @@ async function route(req, env, ctx) {
     }
   }
   if (path === '/yahoo/league' && method === 'POST') {
-    if (!s || !s.uid.startsWith('yahoo:')) return redirect('/auth/yahoo');
+    if (!s || !s.yahoo) return redirect('/auth/yahoo');
     const f = await form(req);
-    const leagues = await yahooLeagues(await yahooAccess(env, s.uid, D));
+    const leagues = await yahooLeagues(await yahooAccess(env, s.yahoo, D));
     const l = leagues.find((x) => x.key === f.key);
     if (!l) return html(P.message('Not your league', 'That league isn’t on your Yahoo account.', '/yahoo'), 403);
     const L = await createOrUpdateLeague(env, D, { platform: 'yahoo', leagueId: l.key, season: l.season, name: l.name, teams: l.teams,
-      uid: s.uid, commissioner: l.commissioner, tokenUid: s.uid });
+      uid: s.yahoo, commissioner: l.commissioner, tokenUid: s.yahoo });
     return redirect(`/l/${L.slug}/`);
   }
 
   // ---- ESPN: log in once (the server signs in to ESPN; the password is used once, never stored) ----
   if (path === '/login' && method === 'GET') {
     const next = nextOk(url.searchParams.get('next'));
-    if (s) return redirect(next || '/');   // already signed in (in any tab): no second login
+    if (s && s.espn) return redirect(next || '/');   // already signed in to ESPN (in any tab): no second login
     return html(loginPage({ next }), 200, next ? { 'Set-Cookie': setCookie('fz_next', next, 1800) } : {});
   }
   if (path === '/login' && method === 'POST') {
@@ -298,7 +322,7 @@ async function route(req, env, ctx) {
     }
     const r = await signer(env).start(env, email, password);
     await D.trace(r.status !== 'error', r.trace);
-    if (r.status === 'ok') return finishLogin(env, D, r);
+    if (r.status === 'ok') return finishLogin(env, D, r, s);
     if (r.status === 'code') {
       const t = randomId(32);
       await D.setTemp('links', await sha256(t), { session_id: r.sessionId, tries: 0 }, 10);
@@ -341,7 +365,7 @@ async function route(req, env, ctx) {
     await D.setTemp('jobs', j.id, { finished: 1 }, 15);
     const next = nextOk(cookie(req, 'fz_next'));
     const headers = new Headers({ Location: next || `/mine?added=${j.added || 0}&found=${j.found || 0}` });
-    headers.append('Set-Cookie', await startSession(env, j.uid, 'ESPN'));
+    headers.append('Set-Cookie', await startSession(env, j.uid, 'ESPN', s));
     headers.append('Set-Cookie', setCookie('fz_job', '', 0));
     if (next) headers.append('Set-Cookie', setCookie('fz_next', '', 0));
     return new Response(null, { status: 303, headers });
@@ -366,20 +390,20 @@ async function route(req, env, ctx) {
     await D.setTemp('links', key, { tries: row.tries + 1 }, 10);
     const r = await signer(env).code(env, row.session_id, code);
     await D.trace(r.status !== 'error', r.trace);
-    if (r.status === 'ok') { await D.dropTemp('links', key); return finishLogin(env, D, r); }
+    if (r.status === 'ok') { await D.dropTemp('links', key); return finishLogin(env, D, r, s); }
     if (r.status === 'code') return html(P.espnCode({ error: 'That code didn’t work. Check the newest email from ESPN.' }), 400);
     return html(loginPage({ error: r.error }), 400);
   }
   if (path === '/mine/add' && method === 'POST') {   // a league ESPN's list missed, by ID, with the stored ESPN session
-    if (!s || !s.uid.startsWith('espn:')) return redirect('/login');
+    if (!s || !s.espn) return redirect('/login');
     const f = await form(req);
     const id = String(f.league || '').match(/leagueId=(\d+)/)?.[1] || String(f.league || '').trim().match(/^\d{3,12}$/)?.[0];
-    const u = await D.user(s.uid);
+    const u = await D.user(s.espn);
     if (!id || !u || !u.espn_s2) return redirect('/mine?err=' + encodeURIComponent('That doesn’t look like an ESPN league ID.'));
     const s2 = await open(env, u.espn_s2), swid = await open(env, u.swid), season = espnSeason();
     const info = await espnLeague(id, season, s2, swid);
     if (info.error || !info.member) return redirect('/mine?err=' + encodeURIComponent(info.error || `Your ESPN account isn’t in ${info.name}.`));
-    await createOrUpdateLeague(env, D, { platform: 'espn', leagueId: id, season, name: info.name, teams: info.teams, uid: s.uid, commissioner: info.commissioner, s2, swid });
+    await createOrUpdateLeague(env, D, { platform: 'espn', leagueId: id, season, name: info.name, teams: info.teams, uid: s.espn, commissioner: info.commissioner, s2, swid });
     return redirect('/mine?added=1');
   }
 
@@ -399,7 +423,7 @@ async function route(req, env, ctx) {
     const uid = s2 ? `espn:${swid.toUpperCase().replace(/[{}]/g, '')}` : (s && s.uid) || `anon:${randomId(16)}`;
     const L = await createOrUpdateLeague(env, D, { platform: 'espn', leagueId: m[1], season, name: info.name, teams: info.teams, uid,
       commissioner: info.commissioner, s2: s2 || null, swid: swid || null });
-    return redirect(`/l/${L.slug}/`, { 'Set-Cookie': await startSession(env, uid, 'ESPN') });
+    return redirect(`/l/${L.slug}/`, { 'Set-Cookie': await startSession(env, uid, 'ESPN', s) });
   }
 
   // ---- ESPN through the browser extension (works like FantasyPros' ESPN sync) ----
@@ -470,7 +494,7 @@ async function route(req, env, ctx) {
     const failed = res.filter((r) => r.error).map((r) => `League ${r.id}: ${r.error}`);
     const q = new URLSearchParams({ added: String(res.filter((r) => r.slug).length) });
     if (failed.length) q.set('failed', failed.join('|').slice(0, 600));
-    return redirect(`/mine?${q}`, { 'Set-Cookie': await startSession(env, link.uid, 'ESPN') });
+    return redirect(`/mine?${q}`, { 'Set-Cookie': await startSession(env, link.uid, 'ESPN', s) });
   }
   if (path === '/extension.zip') {
     return new Response(Uint8Array.from(atob(EXTENSION_ZIP), (c) => c.charCodeAt(0)), { headers: { 'Content-Type': 'application/zip',
@@ -479,9 +503,9 @@ async function route(req, env, ctx) {
 
   if (path === '/mine') {
     if (!s) return redirect('/');
-    const results = (await D.myLeagues(s.uid)).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
-    return html(P.mine(results.map((L) => ({ ...L, is_comm: L.commissioner_uid === s.uid })),
-      { added: +url.searchParams.get('added') || 0, found: url.searchParams.get('found'), espn: s.uid.startsWith('espn:'), yahoo: s.uid.startsWith('yahoo:'),
+    const results = (await leaguesOf(D, s)).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    return html(P.mine(results.map((L) => ({ ...L, is_comm: isComm(L, s) })),
+      { added: +url.searchParams.get('added') || 0, found: url.searchParams.get('found'), espn: !!s.espn, yahoo: !!s.yahoo, yahooOn,
         failed: (url.searchParams.get('failed') || '').split('|').concat(url.searchParams.get('err') || '').filter(Boolean) }));
   }
 
@@ -530,7 +554,7 @@ async function route(req, env, ctx) {
       const n = encodeURIComponent(`/l/${L.slug}${rest}`);
       return redirect(L.platform === 'yahoo' && env.YAHOO_CLIENT_ID ? `/auth/yahoo?next=${n}` : `/login?next=${n}`);
     }
-    if (!isComm(L, s) && !(await D.memberships(s.uid))[L.slug]) {
+    if (!isComm(L, s) && !(await isMember(D, s, L.slug))) {
       return html(P.message('Members only', `This paper is for ${L.name}. Log in with the ${host} account that's in this league.`, '/mine'), 403);
     }
     if (rest === '/archive') {
@@ -547,7 +571,7 @@ async function route(req, env, ctx) {
       if (!file.endsWith('.html')) return new Response(obj.body, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' } });
       // Signed in: a bar above the masthead to switch between every league you're in (and Settings for commissioners).
       // The bar rides at the end of the paper and moves itself into place.
-      const mineRows = (await D.myLeagues(s.uid)).sort((a, b) => a.name.localeCompare(b.name));
+      const mineRows = (await leaguesOf(D, s)).sort((a, b) => a.name.localeCompare(b.name));
       if (!mineRows.some((r) => r.slug === L.slug)) mineRows.push(L);
       const bar = P.leagueBar(L.slug, mineRows, isComm(L, s), file !== 'index.html');
       // fz-carry: a member's Rule Changes/Betting team pass handed over from the old public address (landing page),
@@ -556,7 +580,7 @@ async function route(req, env, ctx) {
 try{var v=(location.hash.match(/^#fzt=([^&]+)/)||[])[1]||sessionStorage.getItem('fz-carry');if(v){v=decodeURIComponent(v);var j=JSON.parse(atob(v));if(j&&j.key&&j.team&&!localStorage.getItem('fz-team')){localStorage.setItem('fz-team',JSON.stringify(j));location.reload()}sessionStorage.removeItem('fz-carry');if(location.hash.indexOf('#fzt=')===0)history.replaceState(null,'',location.pathname)}}catch(e){}})()</script>`;
       // Optimal Lineup: keep only the signed-in member's own team (every other team's lineup is removed here)
       let page = await new Response(obj.body).text();
-      if (page.indexOf('data-lu-team="') >= 0) page = onlyMyLineup(page, await viewerTeam(env, D, L, s.uid).catch(() => null));
+      if (page.indexOf('data-lu-team="') >= 0) page = onlyMyLineup(page, await viewerTeam(env, D, L, (L.platform === 'yahoo' ? s.yahoo : s.espn) || s.uid).catch(() => null));
       return html(page + tail, 200, { 'Cache-Control': 'private, max-age=60' });
     }
     return html(P.message('Not found', 'Nothing here.', `/l/${L.slug}/`), 404);
@@ -642,7 +666,7 @@ export default {
       const s = await session(req, env).catch(() => null);
       if (!s || !s.exp || s.exp - Date.now() > 50 * 864e5 || (res.headers.get('Set-Cookie') || '').includes('fz_s=')) return res;
       const out = new Response(res.body, res);   // copy (redirect responses have fixed headers)
-      out.headers.append('Set-Cookie', await startSession(env, s.uid, s.display));
+      out.headers.append('Set-Cookie', await startSession(env, s.uid, s.display, s));
       return out;
     } catch (e) {
       console.log(e.stack || e);

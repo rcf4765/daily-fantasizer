@@ -290,15 +290,48 @@ console.log('thedailyfantasizer.com front page');
   r = await call('GET', '/login?next=/'); assert.equal(jar.fz_next, '%2F'); ok('log in from the front page comes back to it');
   jar = saved;
   r = await call('GET', '/'); assert.equal(r.status, 303); assert.match(r.headers.get('Location'), /^\/(l\/[a-z0-9]+\/|mine)$/); ok('signed in: the front page opens your paper');
-  r = await call('GET', '/login'); assert.equal(r.status, 303); assert.equal(r.headers.get('Location'), '/'); ok('already signed in (another tab): the login page sends you on, no second login');
+  { const { sign } = await import('../src/crypto.js');
+    jar = { fz_s: await sign(env, { uid: 'espn:CCCCCCCC-1111-2222-3333-444444444444', display: 'ESPN', exp: Date.now() + 60 * 864e5 }) }; }
+  r = await call('GET', '/login'); assert.equal(r.status, 303); assert.equal(r.headers.get('Location'), '/'); ok('already signed in to ESPN (another tab): the login page sends you on, no second login');
   r = await call('GET', '/login?next=%2Fl%2Fabcdefgh%2F'); assert.equal(r.headers.get('Location'), '/l/abcdefgh/'); ok('…straight to the paper that asked');
   r = await worker.fetch(new Request('https://www.fz.example/l/abc/'), env, ctx); assert.equal(r.status, 301); assert.equal(r.headers.get('Location'), 'https://fz.example/l/abc/'); ok('www → the one address, so the sign-in is always the same cookie');
   { const { sign } = await import('../src/crypto.js');
     const old = await sign(env, { uid: 'espn:ROLL', display: 'ESPN', exp: Date.now() + 20 * 864e5 });
     r = await worker.fetch(new Request('https://fz.example/mine', { headers: { Cookie: `fz_s=${old}` } }), env, ctx);
     assert.match(r.headers.get('Set-Cookie') || '', /fz_s=.*Max-Age=5184000/); ok('keeps reading → sign-in renewed for another 60 days'); }
+  jar = saved;
   delete env.MAIN_LEAGUE;
 }
+
+console.log('ESPN and Yahoo at the same time');
+{ const { sign } = await import('../src/crypto.js');
+  const saved = { ...jar };
+  const ESPN_ME = 'espn:CCCCCCCC-1111-2222-3333-444444444444';
+  jar = { fz_s: await sign(env, { uid: ESPN_ME, display: 'ESPN', exp: Date.now() + 60 * 864e5 }) };
+  let t = await text(await call('GET', '/mine'));
+  assert.match(t, /Office League/); assert.match(t, /In a Yahoo league too\?[\s\S]*href="\/auth\/yahoo"/); ok('ESPN only: My leagues offers Log in with Yahoo');
+  let r = await call('GET', '/auth/yahoo'); const st = new URL(r.headers.get('Location')).searchParams.get('state');
+  r = await call('GET', `/auth/yahoo/callback?code=C1&state=${st}`); assert.match(r.headers.get('Location'), /^\/mine\?/);
+  t = await text(await call('GET', '/mine'));
+  assert.ok(['Office League', 'Family League', 'Sunday Funday', 'Work League'].every((n) => t.includes(n)), 'both sites\' leagues');
+  assert.match(t, /Signed in to ESPN and Yahoo/); assert.doesNotMatch(t, /league too\?/); ok('Yahoo added: ESPN and Yahoo leagues together, still signed in to ESPN');
+  r = await call('GET', `/l/${gh.slugOf('4001')}/settings`); assert.equal(r.status, 200);
+  r = await call('GET', `/l/${gh.slugOf('461.l.555', 'yahoo')}/settings`); assert.equal(r.status, 200); ok('commissioner on both sites: both Settings open');
+  r = await call('GET', `/l/${gh.slugOf('461.l.556', 'yahoo')}/`); assert.notEqual(r.status, 403);
+  r = await call('GET', `/l/${gh.slugOf('4002')}/`); assert.notEqual(r.status, 403); ok('papers from both accounts open');
+  r = await call('GET', '/login'); assert.equal(r.status, 303); r = await call('GET', '/auth/yahoo'); assert.equal(r.headers.get('Location'), '/mine'); ok('no second login on either site');
+  r = await call('GET', '/'); assert.equal(r.status, 303); ok('front page opens a paper');
+  // the other way round: Yahoo first, then ESPN
+  jar = { fz_s: await sign(env, { uid: 'yahoo:GUID9', display: 'Yahoo', exp: Date.now() + 60 * 864e5 }) };
+  t = await text(await call('GET', '/mine')); assert.match(t, /In an ESPN league too\?[\s\S]*href="\/login"/); ok('Yahoo only: My leagues offers Log in with ESPN');
+  r = await call('GET', '/login'); assert.equal(r.status, 200); assert.match(await text(r), /ESPN password/); ok('…and the ESPN login page opens (not skipped)');
+  await call('POST', '/espn', { form: { league: '777', season: '2026', espn_s2: 'S2SECRET', swid: '{BBBB-2222}' } });
+  t = await text(await call('GET', '/mine')); assert.ok(t.includes('Private Pals') && t.includes('Sunday Funday')); ok('ESPN added after Yahoo: both kept');
+  delete env.YAHOO_CLIENT_ID;
+  jar = { fz_s: await sign(env, { uid: ESPN_ME, display: 'ESPN', exp: Date.now() + 60 * 864e5 }) };
+  t = await text(await call('GET', '/mine')); assert.match(t, /Log in with Yahoo · soon/); ok('no Yahoo keys yet: the Yahoo button shows "soon"');
+  env.YAHOO_CLIENT_ID = 'cid';
+  jar = saved; }
 
 console.log('sign-in job that never reports');
 { const { sha256 } = await import('../src/crypto.js');
