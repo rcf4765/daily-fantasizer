@@ -104,6 +104,19 @@ and a review of a few days).
 (`fan.api.espn.com/apis/v2/fans/{SWID}`), which ESPN doesn't document. If it lists nothing, the panel falls back to
 "add it by ID" and everything else still works. First real test: link an account that's in two leagues.
 
+## Versions: switch the site to a saved version (roll back or forward)
+
+Each finished version is saved as a locked tag and a GitHub release: `rev1_espn` (Log in with ESPN), `rev2_yahoo`
+(Log in with Yahoo), … Tags named `rev*` or `saved-*` can't be moved or deleted (ruleset "Saved versions are permanent").
+
+To put a version live: Actions → **Deploy the sign-up site** → Run workflow → type it in **version** (e.g. `rev1_espn`).
+The website, the ESPN sign-in job and the weekly printer all switch to that version's code; the run summary says which
+version is live, and so does `live_version.txt` in the data repo. Leave **version** empty to go back to the latest code.
+A switch never touches leagues, accounts, sign-ins or printed papers, so switching back and forth is safe. (A version
+can only use features it already had: going back to `rev1_espn` turns the Yahoo buttons back to "Soon".)
+
+To save a new version: Releases → Draft a new release → new tag `rev3_<name>` on `main` → Publish.
+
 ## Yahoo: Log in with Yahoo (phone and desktop)
 
 Yahoo has a real sign-in for other sites (OAuth), so nothing runs in a browser: the user signs in on Yahoo's own page,

@@ -13,10 +13,18 @@ name: Deploy the sign-up site
 # Optional, for "Log in with Yahoo" (multi/SETUP.md, "Yahoo"): FZ_YAHOO_CLIENT_ID and FZ_YAHOO_CLIENT_SECRET from the
 # app registered at developer.yahoo.com. Without them the Yahoo buttons say "Soon"; adding them and re-running this
 # workflow switches Yahoo on everywhere.
+#
+# Versions: each saved version is a locked tag (rev1_espn, rev2_yahoo, … listed under Releases). Type one in "version"
+# to put that version live: the website, the ESPN sign-in job and the weekly printer all run that version's code.
+# Leave it empty to go back to the latest code (main). Your leagues, accounts and papers are never touched by a switch.
 
 on:
   workflow_dispatch:
     inputs:
+      version:
+        description: "Saved version to put live (e.g. rev1_espn). Empty = the latest code"
+        type: string
+        default: ""
       print_now:
         description: "Also print every league's paper right away"
         type: boolean
@@ -42,11 +50,24 @@ jobs:
       YAHOO_SECRET: ${{ secrets.FZ_YAHOO_CLIENT_SECRET }}
       DATA_REPO: ${{ vars.FZ_DATA_REPO || format('{0}/daily-fantasizer-data', github.repository_owner) }}
       CODE_REPO: ${{ github.repository }}
+      CODE_REF: ${{ inputs.version || 'main' }}   # which code the site and the data repo's jobs run
       SITE_DOMAIN: ${{ vars.FZ_SITE_DOMAIN || 'thedailyfantasizer.com' }}   # a domain in the same Cloudflare account ('' = workers.dev)
       MAIN_LEAGUE: espn:1196354715   # the league whose own weekly edition is the paper (old links lead to it)
     steps:
+      - name: Version
+        env:
+          v: ${{ inputs.version }}
+        run: |
+          if [ -n "$v" ] && ! printf %s "$v" | grep -Eq '^(rev|saved-)[A-Za-z0-9._-]+$'; then
+            echo "::error::\"$v\" isn't a saved version name. Use one from Releases (rev1_espn, rev2_yahoo, …) or leave it empty."; exit 1
+          fi
+          if [ -n "$v" ] && ! git ls-remote --exit-code --tags "https://github.com/$CODE_REPO" "refs/tags/$v" >/dev/null; then
+            echo "::error::There's no saved version called $v. The saved versions are listed under Releases."; exit 1
+          fi
+          echo "Putting live: ${v:-the latest code (main)}"
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.version || github.ref }}
           persist-credentials: false   # so the data repo below is reached with FZ_GITHUB_TOKEN, not this repo's token
       - uses: actions/setup-node@v4
         with:
@@ -94,7 +115,12 @@ jobs:
           cd data
           git checkout -q -B main 2>/dev/null || true
           mkdir -p .github/workflows
-          for f in print.yml espn-login.yml; do sed "s|CODE_REPO|$CODE_REPO|" "../multi/data-repo/.github/workflows/$f" > ".github/workflows/$f"; done
+          # the jobs fetch this same version of the code (CODE_REF), so a switched-back site signs in and prints like it did
+          for f in print.yml espn-login.yml; do
+            sed -E "s|^([[:space:]]*)repository: CODE_REPO[[:space:]]*\$|\1repository: $CODE_REPO\n\1ref: $CODE_REF|; s|CODE_REPO|$CODE_REPO|g" \
+              "../multi/data-repo/.github/workflows/$f" > ".github/workflows/$f"
+          done
+          printf '%s\n' "$CODE_REF" > live_version.txt
           [ -f README.md ] && grep -q "Daily Fantasizer data" README.md || cp ../multi/data-repo/README.md README.md
           printf '{"site": "%s"}\n' "$SITE" > site.json
           git add -A; git config user.name "Daily Fantasizer deploy"; git config user.email "deploy@users.noreply.github.com"
@@ -135,7 +161,7 @@ jobs:
           sleep 5
           code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE/login")
           echo "Site: $SITE  (login page answered $code)"
-          { echo "### Site is up"; echo "$SITE"; echo; echo "Log in: $SITE/login"; echo; echo "Data: https://github.com/$DATA_REPO (private)"; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "### Site is up"; echo "$SITE"; echo; echo "Live version: **$CODE_REF**"; echo; echo "Log in: $SITE/login"; echo; echo "Data: https://github.com/$DATA_REPO (private)"; } >> "$GITHUB_STEP_SUMMARY"
           [ "$code" = "200" ]
       - name: Print every league now (only when asked)
         if: ${{ inputs.print_now }}
