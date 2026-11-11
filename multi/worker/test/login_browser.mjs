@@ -40,9 +40,15 @@ http.createServer(async (req, res) => {
 }).listen(9102, '127.0.0.1');
 http.createServer((req, res) => {
   if (req.url === '/set') { res.writeHead(204, { 'Set-Cookie': ['espn_s2=AEBfake%2Bs2value; Path=/', 'SWID={ABCDEF12-3456-7890-ABCD-EF1234567890}; Path=/'] }); return res.end(); }
+  if (req.url.startsWith('/login/responder/')) { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<!doctype html><body></body>'); }
   res.writeHead(200, { 'Content-Type': 'text/html' });
-  res.end(`<!doctype html><title>ESPN</title><body><h1>ESPN mock</h1><iframe id="oneid-iframe" src="http://127.0.0.1:9102/oneid/email" width="400" height="400"></iframe>
-<script>addEventListener('message',function(e){if(e.data==='ok')fetch('/set')})</script></body>`);
+  // like ESPN (2026-11-11): a 0x0 helper frame on ESPN's own site whose address looks like the login loads first, and
+  // Disney's real form arrives a moment later
+  res.end(`<!doctype html><title>ESPN</title><body><h1>ESPN mock</h1>
+<iframe name="disneyid-secure-responder" src="/login/responder/?clientId=ESPN-ONESITE.WEB-PROD&oneid=1" width="0" height="0"></iframe>
+<div id="slot"></div>
+<script>setTimeout(function(){document.getElementById('slot').innerHTML='<iframe id="oneid-iframe" src="http://127.0.0.1:9102/oneid/email" width="400" height="400"></iframe>'},${process.env.FORM_DELAY || 1500});
+addEventListener('message',function(e){if(e.data==='ok')fetch('/set')})</script></body>`);
 }).listen(9101, '127.0.0.1');
 
 // ---- puppeteer-style shim over Playwright (only what espn_login.js uses) ----
