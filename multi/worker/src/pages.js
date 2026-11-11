@@ -268,7 +268,7 @@ export function leagueBar(current, rows, comm, older) {
 
 /** Free-plan sign-in in progress (a GitHub Actions run is signing in to ESPN). Polls and moves on by itself. */
 export function loginWait(status, ageMs) {
-  const msg = { queued: 'Starting the ESPN sign-in…', running: 'Signing in to ESPN and finding your leagues…', code_sent: 'Checking the code…' }[status] || 'Working…';
+  const msg = { queued: 'Starting the ESPN sign-in…', starting: 'Opening ESPN’s login page…', running: 'Signing in to ESPN and finding your leagues…', code_sent: 'Checking the code…' }[status] || 'Working…';
   return layout('Signing in · The Daily Fantasizer', `${mast('Log in with ESPN')}
 <p class="lede" role="status" aria-live="polite">${esc(msg)}</p>
 <div style="height:10px;border:2px solid var(--ink);background:var(--paper);overflow:hidden;max-width:440px;margin:16px 0"><i id="bar" style="display:block;height:100%;width:${Math.min(95, 10 + Math.round(ageMs / 1000))}%;background:var(--blue);transition:width 1s linear"></i></div>

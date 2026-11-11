@@ -278,7 +278,8 @@ async function route(req, env, ctx) {
     // A job that never reported (GitHub didn't start it, or it stopped before it could) would leave the page waiting
     // until the 15-minute expiry: give up after a few quiet minutes and say so.
     const quiet = Date.now() - Date.parse(j.updated_at || j.created_at);
-    if ((j.status === 'queued' && quiet > 180000) || ((j.status === 'running' || j.status === 'code_sent') && quiet > 300000)) {
+    // queued: GitHub hasn't started the job (its queue can take a few minutes when busy); starting: setting up the browser.
+    if ((j.status === 'queued' && quiet > 360000) || ((j.status === 'starting' || j.status === 'running' || j.status === 'code_sent') && quiet > 300000)) {
       const msg = j.status === 'queued' ? 'The ESPN sign-in didn’t start. Try again.' : 'The ESPN sign-in stopped partway. Try again.';
       await D.setTemp('jobs', id, { status: 'error', msg }, 15);
       return { ...j, id, status: 'error', msg };
@@ -546,7 +547,7 @@ try{var v=(location.hash.match(/^#fzt=([^&]+)/)||[])[1]||sessionStorage.getItem(
         return json({ status: j.status, code_enc: j.code_enc || null });
       }
       const b = await req.json();
-      const st = ['running', 'code', 'code_wrong', 'ok', 'error'].includes(b.status) ? b.status : 'error';
+      const st = ['starting', 'running', 'code', 'code_wrong', 'ok', 'error'].includes(b.status) ? b.status : 'error';
       if (b.trace) await D.trace(st !== 'error', b.trace);
       if (st === 'ok') {
         const acct = await linkEspnAccount(env, D, String(b.s2 || ''), String(b.swid || ''), b.leagues);

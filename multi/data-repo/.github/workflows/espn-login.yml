@@ -37,15 +37,6 @@ jobs:
           sparse-checkout: |
             multi/worker/src
             multi/login_runner
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Browser
-        run: |
-          cd code/multi/login_runner
-          npm init -y >/dev/null
-          npm install --no-audit --no-fund playwright@1.63.0 >/dev/null
-          npx playwright install --with-deps chromium >/dev/null
       - name: Keys
         env:
           MASTER: ${{ secrets.FZ_MASTER_KEY }}
@@ -53,6 +44,30 @@ jobs:
           k() { printf %s "$1" | openssl dgst -sha256 -hmac "$MASTER" -r | cut -d' ' -f1; }
           b=$(k build); l=$(k login); echo "::add-mask::$b"; echo "::add-mask::$l"
           echo "BUILD_TOKEN=$b" >> "$GITHUB_ENV"; echo "LOGIN_KEY=$l" >> "$GITHUB_ENV"
+      # Tell the website right away that the job is running (the browser setup below takes a while).
+      - name: Started
+        env:
+          SITE: ${{ github.event.inputs.site }}
+          JOB: ${{ github.event.inputs.job }}
+          SIG: ${{ github.event.inputs.sig }}
+        run: node code/multi/login_runner/ping.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # GitHub's Ubuntu machines already have Google Chrome: use it (seconds) instead of downloading Chromium and its
+      # system packages (a minute or two). Falls back to the download if Chrome isn't there.
+      - name: Browser
+        run: |
+          cd code/multi/login_runner
+          npm init -y >/dev/null
+          c=$(command -v google-chrome || command -v google-chrome-stable || true)
+          if [ -n "$c" ]; then
+            npm install --no-audit --no-fund playwright-core@1.63.0 >/dev/null
+            echo "CHROME_PATH=$c" >> "$GITHUB_ENV"; echo "PW_PKG=playwright-core" >> "$GITHUB_ENV"
+          else
+            npm install --no-audit --no-fund playwright@1.63.0 >/dev/null
+            npx playwright install --with-deps chromium >/dev/null
+          fi
       - name: Sign in
         env:
           SITE: ${{ github.event.inputs.site }}

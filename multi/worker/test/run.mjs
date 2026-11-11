@@ -281,7 +281,7 @@ console.log('thedailyfantasizer.com front page');
 
 console.log('sign-in job that never reports');
 { const { sha256 } = await import('../src/crypto.js');
-  const id = 'stalejob00000001', t = 'tok123', old = new Date(Date.now() - 4 * 60000).toISOString();
+  const id = 'stalejob00000001', t = 'tok123', old = new Date(Date.now() - 7 * 60000).toISOString();
   gh.write(`jobs/${id}.json`, JSON.stringify({ token_hash: await sha256(t), status: 'queued', created_at: old, updated_at: old, expires: new Date(Date.now() + 6e5).toISOString() }));
   const H = { headers: { Cookie: `fz_job=${id}.${t}` } };
   let s = await (await worker.fetch(new Request('https://fz.example/login/status', H), env, ctx)).json();
@@ -291,7 +291,17 @@ console.log('sign-in job that never reports');
   const id2 = 'freshjob00000001', now = new Date().toISOString();
   gh.write(`jobs/${id2}.json`, JSON.stringify({ token_hash: await sha256(t), status: 'queued', created_at: now, expires: new Date(Date.now() + 6e5).toISOString() }));
   s = await (await worker.fetch(new Request('https://fz.example/login/status', { headers: { Cookie: `fz_job=${id2}.${t}` } }), env, ctx)).json();
-  assert.equal(s.status, 'queued'); ok('a job that just started keeps waiting'); }
+  assert.equal(s.status, 'queued'); ok('a job that just started keeps waiting');
+  const id3 = 'slowqueue0000001', four = new Date(Date.now() - 4 * 60000).toISOString();
+  gh.write(`jobs/${id3}.json`, JSON.stringify({ token_hash: await sha256(t), status: 'queued', created_at: four, updated_at: four, expires: new Date(Date.now() + 6e5).toISOString() }));
+  s = await (await worker.fetch(new Request('https://fz.example/login/status', { headers: { Cookie: `fz_job=${id3}.${t}` } }), env, ctx)).json();
+  assert.equal(s.status, 'queued'); ok('four minutes in GitHub\'s queue still waits');
+  const r = await worker.fetch(new Request(`https://fz.example/api/build/login/${id3}`, { method: 'POST', headers: { Authorization: `Bearer ${env.BUILD_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'starting' }) }), env, ctx);
+  assert.equal(r.status, 200);
+  s = await (await worker.fetch(new Request('https://fz.example/login/status', { headers: { Cookie: `fz_job=${id3}.${t}` } }), env, ctx)).json();
+  assert.equal(s.status, 'starting'); ok('the job says it started → the page shows it and keeps waiting');
+  const pg = await worker.fetch(new Request('https://fz.example/login/wait', { headers: { Cookie: `fz_job=${id3}.${t}` } }), env, ctx);
+  assert.match(await pg.text(), /Opening ESPN/); ok('the waiting page says ESPN\'s login page is opening'); }
 
 console.log('cleanup');
 await call('POST', `/l/${ySlug}/delete`, { form: {} });
