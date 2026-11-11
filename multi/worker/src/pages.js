@@ -93,9 +93,11 @@ export function home(env, signedIn) {
  <section class="card e"><span class="kicker">ESPN</span><h3>Log in with ESPN</h3>
   <p>Use the email and password you use for ESPN Fantasy. We find your leagues and print each one's paper.</p>
   <p><a class="btn" href="/login">Log in with ESPN</a></p></section>
- <section class="card y" style="opacity:.6"><span class="kicker">Yahoo</span><h3>Log in with Yahoo</h3>
+ ${env.YAHOO_CLIENT_ID ? `<section class="card y"><span class="kicker">Yahoo</span><h3>Log in with Yahoo</h3>
+  <p>Sign in on Yahoo's own page. We find your leagues and print each one's paper. Read-only: we never change your team.</p>
+  <p><a class="btn" href="/auth/yahoo">Log in with Yahoo</a></p></section>` : `<section class="card y" style="opacity:.6"><span class="kicker">Yahoo</span><h3>Log in with Yahoo</h3>
   <p>Coming soon.</p>
-  <p><span class="btn alt" aria-disabled="true" style="cursor:not-allowed">Log in with Yahoo</span></p></section>
+  <p><span class="btn alt" aria-disabled="true" style="cursor:not-allowed">Log in with Yahoo</span></p></section>`}
 </div>
 ${signedIn ? '<p class="row" style="margin-top:22px"><a class="btn alt" href="/mine">My leagues</a><a class="btn alt" href="/signout">Sign out</a></p>' : ''}`);
 }
@@ -105,7 +107,7 @@ const BUSY = `<script>document.addEventListener('submit',function(e){var b=e.tar
  var n=document.getElementById('busy');if(n){n.hidden=false}setInterval(function(){if(i<m.length-1)b.textContent=m[++i]},9000)});
 window.addEventListener('pageshow',function(){document.querySelectorAll('button[type=submit]').forEach(function(b){b.disabled=false;if(b.dataset.t)b.textContent=b.dataset.t})});</script>`;
 
-export function espnLogin({ error = '', email = '', next = '' } = {}) {
+export function espnLogin({ error = '', email = '', next = '', yahoo = false } = {}) {
   return layout('Log in with ESPN · The Daily Fantasizer', `${mast('Log in with ESPN')}
 ${error ? `<div class="err" role="alert">${esc(error)}</div>` : ''}
 ${next ? '<p class="lede" style="margin-bottom:14px">Log in with the ESPN account that’s in your league to read its paper.</p>' : ''}
@@ -116,6 +118,7 @@ ${next ? '<p class="lede" style="margin-bottom:14px">Log in with the ESPN accoun
  <p class="note" id="busy" hidden>This takes about 20 to 40 seconds. Keep this page open.</p>
  <p class="hint">We sign in to ESPN for you once and keep only ESPN's sign-in pass, encrypted. Your password is never stored. We only read your leagues; we can't change lineups, trades or settings.</p>
 </form>
+${yahoo ? `<p class="hint" style="margin-top:18px">In a Yahoo league? <a href="/auth/yahoo${next ? `?next=${encodeURIComponent(next)}` : ''}">Log in with Yahoo instead</a>.</p>` : ''}
 <p class="hint" style="margin-top:22px"><a href="/">← Back</a></p>${BUSY}
 <script>try{var m=location.hash.match(/^#fzt=([^&]+)/);if(m){sessionStorage.setItem('fz-carry',m[1]);history.replaceState(null,'',location.pathname+location.search)}}catch(e){}</script>`);
 }
@@ -199,16 +202,19 @@ ${code ? `<p class="code">${esc(code)}</p><p class="hint">Write it down: it won'
 <p class="hint" style="margin-top:22px"><a href="/l/${esc(L.slug)}/">Open the paper</a> · <a href="/mine">My leagues</a></p>`);
 }
 
-export function mine(rows, { added = 0, found = null, espn = false, failed = [] } = {}) {
+export function mine(rows, { added = 0, found = null, espn = false, yahoo = false, failed = [] } = {}) {
   let flash = '';
-  if (found !== null && +found === 0 && !rows.length) flash = '<div class="note" role="status">You’re signed in, but ESPN didn’t list any football leagues on this account this season. Add your league by its ID below.</div>';
+  if (found !== null && +found === 0 && !rows.length) flash = yahoo
+    ? '<div class="note" role="status">You’re signed in, but Yahoo didn’t list any NFL leagues on this account this season.</div>'
+    : '<div class="note" role="status">You’re signed in, but ESPN didn’t list any football leagues on this account this season. Add your league by its ID below.</div>';
   else if (added) flash = `<div class="note" role="status">${added} paper${added > 1 ? 's' : ''} set up. ${added > 1 ? 'Each first edition prints' : 'The first edition prints'} in a few minutes.</div>`;
   else if (found !== null) flash = '<div class="note" role="status">Signed in. Your leagues are up to date.</div>';
   flash += failed.map((f) => `<div class="err">${esc(f)}</div>`).join('');
   const list = rows.map((L) => `<li><div><b>${esc(L.name)}</b>${L.is_comm ? '<span class="badge">Commissioner</span>' : ''}<br><span class="hint">${L.platform === 'yahoo' ? 'Yahoo' : 'ESPN'} · ${L.teams} teams</span></div><div class="row"><a class="btn alt" href="/l/${esc(L.slug)}/">Paper</a>${L.is_comm ? `<a class="btn alt" href="/l/${esc(L.slug)}/settings">Settings</a>` : ''}</div></li>`).join('');
   const add = espn ? `<details ${rows.length ? '' : 'open'}><summary>A league is missing?</summary>
 <form method="post" action="/mine/add" class="share" style="margin-top:10px"><input type="text" name="league" placeholder="League ID or league link" aria-label="ESPN league ID or link" required><button class="btn" type="submit">Add</button></form>
-<p class="hint" style="margin-top:6px">New leagues on your ESPN account are added automatically every Tuesday.</p></details>` : '';
+<p class="hint" style="margin-top:6px">New leagues on your ESPN account are added automatically every Tuesday.</p></details>`
+    : yahoo ? `<p class="hint" style="margin-top:16px">New leagues on your Yahoo account are added automatically every Tuesday. <a href="/yahoo">See all your Yahoo leagues</a>.</p>` : '';
   return layout('My leagues · The Daily Fantasizer', `${mast('My leagues')}${flash}<ul class="lg-list">${list || '<li><div>No leagues yet.</div></li>'}</ul>${A2HS}${add}
 <p class="row" style="margin-top:16px"><a class="btn alt" href="/signout">Sign out</a></p>`);
 }

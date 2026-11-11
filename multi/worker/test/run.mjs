@@ -26,7 +26,7 @@ globalThis.fetch = async (url, init = {}) => {
     assert.equal(init.headers.Authorization, 'Basic ' + btoa('cid:csec'));
     return Response.json({ access_token: 'AT-' + b.get('grant_type'), refresh_token: 'RT1', expires_in: 3600, xoauth_yahoo_guid: 'GUID9' });
   }
-  if (url.includes('games;game_keys=nfl/leagues')) return new Response(YX('<users><user><games><game><leagues><league><league_key>461.l.555</league_key><name>Sunday Funday</name><num_teams>10</num_teams><season>2026</season></league><league><league_key>461.l.556</league_key><name>Work League</name><num_teams>12</num_teams><season>2026</season></league></leagues></game></games></user></users>'));
+  if (url.includes('games;game_keys=nfl/leagues')) return new Response(YX('<users><user><games><game><leagues><league><league_key>461.l.555</league_key><name>Sunday Funday</name><num_teams>10</num_teams><season>2026</season></league><league><league_key>461.l.556</league_key><name>Work League</name><num_teams>12</num_teams><season>2026</season></league>' + (globalThis.JOINED_557 ? '<league><league_key>461.l.557</league_key><name>New Yahoo League</name><num_teams>8</num_teams><season>2026</season></league>' : '') + '</leagues></game></games></user></users>'));
   if (url.includes('games;game_keys=nfl/teams')) return new Response(YX('<users><user><games><game><teams><team><team_key>461.l.555.t.3</team_key><name>Taco Tuesday</name><managers><manager><is_commissioner>1</is_commissioner><is_current_login>1</is_current_login></manager></managers></team><team><team_key>461.l.556.t.7</team_key><name>Spreadsheet Kings</name><managers><manager><is_current_login>1</is_current_login></manager></managers></team></teams></game></games></user></users>'));
   if (url.includes('fan.api.espn.com')) {
     if (!(init.headers?.Cookie || '').includes('espn_s2=GOOD')) return new Response('no', { status: 401 });
@@ -146,13 +146,25 @@ jar = {};
 r = await call('GET', '/auth/yahoo'); const loc = new URL(r.headers.get('Location'));
 assert.equal(loc.origin + loc.pathname, 'https://api.login.yahoo.com/oauth2/request_auth'); assert.equal(loc.searchParams.get('redirect_uri'), 'https://fz.example/auth/yahoo/callback'); ok('redirect to Yahoo');
 r = await call('GET', `/auth/yahoo/callback?code=C1&state=WRONG`); assert.equal(r.status, 400); ok('state mismatch rejected');
-r = await call('GET', `/auth/yahoo/callback?code=C1&state=${loc.searchParams.get('state')}`); assert.equal(r.headers.get('Location'), '/yahoo'); ok('signed in');
+{ const before = dispatched.length;
+  r = await call('GET', `/auth/yahoo/callback?code=C1&state=${loc.searchParams.get('state')}`);
+  assert.equal(r.headers.get('Location'), '/mine?added=2&found=2'); assert.equal(dispatched.length - before, 2);
+  ok('signed in with Yahoo → every league on the account set up, first prints queued'); }
  { const rr = await call('GET', `/l/${privSlug}/`); assert.equal(rr.status, 403); assert.match(await text(rr), /Members only/); ok('signed in, but not in this league → members only'); }
-r = await call('GET', '/yahoo'); t = await text(r); assert.match(t, /Sunday Funday[\s\S]*Commissioner/); assert.match(t, /Work League/); ok('league picker marks where you are commissioner');
+r = await call('GET', '/mine?added=2&found=2'); t = await text(r); assert.match(t, /2 papers set up/); assert.match(t, /Sunday Funday[\s\S]*Commissioner/); assert.match(t, /every Tuesday/); ok('My leagues lists both, marks where you are commissioner');
+r = await call('GET', '/yahoo'); t = await text(r); assert.match(t, /Sunday Funday/); assert.match(t, /Open paper/); ok('the Yahoo league list still opens each paper');
 r = await call('POST', '/yahoo/league', { form: { key: '461.l.556' } }); const workSlug = r.headers.get('Location').split('/')[2];
 r = await call('GET', `/l/${workSlug}/settings`); assert.equal(r.status, 403); ok('not commissioner of Work League → settings locked');
 r = await call('POST', '/yahoo/league', { form: { key: '461.l.555' } }); const ySlug = r.headers.get('Location').split('/')[2];
 r = await call('GET', `/l/${ySlug}/settings`); assert.equal(r.status, 200); ok('Yahoo commissioner opens settings');
+{ const keep = { ...jar }; jar = {};
+  const rr = await call('GET', `/l/${ySlug}/`); assert.equal(rr.status, 303); assert.match(rr.headers.get('Location'), /^\/auth\/yahoo\?next=%2Fl%2F/);
+  ok('signed out on a Yahoo paper → Yahoo sign-in, then back to it');
+  const go = await call('GET', rr.headers.get('Location')); const st = new URL(go.headers.get('Location')).searchParams.get('state');
+  const back = await call('GET', `/auth/yahoo/callback?code=C1&state=${st}`); assert.equal(back.headers.get('Location'), `/l/${ySlug}/`); ok('…lands on that paper');
+  jar = {}; const lp2 = await text(await call('GET', '/login')); assert.match(lp2, /Log in with Yahoo instead/); ok('the ESPN login page offers Yahoo');
+  const no = await call('GET', '/auth/yahoo/callback?error=access_denied&state=x'); assert.equal(no.status, 400); assert.match(await text(no), /cancelled/); ok('saying no on Yahoo\'s page → a clear message');
+  jar = keep; }
 gh.write(`papers/${ySlug}/index.html`, '<header class="mast">M</header><section class="sec" id="ps-lineup" data-lu-me=""><template data-lu-team="1"><p>YLU1</p></template><template data-lu-team="3"><p>YLU3</p></template></section>');
 r = await call('GET', `/l/${ySlug}/`); { const yt = await text(r); assert.ok(yt.includes('YLU3') && !yt.includes('YLU1') && yt.includes('data-lu-me="3"')); } ok('Yahoo member gets their own team\'s lineup');
 r = await call('POST', '/yahoo/league', { form: { key: '461.l.999' } }); assert.equal(r.status, 403); ok('cannot add a league you are not in');
@@ -248,6 +260,9 @@ console.log('Log in with ESPN (server signs in; user only logs in)');
   globalThis.JOINED_4004 = true; const before = dispatched.length;
   r = await call('POST', '/api/build/refresh', { headers: { Authorization: 'Bearer build-tok' }, keepCookies: false }); assert.equal(r.status, 200);
   assert.ok(gh.slugOf('4004')); ok('Tuesday refresh (asked by the printer) adds a league joined since');
+  globalThis.JOINED_557 = true;
+  r = await call('POST', '/api/build/refresh', { headers: { Authorization: 'Bearer build-tok' }, keepCookies: false });
+  assert.ok(gh.json('index/leagues.json')['yahoo:461.l.557:2026']); ok('…on Yahoo accounts too');
   assert.ok(dispatched.length > before); ok('and queues its first print');
   for (const k of [...gh.files.keys()]) if (k.startsWith('limits/')) gh.files.delete(k);
   for (let i = 0; i < 6; i++) await login('me@example.com', 'bad');
@@ -260,9 +275,15 @@ console.log('thedailyfantasizer.com front page');
 {
   const saved = { ...jar };
   env.MAIN_LEAGUE = 'espn:777';
-  gh.write('public/sample.html', '<title>The Daily Fantasizer</title><b>Log in to read the paper</b><i class="fz-veil">blurred</i>');
+  gh.write('public/sample.html', '<title>The Daily Fantasizer</title><b>Log in to read the paper</b><span>Log in with the ESPN account that\'s in your league.</span><a class="fz-btn" id="fz-espn" href="/login?next=/">Log in with ESPN</a>\n    <button type="button" class="fz-btn" disabled title="Yahoo is coming soon">Log in with Yahoo <small>Soon</small></button><i class="fz-veil">blurred</i>');
   jar = {}; r = await call('GET', '/'); let t0 = await text(r);
   assert.match(t0, /Log in to read the paper/); assert.doesNotMatch(t0, /<p>paper<\/p>/); ok('signed out: the blurred sample and a log-in box, no real paper');
+  assert.match(t0, /<a class="fz-btn" id="fz-yahoo" href="\/auth\/yahoo\?next=\/"/); assert.doesNotMatch(t0, /Soon/); assert.match(t0, /ESPN or Yahoo account/); ok('Yahoo set up → the front page\'s Log in with Yahoo button works');
+  const cid = env.YAHOO_CLIENT_ID; delete env.YAHOO_CLIENT_ID;
+  t0 = await text(await call('GET', '/')); assert.match(t0, /Log in with Yahoo <small>Soon<\/small>/); ok('no Yahoo keys → it stays "Soon"');
+  t0 = await text(await call('GET', '/start')); assert.match(t0, /Coming soon/);
+  const ya = await call('GET', '/auth/yahoo'); assert.equal(ya.status, 503); ok('…and Yahoo sign-in says it\'s coming soon');
+  env.YAHOO_CLIENT_ID = cid; t0 = await text(await call('GET', '/start')); assert.match(t0, /href="\/auth\/yahoo"/); ok('start page Yahoo card switches on with the keys');
   r = await call('GET', '/week8.html'); assert.equal(r.headers.get('Location'), '/'); ok('old week links → front page when signed out');
   r = await call('GET', '/bets/lines9.json'); assert.equal(r.status, 200); assert.equal((await r.json()).week, 9); ok('betting board stays public (the league office checks bets against it)');
   r = await call('GET', '/sw.js'); assert.match(await text(r), /caches\.delete/); ok('old home-screen app: saved copy is cleared');

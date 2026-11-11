@@ -10,6 +10,9 @@ name: Deploy the sign-up site
 #                          Contents, Actions, Workflows, Secrets
 #   FZ_MASTER_KEY          any long random text; every key is derived from it (never change it afterwards)
 # Data repo: OWNER/daily-fantasizer-data (private, created by you), or set repo variable FZ_DATA_REPO.
+# Optional, for "Log in with Yahoo" (multi/SETUP.md, "Yahoo"): FZ_YAHOO_CLIENT_ID and FZ_YAHOO_CLIENT_SECRET from the
+# app registered at developer.yahoo.com. Without them the Yahoo buttons say "Soon"; adding them and re-running this
+# workflow switches Yahoo on everywhere.
 
 on:
   workflow_dispatch:
@@ -35,6 +38,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       MASTER: ${{ secrets.FZ_MASTER_KEY }}
       GH_PAT: ${{ secrets.FZ_GITHUB_TOKEN }}
+      YAHOO_ID: ${{ secrets.FZ_YAHOO_CLIENT_ID }}
+      YAHOO_SECRET: ${{ secrets.FZ_YAHOO_CLIENT_SECRET }}
       DATA_REPO: ${{ vars.FZ_DATA_REPO || format('{0}/daily-fantasizer-data', github.repository_owner) }}
       CODE_REPO: ${{ github.repository }}
       SITE_DOMAIN: ${{ vars.FZ_SITE_DOMAIN || 'thedailyfantasizer.com' }}   # a domain in the same Cloudflare account ('' = workers.dev)
@@ -119,6 +124,12 @@ jobs:
           put() { echo "::add-mask::$2"; printf %s "$2" | npx wrangler secret put "$1" >/dev/null && echo "set $1"; }
           put SESSION_SECRET "$(k session)"; put ENC_KEY "$(k enc)"; put BUILD_TOKEN "$(k build)"; put LOGIN_KEY "$(k login)"
           put GITHUB_TOKEN "$GH_PAT"
+          if [ -n "$YAHOO_ID" ] && [ -n "$YAHOO_SECRET" ]; then
+            put YAHOO_CLIENT_ID "$YAHOO_ID"; put YAHOO_CLIENT_SECRET "$YAHOO_SECRET"
+            echo "Yahoo: on (redirect URI to register with Yahoo: $SITE/auth/yahoo/callback)"
+          else
+            echo "Yahoo: off (add repo secrets FZ_YAHOO_CLIENT_ID and FZ_YAHOO_CLIENT_SECRET to switch it on)"
+          fi
       - name: Check it answers
         run: |
           sleep 5

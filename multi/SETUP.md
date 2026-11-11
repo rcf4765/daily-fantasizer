@@ -104,6 +104,26 @@ and a review of a few days).
 (`fan.api.espn.com/apis/v2/fans/{SWID}`), which ESPN doesn't document. If it lists nothing, the panel falls back to
 "add it by ID" and everything else still works. First real test: link an account that's in two leagues.
 
+## Yahoo: Log in with Yahoo (phone and desktop)
+
+Yahoo has a real sign-in for other sites (OAuth), so nothing runs in a browser: the user signs in on Yahoo's own page,
+Yahoo sends them back to `/auth/yahoo/callback`, and every NFL league on the account gets a paper at once
+(`linkYahooAccount`), just like ESPN. Only Yahoo's refresh token is kept, encrypted. Access is read-only (Fantasy Sports
+Read): the site can never change a lineup, a trade or a setting. Every Tuesday the site re-checks each Yahoo account for
+leagues joined since. Yahoo says who each league's commissioner is and which team is the user's (Optimal Lineup).
+Signed-out readers of a Yahoo paper are sent to Yahoo's sign-in and come back to that paper.
+
+**Switch it on (once, about 5 minutes):**
+1. developer.yahoo.com → **My Apps** → **Create an App** (sign in with any Yahoo account; the site owner's is fine).
+2. Application name: `The Daily Fantasizer`. Redirect URI: `https://thedailyfantasizer.com/auth/yahoo/callback`
+   (the deploy summary prints the exact one). OAuth client type: **Confidential Client**.
+   API permissions: **Fantasy Sports → Read**. Create the app.
+3. Copy the **Client ID** and **Client Secret** into this repo's secrets (Settings → Secrets and variables → Actions) as
+   `FZ_YAHOO_CLIENT_ID` and `FZ_YAHOO_CLIENT_SECRET`.
+4. Actions → "Deploy the sign-up site" → Run workflow. Its log says `Yahoo: on`.
+
+Until then every Yahoo button says "Soon" and `/auth/yahoo` says it's coming soon; nothing else changes.
+
 ## How a league is printed
 
 `run_all.py` asks the site for the leagues (with decrypted cookies / a fresh Yahoo token, masked in the logs), fetches the
@@ -122,7 +142,7 @@ Tuesday and Wednesday at 10:17 UTC and first asks the site to pick up leagues pe
   projection for QB/RB/WR/TE (kickers and defenses are left out of the "beat / missed projection" stories), there's no
   trading block, and Player Stats points are rescored with the league's own stat modifiers.
 - **Lineups**: Roster Radar, Matchup of the Week and the Matchmaker follow each league's real starting lineup (superflex,
-  3 WR, no kicker…). Optimal Lineup follows the same slots; each member sees only their own team's (ESPN leagues; Yahoo members don't get one yet).
+  3 WR, no kicker…). Optimal Lineup follows the same slots; each member sees only their own team's (matched by their ESPN or Yahoo account).
 - **Cost**: Cloudflare's and GitHub's free plans cover a few dozen leagues. Each league adds about a minute to the
   Tuesday run, and each edition adds about 2 MB to the data repo.
 

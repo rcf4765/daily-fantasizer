@@ -117,13 +117,26 @@ async function linkEspnAccount(env, D, s2, swid, given = null) {
   }
   return { uid, leagues, listError: res.listError || '' };
 }
-/** Weekly (the printer asks first): every linked ESPN account picks up leagues it joined since; expired sessions are
- *  marked so the user is asked to log in again. */
+/** One Yahoo account → every NFL league on it gets a paper (like ESPN). The account's own Yahoo sign-in prints each
+ *  league it is in (tokenUid), and Yahoo says who the commissioner is. */
+async function linkYahooAccount(env, D, uid, token) {
+  const leagues = [];
+  for (const l of (await yahooLeagues(token)).filter((l) => l.key && l.season).slice(0, 20)) {
+    const had = await D.findLeague('yahoo', l.key, l.season);
+    const L = await createOrUpdateLeague(env, D, { platform: 'yahoo', leagueId: l.key, season: l.season, name: l.name, teams: l.teams,
+      uid, commissioner: l.commissioner, tokenUid: uid });
+    leagues.push({ ...l, slug: L.slug, isNew: !had });
+  }
+  return { uid, leagues };
+}
+/** Weekly (the printer asks first): every linked ESPN and Yahoo account picks up leagues it joined since; expired
+ *  sessions are marked so the user is asked to log in again. */
 async function refreshEspnAccounts(env, D) {
-  for (const u of (await D.allUsers()).filter((x) => x.platform === 'espn' && x.espn_s2)) {
+  for (const u of await D.allUsers()) {
     try {
       // only adds leagues; an expired sign-in shows up when the printer can't read a league (ESPN answers it 401)
-      await linkEspnAccount(env, D, await open(env, u.espn_s2), await open(env, u.swid));
+      if (u.platform === 'espn' && u.espn_s2) await linkEspnAccount(env, D, await open(env, u.espn_s2), await open(env, u.swid));
+      if (u.platform === 'yahoo' && u.yahoo_refresh && env.YAHOO_CLIENT_ID) await linkYahooAccount(env, D, u.id, await yahooAccess(env, u.id, D));
     } catch (e) { console.log('refresh failed', u.id, e.message); }
   }
 }
@@ -146,6 +159,8 @@ async function route(req, env, ctx) {
   }
   const s = await session(req, env);
   const D = makeData(env);
+  const yahooOn = !!env.YAHOO_CLIENT_ID;
+  const loginPage = (o = {}) => P.espnLogin({ ...o, yahoo: yahooOn });
 
   if (method === 'POST' && !path.startsWith('/api/')) {  // forms: same-site only
     const o = req.headers.get('Origin');
@@ -161,7 +176,12 @@ async function route(req, env, ctx) {
       return redirect(pick ? `/l/${pick.slug}/` : '/mine');
     }
     const sample = await D.st.raw('public/sample.html').catch(() => null);   // the paper, blurred, made-up names
-    return sample ? html(sample.body, 200, { 'Cache-Control': 'no-cache' }) : html(P.home(env, false));
+    if (!sample) return html(P.home(env, false));
+    let page = await new Response(sample.body).text();
+    if (yahooOn) page = page.replace(/<button type="button" class="fz-btn"[^>]*title="Yahoo is coming soon"[^>]*>\s*Log in with Yahoo\s*<small>Soon<\/small><\/button>/,
+      '<a class="fz-btn" id="fz-yahoo" href="/auth/yahoo?next=/" style="text-decoration:none">Log in with Yahoo</a>')
+      .replace("Log in with the ESPN account that's in your league", "Log in with the ESPN or Yahoo account that's in your league");
+    return html(page, 200, { 'Cache-Control': 'no-cache' });
   }
   if (path === '/start' && method === 'GET') return html(P.home(env, !!s));
   {
@@ -186,23 +206,41 @@ async function route(req, env, ctx) {
   }
   if (path === '/signout') return redirect('/', { 'Set-Cookie': setCookie('fz_s', '', 0) });
 
-  // ---- Yahoo ----
+  // where to go after a sign-in: the front page or one paper on this site, nothing else
+  const nextOk = (n) => (n === '/' || (/^\/l\/[a-z0-9]{6,16}\/[a-z0-9./-]*$/.test(n || '') && !n.includes('..')) ? n : '');
+
+  // ---- Yahoo: Yahoo's own sign-in (OAuth, read-only); every league on the account gets its paper ----
   if (path === '/auth/yahoo') {
-    if (!env.YAHOO_CLIENT_ID) return html(P.message('Yahoo isn’t set up yet', 'The site owner still has to register the Yahoo app (see the setup guide).'), 503);
+    if (!env.YAHOO_CLIENT_ID) return html(P.message('Yahoo isn’t set up yet', 'Log in with Yahoo is coming soon. Log in with ESPN for now.', '/'), 503);
+    const next = nextOk(url.searchParams.get('next'));
+    if (s && s.uid.startsWith('yahoo:')) return redirect(next || '/mine');   // already signed in with Yahoo
     const state = randomId(24);
-    return redirect(yahooAuthUrl(env, state), { 'Set-Cookie': setCookie('fz_oauth', state, 600) });
+    const headers = new Headers({ Location: yahooAuthUrl(env, state) });
+    headers.append('Set-Cookie', setCookie('fz_oauth', state, 600));
+    if (next) headers.append('Set-Cookie', setCookie('fz_next', next, 1800));
+    return new Response(null, { status: 302, headers });
   }
   if (path === '/auth/yahoo/callback') {
     const state = url.searchParams.get('state'), code = url.searchParams.get('code');
+    if (url.searchParams.get('error')) return html(P.message('Yahoo sign-in cancelled', 'Nothing was linked. You can try again any time.', '/'), 400);
     if (!code || !state || state !== cookie(req, 'fz_oauth')) return html(P.message('Sign-in expired', 'Start again from the home page.'), 400);
     try {
       const tok = await yahooExchange(env, code);
       const guid = tok.xoauth_yahoo_guid || (await yahooUser(tok.access_token)).guid;
       const uid = `yahoo:${guid}`;
       await D.saveUser(uid, { platform: 'yahoo', yahoo_refresh: await seal(env, tok.refresh_token) });
-      const headers = new Headers({ Location: '/yahoo' });
+      let where;
+      try {
+        const acct = await linkYahooAccount(env, D, uid, tok.access_token);
+        where = `/mine?added=${acct.leagues.filter((l) => l.isNew).length}&found=${acct.leagues.length}`;
+      } catch (e) {
+        where = '/mine?err=' + encodeURIComponent(`Signed in, but Yahoo didn’t send your leagues (${e.message}). Try again in a minute.`);
+      }
+      const next = nextOk(cookie(req, 'fz_next'));
+      const headers = new Headers({ Location: next || where });
       headers.append('Set-Cookie', await startSession(env, uid, 'Yahoo'));
       headers.append('Set-Cookie', setCookie('fz_oauth', '', 0));
+      if (next) headers.append('Set-Cookie', setCookie('fz_next', '', 0));
       return new Response(null, { status: 303, headers });
     } catch (e) {
       return html(P.message('Yahoo sign-in failed', e.message), 502);
@@ -234,28 +272,27 @@ async function route(req, env, ctx) {
   }
 
   // ---- ESPN: log in once (the server signs in to ESPN; the password is used once, never stored) ----
-  const nextOk = (n) => (n === '/' || (/^\/l\/[a-z0-9]{6,16}\/[a-z0-9./-]*$/.test(n || '') && !n.includes('..')) ? n : '');
   if (path === '/login' && method === 'GET') {
     const next = nextOk(url.searchParams.get('next'));
     if (s) return redirect(next || '/');   // already signed in (in any tab): no second login
-    return html(P.espnLogin({ next }), 200, next ? { 'Set-Cookie': setCookie('fz_next', next, 1800) } : {});
+    return html(loginPage({ next }), 200, next ? { 'Set-Cookie': setCookie('fz_next', next, 1800) } : {});
   }
   if (path === '/login' && method === 'POST') {
     const f = await form(req);
     const email = String(f.email || '').trim(), password = String(f.password || '');
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !password) return html(P.espnLogin({ error: 'Enter the email and password you use for ESPN.', email }), 400);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !password) return html(loginPage({ error: 'Enter the email and password you use for ESPN.', email }), 400);
     const ip = req.headers.get('CF-Connecting-IP') || req.headers.get('X-Forwarded-For') || 'local';
-    if ((await D.attempt(ip)) > 6) return html(P.espnLogin({ error: 'Too many tries. Wait 15 minutes and try again.', email }), 429);
+    if ((await D.attempt(ip)) > 6) return html(loginPage({ error: 'Too many tries. Wait 15 minutes and try again.', email }), 429);
     if (!env.BROWSER && !env.__espnLogin) {
       // A GitHub Actions run in the private data repo signs in (espn-login.yml). The login goes to it encrypted, inside
       // the job's start request, and is never stored: jobs/<id>.json only tracks progress.
-      if (!env.LOGIN_KEY) return html(P.espnLogin({ error: 'ESPN sign-in isn’t switched on yet.', email }), 503);
-      if (email.length + password.length > 300) return html(P.espnLogin({ error: 'That email or password is too long.', email }), 400);
+      if (!env.LOGIN_KEY) return html(loginPage({ error: 'ESPN sign-in isn’t switched on yet.', email }), 503);
+      if (email.length + password.length > 300) return html(loginPage({ error: 'That email or password is too long.', email }), 400);
       const id = randomId(16), t = randomId(32);
       await D.setTemp('jobs', id, { token_hash: await sha256(t), status: 'queued', created_at: new Date().toISOString() }, 15);
       if (!(await startJob(env, 'espn-login.yml', { job: id, login: await jobSeal(env, JSON.stringify({ email, password })) }, id))) {
         await D.setTemp('jobs', id, { status: 'error', msg: 'Couldn’t start the ESPN sign-in.' }, 15);
-        return html(P.espnLogin({ error: 'Couldn’t start the ESPN sign-in. Try again in a minute.', email }), 502);
+        return html(loginPage({ error: 'Couldn’t start the ESPN sign-in. Try again in a minute.', email }), 502);
       }
       return redirect('/login/wait', { 'Set-Cookie': setCookie('fz_job', `${id}.${t}`, 900) });
     }
@@ -267,7 +304,7 @@ async function route(req, env, ctx) {
       await D.setTemp('links', await sha256(t), { session_id: r.sessionId, tries: 0 }, 10);
       return html(P.espnCode({ email }), 200, { 'Set-Cookie': setCookie('fz_login', t, 600) });
     }
-    return html(P.espnLogin({ error: r.error, email }), 400);
+    return html(loginPage({ error: r.error, email }), 400);
   }
   // ---- free-plan sign-in: waiting page, status, code, finish ----
   const job = async () => {
@@ -292,9 +329,9 @@ async function route(req, env, ctx) {
   }
   if (path === '/login/wait' && method === 'GET') {
     const j = await job();
-    if (!j) return html(P.espnLogin({ error: 'That sign-in timed out. Log in again.' }), 400);
+    if (!j) return html(loginPage({ error: 'That sign-in timed out. Log in again.' }), 400);
     if (j.status === 'ok') return redirect('/login/finish');
-    if (j.status === 'error') return html(P.espnLogin({ error: j.msg || 'Signing in to ESPN failed. Try again in a minute.' }), 400);
+    if (j.status === 'error') return html(loginPage({ error: j.msg || 'Signing in to ESPN failed. Try again in a minute.' }), 400);
     if (j.status === 'code' || j.status === 'code_wrong') return html(P.espnCode({ error: j.status === 'code_wrong' ? 'That code didn’t work. Check the newest email from ESPN.' : '', wait: true }));
     return html(P.loginWait(j.status, Date.now() - Date.parse(j.created_at)));
   }
@@ -311,7 +348,7 @@ async function route(req, env, ctx) {
   }
   if (path === '/login/code' && method === 'POST' && cookie(req, 'fz_job')) {
     const j = await job();
-    if (!j) return html(P.espnLogin({ error: 'That sign-in timed out. Log in again.' }), 400);
+    if (!j) return html(loginPage({ error: 'That sign-in timed out. Log in again.' }), 400);
     const f = await form(req);
     const code = String(f.code || '').replace(/\D/g, '');
     if (code.length < 4 || code.length > 8) return html(P.espnCode({ error: 'Enter the code from ESPN’s email.', wait: true }), 400);
@@ -322,16 +359,16 @@ async function route(req, env, ctx) {
     const f = await form(req);
     const key = await sha256(cookie(req, 'fz_login') || '');
     const row = await D.temp('links', key);
-    if (!row || !row.session_id) return html(P.espnLogin({ error: 'That sign-in timed out. Log in again.' }), 400);
+    if (!row || !row.session_id) return html(loginPage({ error: 'That sign-in timed out. Log in again.' }), 400);
     const code = String(f.code || '').replace(/\D/g, '');
     if (code.length < 4 || code.length > 8) return html(P.espnCode({ error: 'Enter the code from ESPN’s email.' }), 400);
-    if (row.tries >= 4) return html(P.espnLogin({ error: 'Too many wrong codes. Log in again.' }), 400);
+    if (row.tries >= 4) return html(loginPage({ error: 'Too many wrong codes. Log in again.' }), 400);
     await D.setTemp('links', key, { tries: row.tries + 1 }, 10);
     const r = await signer(env).code(env, row.session_id, code);
     await D.trace(r.status !== 'error', r.trace);
     if (r.status === 'ok') { await D.dropTemp('links', key); return finishLogin(env, D, r); }
     if (r.status === 'code') return html(P.espnCode({ error: 'That code didn’t work. Check the newest email from ESPN.' }), 400);
-    return html(P.espnLogin({ error: r.error }), 400);
+    return html(loginPage({ error: r.error }), 400);
   }
   if (path === '/mine/add' && method === 'POST') {   // a league ESPN's list missed, by ID, with the stored ESPN session
     if (!s || !s.uid.startsWith('espn:')) return redirect('/login');
@@ -444,7 +481,7 @@ async function route(req, env, ctx) {
     if (!s) return redirect('/');
     const results = (await D.myLeagues(s.uid)).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
     return html(P.mine(results.map((L) => ({ ...L, is_comm: L.commissioner_uid === s.uid })),
-      { added: +url.searchParams.get('added') || 0, found: url.searchParams.get('found'), espn: s.uid.startsWith('espn:'),
+      { added: +url.searchParams.get('added') || 0, found: url.searchParams.get('found'), espn: s.uid.startsWith('espn:'), yahoo: s.uid.startsWith('yahoo:'),
         failed: (url.searchParams.get('failed') || '').split('|').concat(url.searchParams.get('err') || '').filter(Boolean) }));
   }
 
@@ -488,9 +525,13 @@ async function route(req, env, ctx) {
     }
     // Papers are for the league's members only: signed in, and the ESPN account is in this league
     // (membership is recorded when that account signs in and its leagues are found; viewing never adds it).
-    if (!s) return redirect(`/login?next=${encodeURIComponent(`/l/${L.slug}${rest}`)}`);
+    const host = L.platform === 'yahoo' ? 'Yahoo' : 'ESPN';
+    if (!s) {
+      const n = encodeURIComponent(`/l/${L.slug}${rest}`);
+      return redirect(L.platform === 'yahoo' && env.YAHOO_CLIENT_ID ? `/auth/yahoo?next=${n}` : `/login?next=${n}`);
+    }
     if (!isComm(L, s) && !(await D.memberships(s.uid))[L.slug]) {
-      return html(P.message('Members only', `This paper is for ${L.name}. Log in with the ESPN account that's in this league.`, '/mine'), 403);
+      return html(P.message('Members only', `This paper is for ${L.name}. Log in with the ${host} account that's in this league.`, '/mine'), 403);
     }
     if (rest === '/archive') {
       return html(P.archive(L, await D.weeks(L.slug)));
