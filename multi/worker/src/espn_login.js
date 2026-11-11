@@ -141,6 +141,8 @@ async function outcome(page, frame, tr, ms = 25000, { codeGrace = 0 } = {}) {
       if (!ch) seenChallenge = 0;
       if (seenChallenge && Date.now() - seenChallenge > 12000) { tr.add('ESPN kept the bot check up'); return { status: 'error', error: 'ESPN asked for an extra security check we can’t do from here. Try again in a few minutes.', retry: true }; }
       const err = f ? await textOf(f, SEL.error) : '';
+      // the previous try's "incorrect code" message stays on screen until ESPN answers the new one: only believe it after the grace
+      if (err && Date.now() - t0 < codeGrace) { await sleep(700); continue; }
       if (err && await f.$(SEL.code)) { tr.add('ESPN rejected the code'); return { status: 'code' }; }
       if (err) { tr.add(`ESPN error shown (${err.length} chars)`); return { status: 'error', error: /password|credential|match|incorrect|invalid/i.test(err) ? 'ESPN didn’t accept that email and password.' : `ESPN said: ${err}` }; }
     } catch (e) { /* mid-reload */ }
