@@ -63,9 +63,11 @@ try {
     // find the account's leagues from a signed-in browser (ESPN may answer a server with nothing)
     const d = new Date(), season = d.getUTCFullYear() - (d.getUTCMonth() < 2 ? 1 : 0);
     const found = await discoverLeagues(chromium, process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH, args: ['--no-sandbox'] } : {},
-      { s2: r.s2, swid: r.swid, season, startUrl: process.env.ESPN_API_MOCK || '' });
+      { s2: r.s2, swid: r.swid, swids: r.swids, season, startUrl: process.env.ESPN_API_MOCK || '' });
     trace.push(...found.notes);
-    const a = await report({ status: 'ok', s2: r.s2, swid: r.swid, leagues: found.leagues, trace });
+    const swid = found.swid || r.swid;   // the account's own id, checked against ESPN (not the throwaway visitor one)
+    mask(swid);
+    const a = await report({ status: 'ok', s2: r.s2, swid, leagues: found.leagues, trace });
     console.log(a.ok ? 'signed in; leagues set up' : `site refused: ${a.error}`);
   } else {
     await report({ status: 'error', msg: r.error || 'Signing in to ESPN failed. Try again in a minute.', trace });

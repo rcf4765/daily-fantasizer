@@ -2,8 +2,10 @@
 // requests ESPN's own site makes, with the account's cookies. (Asked from a server instead, ESPN may answer with
 // nothing.) Returns { leagues: [{ id, name, teams, team, commissioner, season }], notes: [lines for the trace] }.
 // Notes hold counts, statuses and league ids only: no names of people, cookies or emails.
+// swids: every account id the login saw. ESPN hands each visitor a throwaway SWID before login, so each candidate is
+// tried against ESPN's fan profile and the one ESPN knows (HTTP 200) is the account's; it comes back as `swid`.
 
-export async function discoverLeagues(chromium, launchOptions, { s2, swid, season, startUrl }) {
+export async function discoverLeagues(chromium, launchOptions, { s2, swid, swids, season, startUrl }) {
   const notes = [];
   const browser = await chromium.launch(launchOptions);
   try {
@@ -11,12 +13,27 @@ export async function discoverLeagues(chromium, launchOptions, { s2, swid, seaso
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' });
     const host = startUrl ? new URL(startUrl).hostname : 'fantasy.espn.com';
     const domain = startUrl ? host : '.espn.com';
-    await ctx.addCookies([
-      { name: 'espn_s2', value: s2, domain, path: '/', secure: !startUrl, sameSite: 'Lax' },
-      { name: 'SWID', value: swid, domain, path: '/', secure: !startUrl, sameSite: 'Lax' },
-    ]);
+    const cookie = (name, value) => ({ name, value, domain, path: '/', secure: !startUrl, sameSite: 'Lax' });
+    await ctx.addCookies([cookie('espn_s2', s2), cookie('SWID', swid)]);
     const page = await ctx.newPage();
     await page.goto(startUrl || 'https://fantasy.espn.com/football/', { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => notes.push('fantasy page slow to load'));
+    const api = startUrl ? { fan: new URL(startUrl).origin, lm: new URL(startUrl).origin } : { fan: 'https://fan.api.espn.com', lm: 'https://lm-api-reads.fantasy.espn.com' };
+    // which candidate is the account? ESPN's fan profile answers 404 for a throwaway visitor id
+    const cands = [...new Set([...(swids || []), swid].filter(Boolean).map((x) => `{${String(x).toUpperCase().replace(/[{}]/g, '')}}`))];
+    if (cands.length > 1) {
+      let pick = '';
+      for (const [i, c] of cands.entries()) {
+        await ctx.addCookies([cookie('SWID', c)]);
+        const st = await page.evaluate(async ({ c, fan }) => {
+          try { return (await fetch(`${fan}/apis/v2/fans/${encodeURIComponent(c)}?displayHiddenPrefs=true&context=fantasy&useCookieAuth=true&source=fantasyapp-ios&featureFlags=challengeEntries`, { credentials: 'include' })).status; }
+          catch (e) { return 0; }
+        }, { c, fan: api.fan });
+        notes.push(`account id ${i + 1} of ${cands.length}: fan profile HTTP ${st}`);
+        if (st === 200) { pick = c; break; }
+      }
+      swid = pick || cands[0];
+      await ctx.addCookies([cookie('SWID', swid)]);
+    }
     const out = await page.evaluate(async ({ swid, season, api }) => {
       const res = { notes: [], leagues: [] };
       const norm = (s) => String(s || '').toUpperCase().replace(/[{}]/g, '');
@@ -56,12 +73,12 @@ export async function discoverLeagues(chromium, launchOptions, { s2, swid, seaso
         } catch (e) { res.notes.push(`league ${id} failed: ${String(e.message || e).slice(0, 80)}`); }
       }
       return res;
-    }, { swid, season, api: startUrl ? { fan: new URL(startUrl).origin, lm: new URL(startUrl).origin } : { fan: 'https://fan.api.espn.com', lm: 'https://lm-api-reads.fantasy.espn.com' } });
+    }, { swid, season, api });
     notes.push(...out.notes);
-    return { leagues: out.leagues, notes };
+    return { leagues: out.leagues, notes, swid };
   } catch (e) {
     notes.push(`league lookup failed: ${String(e.message || e).slice(0, 120)}`);
-    return { leagues: null, notes };
+    return { leagues: null, notes, swid };
   } finally {
     await browser.close().catch(() => {});
   }

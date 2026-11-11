@@ -30,10 +30,43 @@ function tracer() {
 }
 
 let extraCookieUrl = null;   // tests point the login at a mock ESPN; read its cookies too
+let anonSwid = '';   // the visitor SWID ESPN set before the login (same process for both steps on the free plan)
 async function sessionCookies(page) {
   const all = await page.cookies(...COOKIE_URLS, ...(extraCookieUrl ? [extraCookieUrl] : []));
   const s2 = all.find((c) => c.name === 'espn_s2'), swid = all.find((c) => c.name === 'SWID');
   return s2 && swid ? { s2: decodeURIComponent(s2.value), swid: swid.value } : null;
+}
+
+/** Every account id (SWID) the browser holds. ESPN gives each visitor a throwaway SWID before login and only swaps in
+ *  the account's own once its pages load signed in, so the first SWID seen can be the wrong one: the job tries each
+ *  candidate against ESPN (discover.mjs) and keeps the one ESPN knows. Disney's login cookies carry it too. */
+const GUID = /\{?([0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12})\}?/gi;
+async function swidCandidates(page) {
+  const all = await page.cookies(...COOKIE_URLS, 'https://registerdisney.go.com', ...(extraCookieUrl ? [extraCookieUrl] : [])).catch(() => []);
+  const out = [];
+  const add = (v) => { const g = `{${String(v).toUpperCase()}}`; if (!out.includes(g)) out.push(g); };
+  for (const c of all.filter((c) => c.name === 'SWID')) for (const m of String(c.value).matchAll(GUID)) add(m[1]);
+  for (const c of all.filter((c) => c.name !== 'SWID' && /swid|onesite|disney|oneid/i.test(c.name))) {
+    let v = String(c.value); try { v = decodeURIComponent(v); } catch (e) { /* as is */ }
+    for (const m of v.matchAll(GUID)) add(m[1]);
+  }
+  return out;
+}
+
+/** Signed in: let ESPN's fantasy site load once so it sets the account's own SWID, then list the candidates. */
+async function settle(page, tr, c, anon) {
+  await page.goto(extraCookieUrl ? `${extraCookieUrl}/fantasy` : 'https://fantasy.espn.com/football/', { waitUntil: 'networkidle2', timeout: 25000 })
+    .catch(() => tr.add('fantasy page slow to load'));
+  await sleep(extraCookieUrl ? 200 : 1500);
+  const fresh = (await sessionCookies(page).catch(() => null)) || c;
+  let swids = await swidCandidates(page);
+  const norm = (x) => String(x || '').toUpperCase().replace(/[{}]/g, '');
+  // the visitor id from before the login goes last: it's the one most likely to be the throwaway
+  swids = [...swids.filter((x) => norm(x) !== norm(anon)), ...swids.filter((x) => norm(x) === norm(anon))];
+  if (!swids.length) swids = [fresh.swid];
+  const changed = anon && norm(fresh.swid) !== norm(anon);
+  tr.add(`account ids found: ${swids.length}${anon ? (changed ? ' (SWID changed after login)' : ' (SWID same as before login)') : ''}`);
+  return { s2: fresh.s2, swid: swids[0], swids };
 }
 
 async function loginFrame(page, tr, ms = 20000) {
@@ -79,7 +112,7 @@ async function outcome(page, frame, tr, ms = 25000, { codeGrace = 0 } = {}) {
   while (Date.now() < end) {
     try {   // ESPN's form reloads between steps; a check that lands mid-reload just tries again
       const c = await sessionCookies(page);
-      if (c) { tr.add('signed in: ESPN session received'); return { status: 'ok', ...c }; }
+      if (c) { tr.add('signed in: ESPN session received'); return { status: 'ok', ...(await settle(page, tr, c, anonSwid)) }; }
       const f = page.frames().find((x) => SEL.oneidFrame.test(x.url())) || frame;
       // right after a code is submitted the old boxes are still on screen; give ESPN a moment before calling it wrong
       if (f && Date.now() - t0 >= codeGrace && await f.$(SEL.code)) { tr.add('ESPN asked for a one-time code'); return { status: 'code' }; }
@@ -113,6 +146,7 @@ export async function espnLoginStart(env, email, password) {
     await page.goto(env.ESPN_LOGIN_URL || LOGIN_URL, { waitUntil: 'networkidle2', timeout: 30000 }).catch(() => tr.add('page still loading after 30s'));
     const already = await sessionCookies(page);
     if (already) { tr.add('unexpected: already signed in'); }
+    anonSwid = (await page.cookies(...COOKIE_URLS).catch(() => [])).find((c) => c.name === 'SWID')?.value || '';
     const frame = await loginFrame(page, tr);
     if (!frame) return { status: 'error', error: 'ESPN’s login page didn’t load. Try again in a minute.', retry: true, trace: tr.steps };
     const em = await find(frame, SEL.email, 15000);

@@ -14,6 +14,7 @@ const require = createRequire(import.meta.url);
 const PW = process.env.PW_PKG || '/usr/local/lib/python3.13/site-packages/playwright/driver/package';
 const { chromium } = require(PW);
 const ME = '{CCCCCCCC-1111-2222-3333-444444444444}';
+const ANON = '{9D2E1F00-AAAA-4BBB-CCCC-0123456789AB}';   // the throwaway visitor id ESPN hands out before login
 const ok = (n) => console.log('  ✓', n);
 
 // ---- mock ESPN login (as in login_browser.mjs) ----
@@ -36,6 +37,8 @@ http.createServer((req, res) => {
   // what ESPN's own site asks (the sign-in job's browser now does the league lookup itself)
   if (req.url.startsWith('/apis/v2/fans/')) {
     if (!/espn_s2=/.test(req.headers.cookie || '')) { res.writeHead(401); return res.end('{}'); }
+    // like ESPN: the throwaway visitor id has no fan profile
+    if (!decodeURIComponent(req.url).includes(ME)) { res.writeHead(404); return res.end('{}'); }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ preferences: [4001, 4002].map((g) => ({ metaData: { entry: { abbrev: 'FFL', gameId: 1, seasonId: 2026, groups: [{ groupId: g }] } } })) }));
   }
@@ -45,8 +48,15 @@ http.createServer((req, res) => {
     return res.end(JSON.stringify({ settings: { name: names[id] }, teams: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: 'T' + i, owners: i === 2 ? [ME] : ['{X}'] })),
       members: [{ id: ME, isLeagueManager: id === '4001' }, { id: '{X}' }] }));
   }
-  if (req.url === '/set') { res.writeHead(204, { 'Set-Cookie': ['espn_s2=AEBfake%2Bs2value' + 'x'.repeat(50) + '; Path=/', `SWID=${ME}; Path=/`] }); return res.end(); }
-  res.writeHead(200, { 'Content-Type': 'text/html' });
+  // like ESPN: every visitor gets a throwaway SWID; the login adds espn_s2 but leaves that SWID in place, and the
+  // account's own id only shows up (in Disney's token cookie) once the fantasy site loads signed in
+  if (req.url === '/set') { res.writeHead(204, { 'Set-Cookie': ['espn_s2=AEBfake%2Bs2value' + 'x'.repeat(50) + '; Path=/'] }); return res.end(); }
+  if (req.url === '/fantasy') {
+    const signed = /espn_s2=/.test(req.headers.cookie || '');
+    res.writeHead(200, { 'Content-Type': 'text/html', ...(signed ? { 'Set-Cookie': `ESPN-ONESITE.WEB-PROD.token=${encodeURIComponent(`5=tok|${ME}|x`)}; Path=/` } : {}) });
+    return res.end('<!doctype html><title>Fantasy</title>');
+  }
+  res.writeHead(200, { 'Content-Type': 'text/html', ...(/SWID=/.test(req.headers.cookie || '') ? {} : { 'Set-Cookie': `SWID=${ANON}; Path=/` }) });
   res.end(`<!doctype html><title>ESPN</title><iframe src="http://127.0.0.1:9102/oneid/email" width="400" height="400"></iframe><script>addEventListener('message',function(e){if(e.data==='ok')fetch('/set')})</script>`);
 }).listen(9101, '127.0.0.1');
 
@@ -111,6 +121,7 @@ console.log('Free-plan ESPN sign-in, end to end');
   const t = await pg.textContent('body');
   assert.ok(t.includes('Office League') && t.includes('Family League') && /2 papers set up/.test(t)); ok('both leagues found by the job’s signed-in browser and set up (the site alone found none)');
   assert.ok(gh.json(`users/espn_${ME.replace(/[{}]/g, '')}.json`).espn_s2); ok('ESPN session saved (encrypted) on the account in the data repo');
+  assert.ok(!gh.dump().includes(ANON.replace(/[{}]/g, ''))); ok('the throwaway visitor id from before the login is never used as the account');
   assert.ok(!gh.dump().includes('AEBfake')); ok('ESPN session is never stored readable');
   const j = await jobs.shift(); assert.equal(j.code, 0, j.out); assert.ok(!j.out.includes('right')); ok('job log has no password');
   const tab2 = await ctx.newPage(); await tab2.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
