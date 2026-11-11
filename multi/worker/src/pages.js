@@ -202,7 +202,7 @@ ${code ? `<p class="code">${esc(code)}</p><p class="hint">Write it down: it won'
 <p class="hint" style="margin-top:22px"><a href="/l/${esc(L.slug)}/">Open the paper</a> · <a href="/mine">My leagues</a></p>`);
 }
 
-export function mine(rows, { added = 0, found = null, espn = false, yahoo = false, yahooOn = false, failed = [] } = {}) {
+export function mine(rows, { added = 0, found = null, espn = false, yahoo = false, yahooOn = false, yahooRetry = false, failed = [] } = {}) {
   let flash = '';
   if (found !== null && +found === 0 && !rows.length) flash = yahoo
     ? '<div class="note" role="status">You’re signed in, but Yahoo didn’t list any NFL leagues on this account this season.</div>'
@@ -210,6 +210,7 @@ export function mine(rows, { added = 0, found = null, espn = false, yahoo = fals
   else if (added) flash = `<div class="note" role="status">${added} paper${added > 1 ? 's' : ''} set up. ${added > 1 ? 'Each first edition prints' : 'The first edition prints'} in a few minutes.</div>`;
   else if (found !== null) flash = '<div class="note" role="status">Signed in. Your leagues are up to date.</div>';
   flash += failed.map((f) => `<div class="err">${esc(f)}</div>`).join('');
+  if (yahooRetry) flash += '<p class="row" style="margin:10px 0"><a class="btn" href="/auth/yahoo?again=1">Log in with Yahoo again</a></p>';
   const list = rows.map((L) => `<li><div><b>${esc(L.name)}</b>${L.is_comm ? '<span class="badge">Commissioner</span>' : ''}<br><span class="hint">${L.platform === 'yahoo' ? 'Yahoo' : 'ESPN'} · ${L.teams} teams</span></div><div class="row"><a class="btn alt" href="/l/${esc(L.slug)}/">Paper</a>${L.is_comm ? `<a class="btn alt" href="/l/${esc(L.slug)}/settings">Settings</a>` : ''}</div></li>`).join('');
   const add = espn ? `<details ${rows.length ? '' : 'open'}><summary>A league is missing?</summary>
 <form method="post" action="/mine/add" class="share" style="margin-top:10px"><input type="text" name="league" placeholder="League ID or league link" aria-label="ESPN league ID or link" required><button class="btn" type="submit">Add</button></form>

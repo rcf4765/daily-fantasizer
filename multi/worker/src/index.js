@@ -237,7 +237,7 @@ async function route(req, env, ctx) {
   if (path === '/auth/yahoo') {
     if (!env.YAHOO_CLIENT_ID) return html(P.message('Yahoo isn’t set up yet', 'Log in with Yahoo is coming soon. Log in with ESPN for now.', '/'), 503);
     const next = nextOk(url.searchParams.get('next'));
-    if (s && s.yahoo) return redirect(next || '/mine');   // already signed in with Yahoo
+    if (s && s.yahoo && !url.searchParams.get('again')) return redirect(next || '/mine');   // already signed in with Yahoo
     const state = randomId(24);
     const headers = new Headers({ Location: yahooAuthUrl(env, state) });
     headers.append('Set-Cookie', setCookie('fz_oauth', state, 600));
@@ -258,7 +258,7 @@ async function route(req, env, ctx) {
         const acct = await linkYahooAccount(env, D, uid, tok.access_token);
         where = `/mine?added=${acct.leagues.filter((l) => l.isNew).length}&found=${acct.leagues.length}`;
       } catch (e) {
-        where = '/mine?err=' + encodeURIComponent(`Signed in, but Yahoo didn’t send your leagues (${e.message}). Try again in a minute.`);
+        where = '/mine?yerr=1&err=' + encodeURIComponent(`Signed in, but Yahoo didn’t send your leagues (${e.message}).`);
       }
       const next = nextOk(cookie(req, 'fz_next'));
       const headers = new Headers({ Location: next || where });
@@ -505,7 +505,7 @@ async function route(req, env, ctx) {
     if (!s) return redirect('/');
     const results = (await leaguesOf(D, s)).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
     return html(P.mine(results.map((L) => ({ ...L, is_comm: isComm(L, s) })),
-      { added: +url.searchParams.get('added') || 0, found: url.searchParams.get('found'), espn: !!s.espn, yahoo: !!s.yahoo, yahooOn,
+      { added: +url.searchParams.get('added') || 0, found: url.searchParams.get('found'), espn: !!s.espn, yahoo: !!s.yahoo, yahooOn, yahooRetry: !!url.searchParams.get('yerr'),
         failed: (url.searchParams.get('failed') || '').split('|').concat(url.searchParams.get('err') || '').filter(Boolean) }));
   }
 

@@ -7,7 +7,7 @@ const YAPI = 'https://fantasysports.yahooapis.com/fantasy/v2';
 
 export function yahooAuthUrl(env, state) {
   const q = new URLSearchParams({ client_id: env.YAHOO_CLIENT_ID, redirect_uri: `${env.SITE_URL}/auth/yahoo/callback`,
-    response_type: 'code', language: 'en-us', state });
+    response_type: 'code', language: 'en-us', scope: 'fspt-r', state });   // fspt-r: Fantasy Sports, read-only
   return `${YAUTH}/request_auth?${q}`;
 }
 
@@ -34,8 +34,15 @@ export async function yahooAccess(env, uid, D) {
 }
 
 async function yget(token, path) {
-  const r = await fetch(`${YAPI}/${path}`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) throw new Error(`Yahoo returned ${r.status} for ${path.split('/')[0]}`);
+  const r = await fetch(`${YAPI}/${path}`, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/xml',
+    'User-Agent': 'Mozilla/5.0 (compatible; DailyFantasizer/1.0; +https://thedailyfantasizer.com)' } });
+  if (!r.ok) {
+    // Yahoo says why in the body (<description> in XML, or JSON); keep a short, safe piece of it for the message
+    const body = await r.text().catch(() => '');
+    const why = (body.match(/<description>([^<]{1,160})<\/description>/) || body.match(/"description"\s*:\s*"([^"]{1,160})"/) || [])[1] || '';
+    console.log('yahoo api', r.status, path.split('/')[0], body.slice(0, 300).replace(/\s+/g, ' '));
+    throw new Error(`Yahoo returned ${r.status} for ${path.split('/')[0]}${why ? `: ${why}` : ''}`);
+  }
   return r.text();
 }
 

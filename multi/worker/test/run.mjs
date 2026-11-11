@@ -144,7 +144,7 @@ r = await call('GET', '/api/office/nosuchleague1'); assert.equal(r.status, 404);
 console.log('Yahoo');
 jar = {};
 r = await call('GET', '/auth/yahoo'); const loc = new URL(r.headers.get('Location'));
-assert.equal(loc.origin + loc.pathname, 'https://api.login.yahoo.com/oauth2/request_auth'); assert.equal(loc.searchParams.get('redirect_uri'), 'https://fz.example/auth/yahoo/callback'); ok('redirect to Yahoo');
+assert.equal(loc.origin + loc.pathname, 'https://api.login.yahoo.com/oauth2/request_auth'); assert.equal(loc.searchParams.get('redirect_uri'), 'https://fz.example/auth/yahoo/callback'); assert.equal(loc.searchParams.get('scope'), 'fspt-r'); ok('redirect to Yahoo, asking for Fantasy Sports read access');
 r = await call('GET', `/auth/yahoo/callback?code=C1&state=WRONG`); assert.equal(r.status, 400); ok('state mismatch rejected');
 { const before = dispatched.length;
   r = await call('GET', `/auth/yahoo/callback?code=C1&state=${loc.searchParams.get('state')}`);
@@ -320,6 +320,8 @@ console.log('ESPN and Yahoo at the same time');
   r = await call('GET', `/l/${gh.slugOf('461.l.556', 'yahoo')}/`); assert.notEqual(r.status, 403);
   r = await call('GET', `/l/${gh.slugOf('4002')}/`); assert.notEqual(r.status, 403); ok('papers from both accounts open');
   r = await call('GET', '/login'); assert.equal(r.status, 303); r = await call('GET', '/auth/yahoo'); assert.equal(r.headers.get('Location'), '/mine'); ok('no second login on either site');
+  r = await call('GET', '/auth/yahoo?again=1'); assert.match(r.headers.get('Location'), /^https:\/\/api\.login\.yahoo\.com\//); ok('"Log in with Yahoo again" really goes back to Yahoo');
+  t = await text(await call('GET', '/mine?yerr=1&err=x')); assert.match(t, /href="\/auth\/yahoo\?again=1"/); ok('a Yahoo error on My leagues offers to log in with Yahoo again');
   r = await call('GET', '/'); assert.equal(r.status, 303); ok('front page opens a paper');
   // the other way round: Yahoo first, then ESPN
   jar = { fz_s: await sign(env, { uid: 'yahoo:GUID9', display: 'Yahoo', exp: Date.now() + 60 * 864e5 }) };
