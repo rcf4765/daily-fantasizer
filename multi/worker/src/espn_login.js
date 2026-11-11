@@ -69,16 +69,35 @@ async function settle(page, tr, c, anon) {
   return { s2: fresh.s2, swid: swids[0], swids };
 }
 
-async function loginFrame(page, tr, ms = 20000) {
+/** The frame that really holds ESPN's login form: the one with a visible email box. ESPN's page also has small helper
+ *  frames whose addresses look like the login (www.espn.com/login/responder/…, named disneyid-…), and on a slow load
+ *  one of those can appear before the real form (cdn.registerdisney.go.com), so a frame only counts once its email box
+ *  is on screen. Disney's own frame is checked first. */
+async function loginFrame(page, tr, ms = 30000) {
   const end = Date.now() + ms;
+  const hostOf = (x) => { try { return new URL(x.url()).host; } catch (e) { return '?'; } };
   while (Date.now() < end) {
-    const f = page.frames().find((x) => SEL.oneidFrame.test(x.url()));
-    if (f) { tr.add(`login form found (${new URL(f.url()).host})`); return f; }
-    if (await page.$(SEL.email)) { tr.add('login form found (on the page itself)'); return page.mainFrame(); }
+    const frames = page.frames();
+    const ordered = [...frames.filter((x) => /registerdisney\.go\.com/i.test(x.url())), ...frames.filter((x) => !/registerdisney\.go\.com/i.test(x.url()) && SEL.oneidFrame.test(x.url())), page.mainFrame()];
+    for (const f of ordered) {
+      try {
+        const el = await f.$(SEL.email);
+        if (el && await el.isIntersectingViewport().catch(() => true)) {
+          tr.add(f === page.mainFrame() ? 'login form found (on the page itself)' : `login form found (${hostOf(f)})`);
+          return f;
+        }
+      } catch (e) { /* frame reloading */ }
+    }
     await sleep(500);
   }
-  tr.add(`login form not found; frames: ${page.frames().map((x) => { try { return new URL(x.url()).host; } catch (e) { return '?'; } }).join(', ')}`);
+  tr.add(`login form not found; frames: ${page.frames().map(hostOf).join(', ')}`);
   return null;
+}
+
+/** Disney's login frame (the real form) before any look-alike helper frame on www.espn.com. */
+function disneyFrame(page) {
+  const fs = page.frames();
+  return fs.find((x) => /registerdisney\.go\.com/i.test(x.url())) || fs.find((x) => SEL.oneidFrame.test(x.url()) && !/\/responder\b/i.test(x.url())) || null;
 }
 
 async function find(frame, sel, ms) {
@@ -113,7 +132,7 @@ async function outcome(page, frame, tr, ms = 25000, { codeGrace = 0 } = {}) {
     try {   // ESPN's form reloads between steps; a check that lands mid-reload just tries again
       const c = await sessionCookies(page);
       if (c) { tr.add('signed in: ESPN session received'); return { status: 'ok', ...(await settle(page, tr, c, anonSwid)) }; }
-      const f = page.frames().find((x) => SEL.oneidFrame.test(x.url())) || frame;
+      const f = disneyFrame(page) || frame;
       // right after a code is submitted the old boxes are still on screen; give ESPN a moment before calling it wrong
       if (f && Date.now() - t0 >= codeGrace && await f.$(SEL.code)) { tr.add('ESPN asked for a one-time code'); return { status: 'code' }; }
       // a bot check only counts when it is really on screen and stays there (no session after 12 seconds)
@@ -147,10 +166,15 @@ export async function espnLoginStart(env, email, password) {
     const already = await sessionCookies(page);
     if (already) { tr.add('unexpected: already signed in'); }
     anonSwid = (await page.cookies(...COOKIE_URLS).catch(() => [])).find((c) => c.name === 'SWID')?.value || '';
-    const frame = await loginFrame(page, tr);
+    let frame = await loginFrame(page, tr);
+    if (!frame) {   // a slow or half-loaded page: load it once more before giving up
+      tr.add('reloading the login page');
+      await page.goto(env.ESPN_LOGIN_URL || LOGIN_URL, { waitUntil: 'networkidle2', timeout: 30000 }).catch(() => tr.add('page still loading after 30s'));
+      frame = await loginFrame(page, tr, 25000);
+    }
     if (!frame) return { status: 'error', error: 'ESPN’s login page didn’t load. Try again in a minute.', retry: true, trace: tr.steps };
     const em = await find(frame, SEL.email, 15000);
-    if (!em) { tr.add('email box not found'); return { status: 'error', error: 'ESPN’s login page changed. We’ve been told; try again later.', trace: tr.steps }; }
+    if (!em) { tr.add('email box not found'); return { status: 'error', error: 'ESPN’s login page didn’t load properly. Try again in a minute.', retry: true, trace: tr.steps }; }
     await em.click({ clickCount: 3 }); await em.type(email, { delay: 25 });
     tr.add('email entered');
     let pw = await frame.$(SEL.password);
@@ -190,7 +214,9 @@ export async function espnLoginCode(env, sessionId, code) {
     browser = await (env.__browserLib || await browserLib()).connect(env.BROWSER, sessionId);
     const page = (await browser.pages())[0];
     if (!page) throw new Error('no page');
-    const frame = page.frames().find((x) => SEL.oneidFrame.test(x.url())) || page.mainFrame();
+    // the frame that shows the code boxes (Disney's), not a look-alike helper frame
+    let frame = disneyFrame(page) || page.mainFrame();
+    for (const f of [frame, ...page.frames()]) { if ((await f.$$(SEL.code).catch(() => [])).length) { frame = f; break; } }
     const boxes = await frame.$$(SEL.code);
     if (!boxes.length) { tr.add('code box gone'); return { status: 'error', error: 'That sign-in timed out. Start again.', trace: tr.steps }; }
     for (const bx of boxes) { await bx.click({ clickCount: 3 }); await bx.press('Backspace'); }   // clear a previous try
