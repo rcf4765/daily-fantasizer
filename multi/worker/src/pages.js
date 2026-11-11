@@ -260,6 +260,15 @@ const A2HS = `<section id="a2hs" class="a2hs" hidden>
  });
 })();</script>`;
 
+/** Log in with Yahoo while Yahoo is still reviewing the site's access to its Fantasy data (wrangler var YAHOO_PENDING). */
+export function yahooPending({ espn = false, signedIn = false } = {}) {
+  return layout('Log in with Yahoo · coming soon · The Daily Fantasizer', `${mast('Log in with Yahoo')}
+<p class="lede">Almost here. Yahoo is reviewing The Daily Fantasizer's access to Yahoo Fantasy data. Their review usually takes 1 to 2 weeks, and Log in with Yahoo opens as soon as they approve it.</p>
+<p style="margin-top:12px">Nothing is lost by waiting: once it opens, one Yahoo sign-in sets up a paper for every Yahoo league on your account.</p>
+<p class="row" style="margin-top:20px">${espn ? '' : '<a class="btn" href="/login">Log in with ESPN</a>'}<a class="btn alt" href="${signedIn ? '/mine' : '/'}">${signedIn ? 'My leagues' : 'Back'}</a></p>
+${espn ? '' : '<p class="hint" style="margin-top:14px">In an ESPN league too? Log in with ESPN now; your Yahoo leagues will join the same list later.</p>'}`);
+}
+
 export function message(title, text, back = '/') {
   return layout(`${title} · The Daily Fantasizer`, `${mast(title)}<p class="lede">${esc(text)}</p><p style="margin-top:20px"><a class="btn alt" href="${esc(back)}">Back</a></p>`);
 }

@@ -329,6 +329,13 @@ console.log('ESPN and Yahoo at the same time');
   r = await call('GET', '/login'); assert.equal(r.status, 200); assert.match(await text(r), /ESPN password/); ok('…and the ESPN login page opens (not skipped)');
   await call('POST', '/espn', { form: { league: '777', season: '2026', espn_s2: 'S2SECRET', swid: '{BBBB-2222}' } });
   t = await text(await call('GET', '/mine')); assert.ok(t.includes('Private Pals') && t.includes('Sunday Funday')); ok('ESPN added after Yahoo: both kept');
+  env.YAHOO_PENDING = '1';
+  r = await call('GET', '/auth/yahoo'); t = await text(r); assert.equal(r.status, 200);
+  assert.match(t, /Yahoo is reviewing/); assert.match(t, /1 to 2 weeks/); assert.match(t, /href="\/mine"/); assert.doesNotMatch(t, /href="\/login"/);
+  ok('Yahoo still reviewing: Log in with Yahoo explains the wait (signed in to ESPN: back to My leagues)');
+  { const keep = jar; jar = {}; t = await text(await call('GET', '/auth/yahoo?next=/')); assert.match(t, /Yahoo is reviewing/); assert.match(t, /href="\/login"[^>]*>Log in with ESPN/); jar = keep; }
+  ok('…and offers Log in with ESPN to someone signed out');
+  delete env.YAHOO_PENDING;
   delete env.YAHOO_CLIENT_ID;
   jar = { fz_s: await sign(env, { uid: ESPN_ME, display: 'ESPN', exp: Date.now() + 60 * 864e5 }) };
   t = await text(await call('GET', '/mine')); assert.match(t, /Log in with Yahoo · soon/); ok('no Yahoo keys yet: the Yahoo button shows "soon"');

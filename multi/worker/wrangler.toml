@@ -14,5 +14,8 @@ workers_dev = true   # keep the old workers.dev address answering (it forwards t
 [vars]
 SITE_URL = "https://fantasizer.YOUR-SUBDOMAIN.workers.dev"   # no trailing slash
 DATA_REPO = "OWNER/daily-fantasizer-data"
+# Yahoo is reviewing our Fantasy API access (applied 2026-11-11, usually 1–2 weeks). While this says "1", every
+# Log in with Yahoo button shows a short "being reviewed" note instead of Yahoo's page. Set it to "" once approved.
+YAHOO_PENDING = "1"
 # Secrets (set by the deploy workflow): SESSION_SECRET, ENC_KEY, BUILD_TOKEN, LOGIN_KEY (derived from FZ_MASTER_KEY)
 # and GITHUB_TOKEN (FZ_GITHUB_TOKEN: reads/writes the data repo, starts its workflows); optional YAHOO_CLIENT_ID/_SECRET

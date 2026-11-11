@@ -237,6 +237,7 @@ async function route(req, env, ctx) {
   if (path === '/auth/yahoo') {
     if (!env.YAHOO_CLIENT_ID) return html(P.message('Yahoo isn’t set up yet', 'Log in with Yahoo is coming soon. Log in with ESPN for now.', '/'), 503);
     const next = nextOk(url.searchParams.get('next'));
+    if (env.YAHOO_PENDING) return html(P.yahooPending({ espn: !!(s && s.espn), signedIn: !!s }));   // Yahoo still reviewing our access
     if (s && s.yahoo && !url.searchParams.get('again')) return redirect(next || '/mine');   // already signed in with Yahoo
     const state = randomId(24);
     const headers = new Headers({ Location: yahooAuthUrl(env, state) });
