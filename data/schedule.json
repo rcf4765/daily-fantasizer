@@ -1,5 +1,5 @@
 {
- "fetched_at": "2026-11-11T17:13:22.878636Z",
+ "fetched_at": "2026-11-17T10:59:17.860947Z",
  "regweeks": 14,
  "playoff_teams": 6,
  "games": [
@@ -331,37 +331,37 @@
    "wk": 10,
    "home": 3,
    "away": 10,
-   "winner": "UNDECIDED"
+   "winner": "HOME"
   },
   {
    "wk": 10,
    "home": 4,
    "away": 1,
-   "winner": "UNDECIDED"
+   "winner": "AWAY"
   },
   {
    "wk": 10,
    "home": 7,
    "away": 9,
-   "winner": "UNDECIDED"
+   "winner": "AWAY"
   },
   {
    "wk": 10,
    "home": 8,
    "away": 5,
-   "winner": "UNDECIDED"
+   "winner": "HOME"
   },
   {
    "wk": 10,
    "home": 11,
    "away": 6,
-   "winner": "UNDECIDED"
+   "winner": "AWAY"
   },
   {
    "wk": 10,
    "home": 12,
    "away": 2,
-   "winner": "UNDECIDED"
+   "winner": "AWAY"
   },
   {
    "wk": 11,
