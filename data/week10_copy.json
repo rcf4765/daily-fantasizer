@@ -1,0 +1,158 @@
+{
+ "week": 10,
+ "hero": {
+  "winner": 1,
+  "loser": 4,
+  "big": "178.8",
+  "label": "points, a season high"
+ },
+ "lead": {
+  "kicker": "Page one",
+  "headline": "Bananini Hits 178.8, Season High",
+  "deck": "A waiver-wire pickup scored 35.1 from the flex, and the Bruisers lost by 61.42.",
+  "paragraphs": [
+   "{T1} got 35.1 from Emmett Johnson, added this week, 28.2 from Parker Washington, 27.7 from Isaiah Likely and 21.0 from the Vikings D/ST.",
+   "{S1} is now 7–3, one of four teams at 7–3. Next up: {S8}, the only team that scored more this week."
+  ]
+ },
+ "sidebar": [
+  {
+   "style": "hi",
+   "kicker": "Strange but true",
+   "title": "Lost With 117, Won With 97",
+   "viz": {
+    "type": "bars",
+    "rows": [
+     {
+      "team": 4,
+      "value": 117.38
+     },
+     {
+      "team": 9,
+      "value": 97.06,
+      "alt": true
+     }
+    ]
+   },
+   "text": "{S4} scored 117.38, beat eight teams in all-play, and lost. {S9} scored 97.06, beat three, and won."
+  }
+ ],
+ "recaps": {
+  "1-4": {
+   "headline": "See Page One",
+   "text": "Bhayshul Tuten 20.3, Jonathan Taylor 12.3. Bijan Robinson 17.7 for the Bruisers."
+  },
+  "6-11": {
+   "headline": "Streak Snapped at Five",
+   "text": "Chase Brown 28.3, Blake Corum 20.9. Chuba Hubbard's 34.2 wasn't enough for Kazakhstan."
+  },
+  "9-7": {
+   "headline": "Travis Wins With 97.06",
+   "text": "Jayden Daniels 20.76, Rams D/ST 16.0. Magnificent's best lineup, 104.06, would have won."
+  },
+  "3-10": {
+   "headline": "Chase Carries 8D Again",
+   "text": "Ja'Marr Chase 34.1, Cam Skattebo 27.2, Cam Little 19.0. Pony 0–11 in all-play."
+  },
+  "2-12": {
+   "headline": "Doughboys Make It Three Straight",
+   "text": "Garrett Wilson 15.6, Lions D/ST 13.0. Amon-Ra St. Brown 25.8 for Bedazzled."
+  },
+  "8-5": {
+   "headline": "League Season High: 187.14",
+   "text": "Josh Allen 22.34, Tony Pollard 23.9 from the flex. James Cook III 21.7 led CeeDeez."
+  }
+ },
+ "honor": {
+  "team": 4,
+  "big": "1.60",
+  "big_label": "pts left on bench",
+  "kicker": "Manager of the week",
+  "title": "Big Boy Bruisers",
+  "text": "Smallest bench gap of the week. Dak Prescott 34.42 on a 17.7 projection, Nico Collins 24.4, Malik Washington 13.36. Still lost."
+ },
+ "blotter": [
+  {
+   "team": 9,
+   "title": "Benched three better players",
+   "text": "Rashee Rice 13.2, Dalton Schultz 8.1, Khalil Shakir 7.5 sat. Won anyway."
+  },
+  {
+   "team": 7,
+   "title": "Benched the 15.3-point receiver",
+   "text": "Josh Downs sat. DeMario Douglas started: 1.4. Lost by 8.7."
+  },
+  {
+   "team": 1,
+   "title": "Benched DJ Moore's 19.4",
+   "text": "Zay Flowers started: 11.4. Won anyway, so no charges."
+  },
+  {
+   "team": 4,
+   "title": "Started a projected zero",
+   "text": "Saquon Barkley in the lineup: projected zero, scored zero."
+  }
+ ],
+ "missing": [
+  {
+   "team": 7,
+   "player": "Rhamondre Stevenson",
+   "text": "1.5 on a 13.0 projection."
+  },
+  {
+   "team": 9,
+   "player": "Javonte Williams",
+   "text": "7.7 on an 18.5 projection."
+  },
+  {
+   "team": 4,
+   "player": "Travis Kelce",
+   "text": "5.0 on a 12.2 projection."
+  },
+  {
+   "team": 7,
+   "player": "Tyler Warren",
+   "text": "2.4 on a 12.0 projection."
+  }
+ ],
+ "pecking_notes": {
+  "12": "Lost, still first in all-play.",
+  "8": "Most points for in the league.",
+  "5": "Third in all-play, 5–5 record.",
+  "1": "Season-high 178.8, two straight wins.",
+  "2": "Three straight wins, now 7–3.",
+  "11": "Back to 5–5.",
+  "9": "Won with 97.06.",
+  "7": "Three straight losses.",
+  "4": "Seven straight losses, now 1–9.",
+  "10": "Week's lowest score, now 4–6.",
+  "6": "Five-game skid is over.",
+  "3": "Three wins in four weeks."
+ },
+ "forecast_blurbs": {
+  "4-3": "Bruisers trying to stop seven straight.",
+  "10-11": "Biggest spread of the week: 28.5.",
+  "1-8": "Both 7–3, both off season highs.",
+  "6-7": "Magnificent trying to stop three straight.",
+  "5-12": "Closest line of the week.",
+  "9-2": "Doughboys on a three-game streak."
+ },
+ "upsets": {
+  "6-11": {
+   "headline": "Kazakhstan Falls to a 2–7 Team",
+   "text": "{S6} snapped five straight losses and partied like it was a title. {S11} started a −7.0 Steelers D/ST, benched Quinshon Judkins' 16.1 and lost by 5.32. Back to 5–5."
+  },
+  "3-10": {
+   "headline": "8D Wins With Four Zeros",
+   "text": "{S3} started four projected zeros and won anyway. {S10} benched Jared Goff's 20.42 for Drake Maye's 3.02, scored the week's low 70.42 and fell to 4–6."
+  },
+  "2-12": {
+   "headline": "Doughboys Topple No. 1, Again",
+   "text": "{S2} beat the league's top team for a second straight week. McCaffrey 46.3, the week's best player. {S12} picked Burrow over Mahomes' 35.42 and fell from 7–2."
+  },
+  "8-5": {
+   "headline": "Beefy Boys Drop 187 on CeeDeez",
+   "text": "Season high for the whole league: 187.14, 11–0 all-play. Gibbs 44.2, Pickens 43.5. {S5} went from last week's 156.5, the week's best, to 98.88."
+  }
+ }
+}
