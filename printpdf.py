@@ -242,6 +242,7 @@ function collect(){
   C.official=mk[0]||'';C.vol=(mk[1]||'').split('·').slice(0,2).join('·').trim();
   C.edition=ms[0]||'';C.format=ms[1]||'';C.price=ms[2]||'';
   C.week=(C.edition.match(/\d+/)||[''])[0];C.date=btn.getAttribute('data-date')||'';
+  C.breaking=qa(P,'.bn-i').map(function(b){var k=(b.className.match(/bn-(clinched|bye|eliminated)/)||[])[1]||'';return {id:crest(b),kind:k,st:T(q(b,'.bn-st')),h:T(q(b,'h3')),x:T(q(b,'p'))};});
   C.tiles=qa(P,'.tiles .tile').map(function(t){return {k:T(q(t,'.tile-k')),v:T(q(t,'b')),s:T(q(t,'.tile-s'))};});
   // Roster Radar numbers (from each chart's label), by crest
   var RD={};qa(P,'#roster-radar .rd-card').forEach(function(c){var id=crest(q(c,'.rd-h')),lab=(q(c,'svg')||{getAttribute:function(){return'';}}).getAttribute('aria-label')||'';
@@ -378,6 +379,20 @@ function runhead(op,C){var y=tri(op,PH-M,6.8,10,'The Daily Fantasizer',C.date,C.
   football(op,PW/2,y-9,13);hl(op,M,PW/2-14,y-9,0.3);hl(op,PW/2+14,PW-M,y-9,0.3);return y-18;}
 function footer(op,C,n){hl(op,M,PW-M,FOOT-6,0.5);var s=enc('— '+n+' —'),z=7.5,y=FOOT-15;
   txt(op,'R',z,M,y,up(enc(C.official)),0.5);ctxt(op,'B',z,PW/2,y,s);var r=up(enc(C.price));txt(op,'R',z,PW-M-tw(r,'R',z,0.5),y,r,0.5);}
+function breaking(op,C,y){var B=C.breaking||[];if(!B.length)return y;var w=PW-2*M,n=Math.min(B.length,3),g=12,cw=(w-16-g*(n-1))/n,ph=30,hz=10.5,tz=7.6,tl=9.2;
+  var lay=B.map(function(b){var tw2=cw-ph-8,hl2=wrap(up(enc(b.h)),'B',hz,function(){return tw2;}),xl=wrap(enc(b.x),'R',tz,function(){return tw2;});return {b:b,hl:hl2,xl:xl,h:Math.max(ph+4,10+hl2.length*hz*1.05+3+xl.length*tl)};});
+  var rows=[];for(var i=0;i<lay.length;i+=n)rows.push(lay.slice(i,i+n));
+  var bodyH=rows.reduce(function(a,r){return a+Math.max.apply(null,r.map(function(l){return l.h;}))+8;},0),barH=16,top=y,H=barH+bodyH+6;
+  rect(op,M,top-H,w,H,PAPER);box(op,M,top-H,w,H,1.4);rect(op,M,top-barH,w,barH,RED);
+  txt(op,'B',10,M+8,top-barH+4.6,'BREAKING NEWS',1.6,0,PAPER);var sk=up(enc('Playoff race · week '+C.week));txt(op,'R',6.4,PW-M-8-tw(sk,'R',6.4,0.6),top-barH+5,sk,0.6,0,PAPER);
+  var yy=top-barH-6;rows.forEach(function(r){var rh=Math.max.apply(null,r.map(function(l){return l.h;}));
+    r.forEach(function(l,ci){var x=M+8+ci*(cw+g),yt=yy;if(ci)vl(op,x-g/2,yt,yt-rh,0.3);
+      if(!image(op,l.b.id,x,yt-ph,ph))silhouette(op,x+ph/2,yt-ph,ph);box(op,x-1,yt-ph-1,ph+2,ph+2,0.5);
+      var tx=x+ph+8,col=l.b.kind==='eliminated'?RED:INK,st=up(enc(l.b.st));txt(op,'B',6.2,tx,yt-6.5,st,0.8,0,col);
+      var cy=yt-10;l.hl.forEach(function(t){cy-=hz*1.05;txt(op,'B',hz,tx,cy+hz*0.2,t);});cy-=3;
+      l.xl.forEach(function(t,i){cy-=tl;var gaps=(t.match(/ /g)||[]).length,ws=0;if(i<l.xl.length-1&&gaps){ws=(cw-ph-8-tw(t,'R',tz))/gaps;if(ws>tz*0.7)ws=0;}txt(op,'R',tz,tx,cy+2,t,0,ws);});});
+    yy-=rh+8;});
+  return top-H-10;}
 function banner(op,C,y){var w=PW-2*M;if(C.banner){var h=up(enc(C.banner.head)),z=36,ls;
   // "EXTRA!" flag
   stamp(op,M+40,y-9,'Extra!',-6,10);y-=16;
@@ -403,7 +418,7 @@ function fill(L,s,top,bot,op){var col=0,y=top,i=s,low=[top,top,top],colH=top-bot
     if(op)x.d(op,M+col*(CW+GUT),y,CW);y-=x.h;low[col]=y;i++;}
   return {i:i,low:low,cols:Math.min(col+1,COLS)};}
 function layout(C){var pages=[],L=C.lines,i=0,n=1;
-  while(i<L.length&&n<40){var op=[];texture(op,n);var top=n===1?banner(op,C,masthead(op,C)):runhead(op,C),bot=FOOT;
+  while(i<L.length&&n<40){var op=[];texture(op,n);var top=n===1?banner(op,C,breaking(op,C,masthead(op,C))):runhead(op,C),bot=FOOT;
     var r=fill(L,i,top,bot,null);
     if(r.i>=L.length){var lo=20,hi=top-bot;while(hi-lo>2){var mid=(lo+hi)/2;if(fill(L,i,top,top-mid,null).i>=L.length)hi=mid;else lo=mid;}bot=top-hi-0.5;}
     r=fill(L,i,top,bot,op);

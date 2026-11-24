@@ -993,6 +993,23 @@ footer b{color:var(--honolulu);font-weight:600}
 <div class="tab-pane" id="paper" role="tabpanel" aria-labelledby="tab-paper">
 
 
+<section class="bn" id="breaking" aria-label="Breaking news"><style>
+.bn{border:3px solid var(--rule);background:var(--sheet)}
+.bn-bar{display:flex;align-items:center;gap:10px;background:var(--red);color:#fff;padding:6px 12px;font-family:var(--display);font-weight:900;font-size:1.3rem;letter-spacing:.06em;text-transform:uppercase}
+.bn-bar::before{content:"";width:10px;height:10px;border-radius:50%;background:#fff;animation:bn-blink 1.2s steps(2,start) infinite}
+@keyframes bn-blink{to{visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.bn-bar::before{animation:none}}
+.bn-bar small{margin-left:auto;font-family:var(--mono);font-size:.66rem;font-weight:400;letter-spacing:.1em}
+.bn-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.bn-i{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;padding:12px 14px;border-top:1px solid var(--line)}
+.bn-i h3{font-size:1.45rem;text-transform:uppercase;margin:4px 0 4px}
+.bn-i p{font-size:.95rem}
+.bn-st{font-family:var(--mono);font-size:.66rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border:1.5px solid currentColor}
+.bn-clinched .bn-st,.bn-bye .bn-st{color:var(--blue)}
+.bn-eliminated .bn-st{color:var(--red)}
+@media (max-width:760px){.bn-bar{font-size:1.1rem}.bn-bar small{display:none}.bn-i{padding:10px 12px}.bn-i h3{font-size:1.25rem}}
+</style><div class="bn-bar">Breaking news<small>Playoff race · week 11</small></div><div class="bn-list"><article class="bn-i bn-eliminated"><i class="lg lg-6 lg-md" aria-hidden="true"></i><div><span class="bn-st">Eliminated</span><h3>IDK Eliminated With a Perfect Lineup</h3><p><span class="tm"><i class="lg lg-6 " aria-hidden="true"></i>IDK</span> started the best possible lineup, 77.36, and still lost by 37.32. At 3–8 there&#x27;s no path to the top 6. Five losses in the last six.</p></div></article><article class="bn-i bn-eliminated"><i class="lg lg-3 lg-md" aria-hidden="true"></i><div><span class="bn-st">Eliminated</span><h3>8D&#x27;s Season Is Over at 3–8</h3><p>Mathematically dead with three weeks left. <span class="tm"><i class="lg lg-3 " aria-hidden="true"></i>8D</span> has the league&#x27;s fewest points, 854.9, averages 77.7 a week, and got knocked out by a team that was 1–9.</p></div></article></div></section>
+
 <div class="tiles" aria-label="Week 11 by the numbers"><div class="tile"><span class="tile-k">League average</span><b class="num">106.2</b><span class="tile-s"><span>points per team</span></span></div><div class="tile"><span class="tile-k">High score</span><b class="num">148.36</b><span class="tile-s"><i class="lg lg-9 " aria-hidden="true"></i><span>Travis&#x27;s Team</span></span></div><div class="tile"><span class="tile-k">Low score</span><b class="num">55.50</b><span class="tile-s"><i class="lg lg-3 " aria-hidden="true"></i><span>8D</span></span></div><div class="tile"><span class="tile-k">Top player</span><b class="num">35.9</b><span class="tile-s"><i class="lg lg-4 " aria-hidden="true"></i><span>Dak Prescott</span></span></div><div class="tile"><span class="tile-k">Left on benches</span><b class="num">99.84</b><span class="tile-s"><span>across all 12 teams</span></span></div><div class="tile"><span class="tile-k">Perfect lineups</span><b class="num">2</b><span class="tile-s"><i class="lg lg-6 " aria-hidden="true"></i><i class="lg lg-7 " aria-hidden="true"></i><span>only one of them won</span></span></div></div>
 
 <section class="ups-news" id="upsets" aria-label="The biggest news of week 11"><div class="ups"><article class="ups-card lead-up">
@@ -1330,6 +1347,7 @@ function collect(){
   C.official=mk[0]||'';C.vol=(mk[1]||'').split('·').slice(0,2).join('·').trim();
   C.edition=ms[0]||'';C.format=ms[1]||'';C.price=ms[2]||'';
   C.week=(C.edition.match(/\d+/)||[''])[0];C.date=btn.getAttribute('data-date')||'';
+  C.breaking=qa(P,'.bn-i').map(function(b){var k=(b.className.match(/bn-(clinched|bye|eliminated)/)||[])[1]||'';return {id:crest(b),kind:k,st:T(q(b,'.bn-st')),h:T(q(b,'h3')),x:T(q(b,'p'))};});
   C.tiles=qa(P,'.tiles .tile').map(function(t){return {k:T(q(t,'.tile-k')),v:T(q(t,'b')),s:T(q(t,'.tile-s'))};});
   // Roster Radar numbers (from each chart's label), by crest
   var RD={};qa(P,'#roster-radar .rd-card').forEach(function(c){var id=crest(q(c,'.rd-h')),lab=(q(c,'svg')||{getAttribute:function(){return'';}}).getAttribute('aria-label')||'';
@@ -1466,6 +1484,20 @@ function runhead(op,C){var y=tri(op,PH-M,6.8,10,'The Daily Fantasizer',C.date,C.
   football(op,PW/2,y-9,13);hl(op,M,PW/2-14,y-9,0.3);hl(op,PW/2+14,PW-M,y-9,0.3);return y-18;}
 function footer(op,C,n){hl(op,M,PW-M,FOOT-6,0.5);var s=enc('— '+n+' —'),z=7.5,y=FOOT-15;
   txt(op,'R',z,M,y,up(enc(C.official)),0.5);ctxt(op,'B',z,PW/2,y,s);var r=up(enc(C.price));txt(op,'R',z,PW-M-tw(r,'R',z,0.5),y,r,0.5);}
+function breaking(op,C,y){var B=C.breaking||[];if(!B.length)return y;var w=PW-2*M,n=Math.min(B.length,3),g=12,cw=(w-16-g*(n-1))/n,ph=30,hz=10.5,tz=7.6,tl=9.2;
+  var lay=B.map(function(b){var tw2=cw-ph-8,hl2=wrap(up(enc(b.h)),'B',hz,function(){return tw2;}),xl=wrap(enc(b.x),'R',tz,function(){return tw2;});return {b:b,hl:hl2,xl:xl,h:Math.max(ph+4,10+hl2.length*hz*1.05+3+xl.length*tl)};});
+  var rows=[];for(var i=0;i<lay.length;i+=n)rows.push(lay.slice(i,i+n));
+  var bodyH=rows.reduce(function(a,r){return a+Math.max.apply(null,r.map(function(l){return l.h;}))+8;},0),barH=16,top=y,H=barH+bodyH+6;
+  rect(op,M,top-H,w,H,PAPER);box(op,M,top-H,w,H,1.4);rect(op,M,top-barH,w,barH,RED);
+  txt(op,'B',10,M+8,top-barH+4.6,'BREAKING NEWS',1.6,0,PAPER);var sk=up(enc('Playoff race · week '+C.week));txt(op,'R',6.4,PW-M-8-tw(sk,'R',6.4,0.6),top-barH+5,sk,0.6,0,PAPER);
+  var yy=top-barH-6;rows.forEach(function(r){var rh=Math.max.apply(null,r.map(function(l){return l.h;}));
+    r.forEach(function(l,ci){var x=M+8+ci*(cw+g),yt=yy;if(ci)vl(op,x-g/2,yt,yt-rh,0.3);
+      if(!image(op,l.b.id,x,yt-ph,ph))silhouette(op,x+ph/2,yt-ph,ph);box(op,x-1,yt-ph-1,ph+2,ph+2,0.5);
+      var tx=x+ph+8,col=l.b.kind==='eliminated'?RED:INK,st=up(enc(l.b.st));txt(op,'B',6.2,tx,yt-6.5,st,0.8,0,col);
+      var cy=yt-10;l.hl.forEach(function(t){cy-=hz*1.05;txt(op,'B',hz,tx,cy+hz*0.2,t);});cy-=3;
+      l.xl.forEach(function(t,i){cy-=tl;var gaps=(t.match(/ /g)||[]).length,ws=0;if(i<l.xl.length-1&&gaps){ws=(cw-ph-8-tw(t,'R',tz))/gaps;if(ws>tz*0.7)ws=0;}txt(op,'R',tz,tx,cy+2,t,0,ws);});});
+    yy-=rh+8;});
+  return top-H-10;}
 function banner(op,C,y){var w=PW-2*M;if(C.banner){var h=up(enc(C.banner.head)),z=36,ls;
   // "EXTRA!" flag
   stamp(op,M+40,y-9,'Extra!',-6,10);y-=16;
@@ -1491,7 +1523,7 @@ function fill(L,s,top,bot,op){var col=0,y=top,i=s,low=[top,top,top],colH=top-bot
     if(op)x.d(op,M+col*(CW+GUT),y,CW);y-=x.h;low[col]=y;i++;}
   return {i:i,low:low,cols:Math.min(col+1,COLS)};}
 function layout(C){var pages=[],L=C.lines,i=0,n=1;
-  while(i<L.length&&n<40){var op=[];texture(op,n);var top=n===1?banner(op,C,masthead(op,C)):runhead(op,C),bot=FOOT;
+  while(i<L.length&&n<40){var op=[];texture(op,n);var top=n===1?banner(op,C,breaking(op,C,masthead(op,C))):runhead(op,C),bot=FOOT;
     var r=fill(L,i,top,bot,null);
     if(r.i>=L.length){var lo=20,hi=top-bot;while(hi-lo>2){var mid=(lo+hi)/2;if(fill(L,i,top,top-mid,null).i>=L.length)hi=mid;else lo=mid;}bot=top-hi-0.5;}
     r=fill(L,i,top,bot,op);

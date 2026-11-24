@@ -3,6 +3,7 @@ Usage: python3 render.py 5   (reads data/week5_facts.json, data/week5_copy.json,
 data/trades.json if present, league.json, data/logos.txt and template.html)
 Writes daily-fantasizer-week5.html. Every chart number comes from the facts/raw/trades data; words from the copy file."""
 import json, re, html, math, sys
+import playoffs as _playoffs  # Breaking News: clinched / eliminated (user, 2026-11-24)
 
 W = int(sys.argv[1])
 F = json.load(open(f"data/week{W}_facts.json"))
@@ -242,6 +243,7 @@ from facts import load as _load, optimal as _optimal
 # All built from data/week1_raw.txt .. data/weekN_raw.txt (and data/schedule.json for playoff odds). Skipped if a week is missing.
 import random as _random, statistics as _st
 odds_html = rangebench_html = waiver_html = ""
+breaking_html, BREAKING = "", []  # Breaking News: clinched / eliminated (playoffs.py, user 2026-11-24)
 if all(_os.path.exists(f"data/week{k}_raw.txt") for k in range(1, W + 1)):
     SD = {}  # week -> dict(score, opt, opp, starters, tx)
     for k in range(1, W + 1):
@@ -290,6 +292,12 @@ if all(_os.path.exists(f"data/week{k}_raw.txt") for k in range(1, W + 1)):
                      f'<div class="od"><div class="od-row od-head"><span>Team</span><span>Now</span><span>Chance to make playoffs</span><span></span><span>Proj. record</span><span class="seeds-h">Seed 1 → {NT}</span></div>{"".join(orow)}</div>'
                      f'<p class="note-s">Weeks {W + 1}–{REG} are played out 10,000 times on the real schedule. Each team scores around its season average (pulled slightly toward the league average of {lmean:.1f}) '
                      f'with the league\'s typical week-to-week swing of ±{sig:.1f}. Ties go to points for. Darker seed cells = more likely.</p></section>')
+
+    # --- Breaking News: who clinched or was eliminated this week (exact, playoffs.py) ---
+    if _os.path.exists("data/schedule.json"):
+        breaking_html, BREAKING, _bn_missing = _playoffs.section(json.load(open("data/schedule.json")), SD, W, teams, SHORT, lg, esc, C.get("breaking"), fill)
+        for _t in _bn_missing:
+            print(f"NOTE: Breaking News has no write-up for team {_t} ({SHORT[_t]}); add data/week{W}_copy.json breaking[\"{_t}\"] = {{headline, text}}")
 
     # --- floor and ceiling ---
     fl = {t: sorted(SD[k]["score"][t] for k in WEEKS) for t in teams}
@@ -493,6 +501,7 @@ strength_html = _strength.build(LG["short_names"], W)
 
 # Matchup of the Week (paper), Manager Report Card, One-Man Show, Trade Matchmaker (League & Teams): teams.py
 import teams as _teams
+
 import printpdf as _printpdf  # Print button at the bottom of the paper (user, 2026-11-10)
 _recs = {t: rec_s(SEA[t]) for t in SEA}
 matchup_html = _teams.matchup(LG["short_names"], W, F, _recs) if os.path.exists("data/players/meta.json") else ""
@@ -506,7 +515,7 @@ if LG["league_name"].lower().endswith(" league"):   # "Office League", not "Offi
     out = out.replace("the {{LEAGUE_NAME}} league", "the {{LEAGUE_NAME}}")
 for k, v in {"<!--PLAYERSTATS-->": ps_html, "<!--LU--><!--/LU-->": lu_html, "/*LOGOS*/": "\n".join(f".lg-{t}{{background-image:url({u})}}" for t, u in logos.items()),
              "<!--CRESTS-->": crests, "<!--POTEAMS-->": json.dumps({t: {"name": teams[t]["name"], "short": SHORT[t]} for t in sorted(teams)}).replace("</", "<\\/"), "{{PROPOSALS_API}}": LG.get("proposals_api", ""), "<!--RCPRESETS-->": json.dumps({k: {f: v[f] for f in ("category", "title", "pitch", "now_label", "new_label") if f in v} for k, v in json.load(open("rules_presets.json")).items()}).replace("</", "<\\/"), "<!--UPSETS-->": upsets_html, "<!--ANNOUNCE-->": announce_html, "<!--TILES-->": tiles_html, "<!--HERO-->": hero, "<!--LEAD-->": lead,
-             "<!--SIDEBAR-->": sidebar, "<!--PRINT-->": _printpdf.block(LG["season"], W),
+             "<!--SIDEBAR-->": sidebar, "<!--PRINT-->": _printpdf.block(LG["season"], W), "<!--BREAKING-->": breaking_html,
              "<!--SCOREBOARD-->": scoreboard, "<!--POSITIONS-->": positions, "<!--POSKINGS-->": poskings,
              "<!--GAMES-->": "".join(game_cards), "<!--HONOR-->": honor, "<!--HEAT-->": heat, "<!--SCATTER-->": scatter,
              "<!--BLOTTER-->": blotter, "<!--MISSING-->": missing, "<!--PECKING-->": "".join(trs), "<!--STRENGTH-->": strength_html, "<!--MATCHUP-->": matchup_html, "<!--REPORTCARD-->": report_html, "<!--ONEMAN-->": oneman_html, "<!--RACE-->": race_html, "<!--MATCHMAKER-->": matchmaker_html, "<!--ODDS-->": odds_html, "<!--RANGEBENCH-->": rangebench_html, "<!--WAIVERMVP-->": waiver_html, "<!--RUMORS-->": trades_html + block_html, "<!--FORECAST-->": forecast,
