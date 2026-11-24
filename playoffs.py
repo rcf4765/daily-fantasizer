@@ -181,9 +181,18 @@ def section(SCH, SD, W, teams, SHORT, lg, esc, copy=None, fill=lambda s: s):
     """Returns (html, items, missing): the Breaking News box ("" when there is no news), the items for the printed
     paper [(team, kind, headline, text)] and the team ids that had no hand-written copy."""
     items, info = news(SCH, SD, W, teams)
+    copy = copy or {}
+    # catch-up: a team the copy names that clinched or was eliminated in an EARLIER week is shown too (used once,
+    # week 11, when the box started; user 2026-11-24: "include every team that's eliminated", then only new changes)
+    st = info.get("status", {})
+    for k in copy:
+        t = int(k) if str(k).isdigit() else None
+        if t in st and t not in [x for x, _ in items]:
+            kind = "bye" if st[t]["bye"] else "clinched" if st[t]["clinched"] else "eliminated" if st[t]["eliminated"] else None
+            if kind:
+                items.append((t, kind))
     if not items:
         return "", [], []
-    copy = copy or {}
     rec, left, pot = info["rec"], info["left"], info["pot"]
     rows, plain, missing = [], [], []
     for t, kind in items:
