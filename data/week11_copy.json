@@ -1,0 +1,155 @@
+{
+ "week": 11,
+ "hero": {
+  "winner": 12,
+  "loser": 5,
+  "big": "37.48",
+  "label": "points CeeDeez left on the bench"
+ },
+ "lead": {
+  "kicker": "Page one",
+  "headline": "CeeDeez Benches 37.48, Loses by 21.6",
+  "deck": "Mike Evans scored 22.9 on the bench. The best lineup would have won by 15.88.",
+  "paragraphs": [
+   "{T5} started Kirk Cousins (7.4) over Tyler Shough (14.28), Emeka Egbuka (3.8) over Mike Evans and Juwan Johnson (0.0) over T.J. Hockenson (11.5), added this week.",
+   "{S12} takes first place at 8–3, ahead of {S1} on points. {S5} has lost two straight and is 5–6, still fifth in all-play."
+  ]
+ },
+ "sidebar": [
+  {
+   "style": "hi",
+   "kicker": "Strange but true",
+   "title": "Free-Agent QB Outscores Josh Allen",
+   "viz": {
+    "type": "bars",
+    "rows": [
+     {
+      "label": "Fernando Mendoza",
+      "value": 22.88
+     },
+     {
+      "label": "Caleb Williams",
+      "value": 14.34,
+      "alt": true
+     },
+     {
+      "label": "Josh Allen",
+      "value": 12.16,
+      "alt": true
+     }
+    ]
+   },
+   "text": "{S7} picked up Fernando Mendoza this week. Projected 7.6, he scored 22.88, more than Josh Allen and Caleb Williams."
+  }
+ ],
+ "recaps": {
+  "12-5": {
+   "headline": "See Page One",
+   "text": "Jameson Williams 19.3, Bucky Irving 19.0. CeeDee Lamb's 30.2 wasn't enough."
+  },
+  "1-8": {
+   "headline": "Bananini Wins Three Straight",
+   "text": "Emmett Johnson 24.3, DJ Moore 23.1. Beefy's best lineup, 110.96, would have won."
+  },
+  "11-10": {
+   "headline": "Kazakhstan Back Above .500",
+   "text": "Chuba Hubbard 26.0, Derrick Henry 19.1, Tyler Bass 17.0. Jared Goff 20.36 led Pony."
+  },
+  "7-6": {
+   "headline": "Magnificent Snaps Three-Game Skid",
+   "text": "Ashton Jeanty 27.9, 49ers D/ST 14.0. C.J. Stroud 20.46 led the other side."
+  },
+  "9-2": {
+   "headline": "Travis Posts the Week's High",
+   "text": "Jonah Coleman 34.9, Javonte Williams 24.1. Tetairoa McMillan 19.1 for the Doughboys."
+  },
+  "4-3": {
+   "headline": "Seven-Game Skid Is Over",
+   "text": "Dak Prescott 35.9, Travis Kelce 25.4. Trey McBride's 14.8 led 8D."
+  }
+ },
+ "honor": {
+  "team": 7,
+  "big": "0.00",
+  "big_label": "pts left on bench",
+  "kicker": "Manager of the week",
+  "title": "Michael's Magnificent Team",
+  "text": "Perfect lineup. Opponent {S6} also left 0.00 and lost by 37.32. Ashton Jeanty 27.9 on an 11.4 projection."
+ },
+ "blotter": [
+  {
+   "team": 8,
+   "title": "Started a projected zero",
+   "text": "Dalton Kincaid at tight end: projected zero, scored zero. Lost by 7.46."
+  },
+  {
+   "team": 12,
+   "title": "Benched Patrick Mahomes' 24.96",
+   "text": "The week's best bench player. Joe Burrow started: 19.9. Won anyway."
+  },
+  {
+   "team": 1,
+   "title": "Benched Zay Flowers' 16.4",
+   "text": "Bhayshul Tuten started at flex: 8.3. Won anyway, so no charges."
+  },
+  {
+   "team": 10,
+   "title": "Benched Jalen Coker's 8.7",
+   "text": "Ryan Flournoy started at flex: 2.1. Lost by 9.28."
+  }
+ ],
+ "missing": [
+  {
+   "team": 8,
+   "player": "Luther Burden III",
+   "text": "3.3 on a 14.6 projection."
+  },
+  {
+   "team": 11,
+   "player": "DK Metcalf",
+   "text": "1.2 on a 10.3 projection."
+  },
+  {
+   "team": 6,
+   "player": "Chase Brown",
+   "text": "8.6 on a 16.9 projection."
+  },
+  {
+   "team": 12,
+   "player": "Courtland Sutton",
+   "text": "0.0 on a 9.0 projection."
+  }
+ ],
+ "pecking_notes": {
+  "12": "First in all-play and standings.",
+  "8": "Most points for, lost anyway.",
+  "1": "Three straight wins, now 8–3.",
+  "11": "Back above .500 at 6–5.",
+  "5": "Benched 37.48, two straight losses.",
+  "2": "Season-low 98.44, now 7–4.",
+  "9": "Week-high 148.36, 11–0 all-play.",
+  "7": "Three-game skid over, 6–5.",
+  "4": "Season-high 136.0 ends seven-game skid.",
+  "10": "Two straight losses, now 4–7.",
+  "6": "Perfect lineup, still lost by 37.32.",
+  "3": "0–11 in all-play this week."
+ },
+ "forecast_blurbs": {
+  "11-3": "Biggest spread of the week: 44.0.",
+  "8-4": "Bruisers chasing a second straight win.",
+  "7-10": "Pony trying to stop two straight.",
+  "12-1": "Both 8–3, first place on the line.",
+  "2-6": "Doughboys favored by 30.5.",
+  "5-9": "Closest line of the week: 3.5."
+ },
+ "upsets": {
+  "4-3": {
+   "headline": "1–9 Bruisers Bury 8D by 80",
+   "text": "{S4} snapped seven straight losses with a season-high 136.0 and celebrated like it was a title. {S3} started four projected zeros, went 0–11 in all-play and lost by 80.5."
+  },
+  "9-2": {
+   "headline": "Travis Flattens Doughboys by 49.92",
+   "text": "{S9} dropped the week's high, 148.36, and went 11–0 in all-play. {S2} benched Brock Purdy's 22.2 for Trevor Lawrence's 12.74, posted a season-low 98.44 and fell from 7–3."
+  }
+ }
+}
