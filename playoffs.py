@@ -231,6 +231,45 @@ def section(SCH, SD, W, teams, SHORT, lg, esc, copy=None, fill=lambda s: s):
     return html_, plain, missing
 
 
+LAUNCH = (2026, 11)  # season, week the box started: that edition also lists teams decided earlier (user, 2026-11-24)
+
+
+def from_files(W, home="."):
+    """For papers written without hand copy (multi/autocopy.py): this week's news and every team's status, read from
+    data/week1..W_raw.txt and data/schedule.json in `home`. Returns (items, info, decided_week) or None.
+    decided_week: team -> the week its current clinched/eliminated status was settled."""
+    import os, json as _j
+    from facts import load as _load
+    p = lambda *a: os.path.join(home, *a)
+    if not os.path.exists(p("data", "schedule.json")) or not all(os.path.exists(p("data", f"week{k}_raw.txt")) for k in range(1, W + 1)):
+        return None
+    SCH = _j.load(open(p("data", "schedule.json")))
+    SD, teams = {}, set()
+    for k in range(1, W + 1):
+        _m, _s, _t, sched, _r, _x, _l = _load(p("data", f"week{k}_raw.txt"))
+        sc, opp = {}, {}
+        for gm in sched:
+            if gm["wk"] == k and gm["away"]:
+                sc[gm["home"]], sc[gm["away"]] = gm["hp"], gm["ap"]; opp[gm["home"]], opp[gm["away"]] = gm["away"], gm["home"]
+        SD[k] = dict(score=sc, opp=opp); teams |= set(sc)
+    items, info = news(SCH, SD, W, teams)
+    if not info:
+        return None
+    decided = {}
+    for t, s in info["status"].items():
+        key = "bye" if s["bye"] else "clinched" if s["clinched"] else "eliminated" if s["eliminated"] else None
+        if not key:
+            continue
+        k = W
+        while k > 1:
+            _, pinfo = news(SCH, {j: SD[j] for j in range(1, k)}, k - 1, teams)
+            if not pinfo or not pinfo["status"][t][key]:
+                break
+            k -= 1
+        decided[t] = k
+    return items, info, decided
+
+
 if __name__ == "__main__":
     # quick check: python3 playoffs.py W  -> prints each team's status
     import json, sys, re

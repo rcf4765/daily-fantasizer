@@ -250,8 +250,55 @@ for n in F.get("next_week", []):
         b = f"{{S{fav}}} favored by {g(n['spread'])}. O/U {g(n['ou'])}."
     forecast[f"{n['home']}-{n['away']}"] = b
 
+# ---------------- Breaking News: clinched / eliminated (playoffs.py; user, 2026-11-24) ----------------
+# Same box and rules as the Men Fantasizing paper: only teams whose status changed this week, except the launch
+# edition (playoffs.LAUNCH), which also lists every team already decided.
+breaking = {}
+try:
+    import os as _os; sys.path.insert(0, _os.getcwd())  # autocopy.py runs as a symlink from multi/; the pipeline files sit in the league folder
+    import playoffs as _po
+    _r = _po.from_files(W)
+except Exception as _e:
+    print("Breaking News skipped:", _e); _r = None
+if _r:
+    _items, _info, _dec = _r
+    _shown = [t for t, _ in _items]
+    if (int(LG.get("season") or 0), W) == _po.LAUNCH:
+        _shown += [t for t in sorted(_dec, key=lambda t: (_dec[t], t)) if t not in _shown]
+    _pot, _left = _info["pot"], _info["left"]
+    for t in _shown:
+        s = _info["status"][t]; kind = "bye" if s["bye"] else "clinched" if s["clinched"] else "eliminated"
+        sh, r = LG["short_names"].get(str(t), TEAMS[t]["name"]), rec(t)
+        gm = next((x for x in GAMES if t in (x["winner"], x["loser"])), None); won = bool(gm) and gm["winner"] == t
+        wk = _dec.get(t, W); late = wk < W
+        lw = f"{_left} week{'s' if _left != 1 else ''}"
+        if kind == "eliminated":
+            mx = SEA[t]["w"] + _left
+            head = f"Already Out: {sh}" if late else pick([f"{sh} Eliminated at {r}", f"Lights Out for {sh}", f"{sh}'s Season Is Over"], "bn", t)
+            bits = ([f"Knocked out after week {wk}."] if late else [pick([f"Mathematically out with {lw} left.", f"No way back with {lw} left.", f"Officially done with {lw} to play."], "bo", t)])
+            bits.append(f"{{S{t}}} is {r} and can finish {mx}–{SEA[t]['l']} at best, short of the top {_pot}.")
+            if not late and gm and not won:
+                bits.append(f"Lost by {f2(gm['margin'])} this week.")
+            st = SEA[t].get("streak", "")
+            if st.startswith("L") and int(st[1:] or 0) >= 2:
+                bits.append(f"{st[1:]} straight losses.")
+        else:
+            head = (f"{sh} Locks Up a Bye" if kind == "bye" else pick([f"{sh} Punches Its Ticket", f"{sh} Is In", f"{sh} Clinches a Playoff Spot"], "bn", t))
+            if late:
+                head = ("Bye Already Locked: " if kind == "bye" else "Already In: ") + sh
+            bits = [f"{{S{t}}} ({r}) " + ("can't finish lower than the top " + str(_info['byes']) + " and skips round one" if kind == "bye"
+                                           else f"locked up a top-{_pot} finish") + (f" after week {wk}." if late else f" with {lw} to spare." if _left else ".")]
+            if not late and won:
+                bits.append(f"Sealed it with a {f2(gm['margin'])}-point win.")
+            ts = top_starters(t, 1)
+            if not late and ts:
+                bits.append(f"{ts[0][0]} led the way with {g(ts[0][3])}.")
+        breaking[str(t)] = {"headline": " ".join(head.split()[:8]), "text": words(" ".join(bits), 30)}
+
 copy = {"week": W, "hero": hero, "lead": lead, "sidebar": side, "recaps": recaps, "honor": honor,
         "blotter": blotter, "missing": missing, "pecking_notes": pecking, "forecast_blurbs": forecast, "upsets": upsets}
+if breaking:
+    copy["breaking"] = breaking
 ann = [a for a in LG.get("announcements", []) if a.get("week") == W]
 if ann:
     copy["announcement"] = ann[0]
